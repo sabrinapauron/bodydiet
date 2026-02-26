@@ -396,6 +396,30 @@ const MacroBar = ({
         </Text>
 
         <View style={{ marginTop: 10 }}>
+          {/* ✅ MULTI-JAUGE MACROS */}
+<MacroBar
+  label="Protéines"
+  value={protein}
+  target={targets.protein}
+  progress={Math.min(1, protein / Math.max(1, targets.protein))}
+  color="#22c55e"
+/>
+
+<MacroBar
+  label="Glucides"
+  value={carbs}
+  target={targets.carbs}
+  progress={Math.min(1, carbs / Math.max(1, targets.carbs))}
+  color="#60a5fa"
+/>
+
+<MacroBar
+  label="Lipides"
+  value={fat}
+  target={targets.fat}
+  progress={Math.min(1, fat / Math.max(1, targets.fat))}
+  color="#f59e0b"
+/>
           <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
             {protein}
             <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
