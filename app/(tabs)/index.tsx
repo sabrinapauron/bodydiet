@@ -11,7 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 
-const API_URL = "http://192.168.1.45:4000/analyze-meal";// <-- à remplacer plus tard
+const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 const STORE_KEY = "FITSCAN_V1";
 
 type Goal = "gain" | "cut" | "maintain";
@@ -19,8 +19,21 @@ type Goal = "gain" | "cut" | "maintain";
 type LogEntry = {
   t: number;
   foods: string[];
-  p: number;
-  c: number;
+  p: number;     // protein
+  carb: number;  // carbs
+  f: number;     // fat
+  c: number;     // calories
+};
+
+type StoredState = {
+  day: string;
+  protein: number;
+  carbs: number;
+  fat: number;
+  calories: number;
+  log: LogEntry[];
+  weightKg: string;
+  goal: Goal;
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -36,6 +49,8 @@ export default function HomeScreen() {
   // Journée
   const [day, setDay] = useState(todayKey());
   const [protein, setProtein] = useState(0);
+  const [carbs, setCarbs] = useState(0);
+  const [fat, setFat] = useState(0);
   const [calories, setCalories] = useState(0);
   const [log, setLog] = useState<LogEntry[]>([]);
 
@@ -44,6 +59,8 @@ export default function HomeScreen() {
   // Ajout perso
   const [manualOpen, setManualOpen] = useState(false);
   const [manualP, setManualP] = useState("25");
+  const [manualCarb, setManualCarb] = useState("0");
+  const [manualF, setManualF] = useState("0");
   const [manualC, setManualC] = useState("120");
 
   const targetProtein = useMemo(() => {
@@ -52,6 +69,25 @@ export default function HomeScreen() {
     const factor = goal === "cut" ? 1.8 : goal === "maintain" ? 1.6 : 2.0;
     return Math.round(w * factor);
   }, [weightKg, goal]);
+
+  // (optionnel) cibles simples pour carbs/fat (pour l’affichage "reste")
+  const targets = useMemo(() => {
+    const w = Number(weightKg) || 0;
+    if (!w) return { protein: targetProtein, carbs: 200, fat: 60 };
+
+    if (goal === "cut") {
+      return { protein: Math.round(w * 1.8), carbs: Math.round(w * 2.0), fat: Math.round(w * 0.8) };
+    }
+    if (goal === "maintain") {
+      return { protein: Math.round(w * 1.6), carbs: Math.round(w * 3.0), fat: Math.round(w * 1.0) };
+    }
+    // gain
+    return { protein: Math.round(w * 2.0), carbs: Math.round(w * 4.0), fat: Math.round(w * 1.1) };
+  }, [weightKg, goal, targetProtein]);
+
+  const persist = async (next: StoredState) => {
+    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
+  };
 
   useEffect(() => {
     (async () => {
@@ -65,27 +101,26 @@ export default function HomeScreen() {
           return;
         }
 
-        const s = JSON.parse(raw) as Partial<{
-          day: string;
-          protein: number;
-          calories: number;
-          log: LogEntry[];
-          weightKg: string | number;
-          goal: Goal;
-        }>;
+        const s = JSON.parse(raw) as Partial<StoredState>;
 
+        // reset journalier
         if (s.day !== tk) {
-          const next = {
+          const next: StoredState = {
             day: tk,
             protein: 0,
+            carbs: 0,
+            fat: 0,
             calories: 0,
-            log: [] as LogEntry[],
+            log: [],
             weightKg: String(s.weightKg ?? "75"),
             goal: (s.goal ?? "gain") as Goal,
           };
-          await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
+          await persist(next);
+
           setDay(tk);
           setProtein(0);
+          setCarbs(0);
+          setFat(0);
           setCalories(0);
           setLog([]);
           setWeightKg(next.weightKg);
@@ -93,16 +128,19 @@ export default function HomeScreen() {
         } else {
           setDay(s.day || tk);
           setProtein(Number(s.protein) || 0);
+          setCarbs(Number(s.carbs) || 0);
+          setFat(Number(s.fat) || 0);
           setCalories(Number(s.calories) || 0);
-          setLog(Array.isArray(s.log) ? s.log : []);
+          setLog(Array.isArray(s.log) ? (s.log as LogEntry[]) : []);
           setWeightKg(String(s.weightKg ?? "75"));
           setGoal((s.goal ?? "gain") as Goal);
         }
       } catch {
-        // si stockage corrompu, on démarre propre
         const tk = todayKey();
         setDay(tk);
         setProtein(0);
+        setCarbs(0);
+        setFat(0);
         setCalories(0);
         setLog([]);
       } finally {
@@ -111,35 +149,40 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const persist = async (next: {
-    day: string;
-    protein: number;
-    calories: number;
-    log: LogEntry[];
-    weightKg: string;
-    goal: Goal;
-  }) => {
-    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
-  };
+  const addEntry = async ({
+    foods = [],
+    p = 0,
+    carb = 0,
+    f = 0,
+    c = 0,
+  }: Partial<LogEntry> & { foods?: string[] }) => {
+    const nextProtein = protein + (p || 0);
+    const nextCarbs = carbs + (carb || 0);
+    const nextFat = fat + (f || 0);
+    const nextCalories = calories + (c || 0);
 
-  const addEntry = async (entry: { foods?: string[]; p?: number; c?: number }) => {
-    const p = entry.p ?? 0;
-    const c = entry.c ?? 0;
-    const foods = entry.foods ?? [];
+    const newEntry: LogEntry = {
+      t: Date.now(),
+      foods: Array.isArray(foods) ? foods.filter(Boolean) : [],
+      p: p || 0,
+      carb: carb || 0,
+      f: f || 0,
+      c: c || 0,
+    };
 
-    const nextProtein = protein + p;
-    const nextCalories = calories + c;
-
-    const newEntry: LogEntry = { t: Date.now(), foods, p, c };
     const nextLog = [newEntry, ...log].slice(0, 50);
 
     setProtein(nextProtein);
+    setCarbs(nextCarbs);
+    setFat(nextFat);
     setCalories(nextCalories);
     setLog(nextLog);
 
     await persist({
       day,
       protein: nextProtein,
+      carbs: nextCarbs,
+      fat: nextFat,
       calories: nextCalories,
       log: nextLog,
       weightKg,
@@ -149,14 +192,19 @@ export default function HomeScreen() {
 
   const resetDay = async () => {
     const tk = todayKey();
+
     setDay(tk);
     setProtein(0);
+    setCarbs(0);
+    setFat(0);
     setCalories(0);
     setLog([]);
 
     await persist({
       day: tk,
       protein: 0,
+      carbs: 0,
+      fat: 0,
       calories: 0,
       log: [],
       weightKg,
@@ -202,6 +250,8 @@ export default function HomeScreen() {
       await addEntry({
         foods: Array.isArray(data.foods) ? data.foods : [],
         p: Math.max(0, roundInt(data.protein_g)),
+        carb: Math.max(0, roundInt(data.carbs_g)),
+        f: Math.max(0, roundInt(data.fat_g)),
         c: Math.max(0, roundInt(data.calories_kcal)),
       });
     } catch {
@@ -211,12 +261,16 @@ export default function HomeScreen() {
     }
   };
 
-  const quickSupp = async (label: string, p: number, c = 0) => {
-    await addEntry({ foods: [label], p, c });
+  const quickSupp = async (label: string, p: number, carb: number, f: number, c: number) => {
+    await addEntry({ foods: [label], p, carb, f, c });
   };
 
-  const remaining = Math.max(0, targetProtein - protein);
-  const status = remaining === 0 ? "OBJECTIF ATTEINT" : remaining <= 25 ? "PRESQUE" : "EN COURS";
+  const remainP = Math.max(0, targets.protein - protein);
+  const remainCarb = Math.max(0, targets.carbs - carbs);
+  const remainF = Math.max(0, targets.fat - fat);
+
+  const status =
+    remainP === 0 ? "OBJECTIF ATTEINT" : remainP <= 25 ? "PRESQUE" : "EN COURS";
 
   if (!loaded) return null;
 
@@ -230,7 +284,7 @@ export default function HomeScreen() {
         <View style={{ marginTop: 10 }}>
           <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
             {protein}
-            <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targetProtein}g</Text>
+            <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
           </Text>
 
           <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7, marginTop: 2 }}>
@@ -238,11 +292,19 @@ export default function HomeScreen() {
           </Text>
 
           <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700", marginTop: 10 }}>
-            {remaining === 0 ? "✅ OK" : `Encore ${remaining}g`}
+            {remainP === 0 ? "✅ OK" : `Encore ${remainP}g`}
           </Text>
 
           <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7, marginTop: 6 }}>
             Calories (approx) : {calories} kcal
+          </Text>
+
+          <Text style={{ color: "#fff", opacity: 0.75, marginTop: 10 }}>
+            P {protein}g  •  G {carbs}g  •  L {fat}g
+          </Text>
+
+          <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6 }}>
+            Reste : P {remainP} • G {remainCarb} • L {remainF}
           </Text>
         </View>
 
@@ -265,13 +327,12 @@ export default function HomeScreen() {
           AJOUT RAPIDE (COMPLÉMENTS)
         </Text>
 
-        {/* IMPORTANT: pas de "gap" pour éviter incompatibilités */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-          <Pill label="Shake protéiné" onPress={() => quickSupp("Shake protéiné (dose standard)", 25, 120)} />
-          <Pill label="Shake x2" onPress={() => quickSupp("Shake protéiné (double)", 50, 240)} />
-          <Pill label="Yaourt protéiné" onPress={() => quickSupp("Yaourt protéiné", 20, 140)} />
-          <Pill label="Barre protéinée" onPress={() => quickSupp("Barre protéinée", 15, 200)} />
-          <Pill label="Gainer" onPress={() => quickSupp("Gainer (portion)", 20, 300)} />
+          <Pill label="Shake protéiné" onPress={() => quickSupp("Shake protéiné", 25, 3, 2, 130)} />
+          <Pill label="Shake x2" onPress={() => quickSupp("Shake protéiné x2", 50, 6, 4, 260)} />
+          <Pill label="Yaourt protéiné" onPress={() => quickSupp("Yaourt protéiné", 20, 12, 2, 150)} />
+          <Pill label="Barre protéinée" onPress={() => quickSupp("Barre protéinée", 15, 20, 7, 200)} />
+          <Pill label="Gainer" onPress={() => quickSupp("Gainer (portion)", 20, 60, 5, 350)} />
           <Pill label="Ajout perso" onPress={() => setManualOpen(true)} />
         </View>
 
@@ -286,7 +347,7 @@ export default function HomeScreen() {
               value={weightKg}
               onChangeText={async (v) => {
                 setWeightKg(v);
-                await persist({ day, protein, calories, log, weightKg: v, goal });
+                await persist({ day, protein, carbs, fat, calories, log, weightKg: v, goal });
               }}
               keyboardType="numeric"
               style={{
@@ -304,9 +365,30 @@ export default function HomeScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Objectif</Text>
             <View style={{ flexDirection: "row", marginTop: 6 }}>
-              <MiniBtn active={goal === "gain"} label="Masse" onPress={async () => { setGoal("gain"); await persist({ day, protein, calories, log, weightKg, goal: "gain" }); }} />
-              <MiniBtn active={goal === "cut"} label="Sèche" onPress={async () => { setGoal("cut"); await persist({ day, protein, calories, log, weightKg, goal: "cut" }); }} />
-              <MiniBtn active={goal === "maintain"} label="Maintien" onPress={async () => { setGoal("maintain"); await persist({ day, protein, calories, log, weightKg, goal: "maintain" }); }} />
+              <MiniBtn
+                active={goal === "gain"}
+                label="Masse"
+                onPress={async () => {
+                  setGoal("gain");
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "gain" });
+                }}
+              />
+              <MiniBtn
+                active={goal === "cut"}
+                label="Sèche"
+                onPress={async () => {
+                  setGoal("cut");
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "cut" });
+                }}
+              />
+              <MiniBtn
+                active={goal === "maintain"}
+                label="Maintien"
+                onPress={async () => {
+                  setGoal("maintain");
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "maintain" });
+                }}
+              />
             </View>
           </View>
         </View>
@@ -322,7 +404,8 @@ export default function HomeScreen() {
                 style={{ marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "#111827" }}
               >
                 <Text style={{ color: "#fff", fontWeight: "800" }}>
-                  +{e.p}g <Text style={{ opacity: 0.7, fontWeight: "600" }}>• {e.c} kcal</Text>
+                  +{e.p}P • +{e.carb}G • +{e.f}L
+                  <Text style={{ opacity: 0.7, fontWeight: "600" }}> • {e.c} kcal</Text>
                 </Text>
                 <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4 }}>
                   {(e.foods || []).join(" • ") || "Repas"}
@@ -368,11 +451,29 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Calories (kcal)</Text>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Glucides (g)</Text>
                 <TextInput
-                  value={manualC}
-                  onChangeText={setManualC}
+                  value={manualCarb}
+                  onChangeText={setManualCarb}
+                  keyboardType="numeric"
+                  style={{
+                    marginTop: 6,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: "#111827",
+                    color: "#fff",
+                    fontSize: 16,
+                    fontWeight: "800",
+                  }}
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Lipides (g)</Text>
+                <TextInput
+                  value={manualF}
+                  onChangeText={setManualF}
                   keyboardType="numeric"
                   style={{
                     marginTop: 6,
@@ -387,6 +488,24 @@ export default function HomeScreen() {
               </View>
             </View>
 
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Calories (kcal)</Text>
+              <TextInput
+                value={manualC}
+                onChangeText={setManualC}
+                keyboardType="numeric"
+                style={{
+                  marginTop: 6,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: "#111827",
+                  color: "#fff",
+                  fontSize: 16,
+                  fontWeight: "800",
+                }}
+              />
+            </View>
+
             <View style={{ flexDirection: "row", marginTop: 12 }}>
               <TouchableOpacity
                 onPress={() => setManualOpen(false)}
@@ -398,9 +517,11 @@ export default function HomeScreen() {
               <TouchableOpacity
                 onPress={async () => {
                   const p = Math.max(0, parseInt(manualP || "0", 10) || 0);
+                  const carb = Math.max(0, parseInt(manualCarb || "0", 10) || 0);
+                  const f = Math.max(0, parseInt(manualF || "0", 10) || 0);
                   const c = Math.max(0, parseInt(manualC || "0", 10) || 0);
-                  if (!p && !c) return;
-                  await addEntry({ foods: ["Ajout perso"], p, c });
+                  if (!p && !carb && !f && !c) return;
+                  await addEntry({ foods: ["Ajout perso"], p, carb, f, c });
                   setManualOpen(false);
                 }}
                 style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#ffffff" }}
