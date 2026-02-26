@@ -540,6 +540,36 @@ const MacroBar = ({
         </View>
 
         <View style={{ marginTop: 26 }}>
+
+          {perfectDay && (
+  <View
+    style={{
+      marginTop: 18,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: "#052e16",
+      borderWidth: 1,
+      borderColor: "#22c55e",
+      alignItems: "center",
+    }}
+  >
+    <Text style={{ fontSize: 22 }}>🔥</Text>
+
+    <Text
+      style={{
+        color: "#22c55e",
+        fontWeight: "900",
+        marginTop: 4,
+      }}
+    >
+      JOURNÉE PARFAITE
+    </Text>
+
+    <Text style={{ color: "#86efac", opacity: 0.8 }}>
+      Objectifs nutrition atteints
+    </Text>
+  </View>
+)}
 {/* COACH BODY */}
 <View
   style={{
