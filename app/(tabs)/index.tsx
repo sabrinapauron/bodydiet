@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -63,27 +63,73 @@ export default function HomeScreen() {
   const [manualF, setManualF] = useState("0");
   const [manualC, setManualC] = useState("120");
 
-  const targetProtein = useMemo(() => {
-    const w = Number(weightKg) || 0;
-    if (!w) return 150;
-    const factor = goal === "cut" ? 1.8 : goal === "maintain" ? 1.6 : 2.0;
-    return Math.round(w * factor);
-  }, [weightKg, goal]);
+  const scrollRef = useRef<any>(null);
+const manualRef = useRef<View | null>(null);
 
-  // (optionnel) cibles simples pour carbs/fat (pour l’affichage "reste")
-  const targets = useMemo(() => {
-    const w = Number(weightKg) || 0;
-    if (!w) return { protein: targetProtein, carbs: 200, fat: 60 };
+ // Objectif protéines (simple)
+const targetProtein = useMemo(() => {
+  const w = Number(weightKg) || 0;
+  if (!w) return 150;
 
-    if (goal === "cut") {
-      return { protein: Math.round(w * 1.8), carbs: Math.round(w * 2.0), fat: Math.round(w * 0.8) };
-    }
-    if (goal === "maintain") {
-      return { protein: Math.round(w * 1.6), carbs: Math.round(w * 3.0), fat: Math.round(w * 1.0) };
-    }
-    // gain
-    return { protein: Math.round(w * 2.0), carbs: Math.round(w * 4.0), fat: Math.round(w * 1.1) };
-  }, [weightKg, goal, targetProtein]);
+  const factor =
+    goal === "cut"
+      ? 1.8
+      : goal === "maintain"
+      ? 1.6
+      : 2.0;
+
+  return Math.round(w * factor);
+}, [weightKg, goal]);
+
+// Objectifs macros complets (P/G/L + calories)
+const targets = useMemo(() => {
+  const w = Number(weightKg) || 0;
+
+  // fallback si poids vide
+  if (!w) {
+    return {
+      protein: targetProtein,
+      carbs: 250,
+      fat: 70,
+      calories: 2200,
+    };
+  }
+
+  if (goal === "gain") {
+    return {
+      protein: Math.round(w * 2.0),
+      carbs: Math.round(w * 4.0),
+      fat: Math.round(w * 1.0),
+      calories: Math.round(w * 35),
+    };
+  }
+
+  if (goal === "cut") {
+    return {
+      protein: Math.round(w * 2.2),
+      carbs: Math.round(w * 2.2),
+      fat: Math.round(w * 0.9),
+      calories: Math.round(w * 28),
+    };
+  }
+
+  // maintain
+  return {
+    protein: Math.round(w * 1.8),
+    carbs: Math.round(w * 3.0),
+    fat: Math.round(w * 1.0),
+    calories: Math.round(w * 32),
+  };
+}, [weightKg, goal, targetProtein]);
+
+const remainingP = Math.max(0, targets.protein - protein);
+const remainingG = Math.max(0, targets.carbs - carbs);
+const remainingL = Math.max(0, targets.fat - fat);
+
+const proteinProgress = Math.min(
+  1,
+  protein / Math.max(1, targets.protein)
+);
 
   const persist = async (next: StoredState) => {
     await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
@@ -276,7 +322,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView
+  ref={scrollRef}
+  contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+>
+
         <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7 }}>
           AUJOURD’HUI • {day}
         </Text>
@@ -286,7 +336,30 @@ export default function HomeScreen() {
             {protein}
             <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
           </Text>
-
+              
+              {/* ✅ JAUGE PROTÉINES (colle ici) */}
+  <View
+    style={{
+      marginTop: 12,
+      height: 12,
+      backgroundColor: "#111827",
+      borderRadius: 999,
+      overflow: "hidden",
+    }}
+  >
+    <View
+      style={{
+        height: "100%",
+        width: `${proteinProgress * 100}%`,
+        backgroundColor:
+          proteinProgress >= 1
+            ? "#22c55e"
+            : proteinProgress > 0.6
+            ? "#f59e0b"
+            : "#ef4444",
+      }}
+    />
+  </View>
           <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7, marginTop: 2 }}>
             PROTÉINES • {status}
           </Text>
@@ -303,9 +376,10 @@ export default function HomeScreen() {
             P {protein}g  •  G {carbs}g  •  L {fat}g
           </Text>
 
-          <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6 }}>
-            Reste : P {remainP} • G {remainCarb} • L {remainF}
-          </Text>
+          <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
+  Reste : P {remainingP} • G {remainingG} • L {remainingL}
+</Text>
+
         </View>
 
         <TouchableOpacity
@@ -333,7 +407,15 @@ export default function HomeScreen() {
           <Pill label="Yaourt protéiné" onPress={() => quickSupp("Yaourt protéiné", 20, 12, 2, 150)} />
           <Pill label="Barre protéinée" onPress={() => quickSupp("Barre protéinée", 15, 20, 7, 200)} />
           <Pill label="Gainer" onPress={() => quickSupp("Gainer (portion)", 20, 60, 5, 350)} />
-          <Pill label="Ajout perso" onPress={() => setManualOpen(true)} />
+          <Pill
+  label="Ajout perso"
+  onPress={() => {
+    setManualOpen(true);
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  }}
+/>
         </View>
 
         <Text style={{ color: "#fff", marginTop: 26, fontSize: 12, opacity: 0.7 }}>
@@ -394,6 +476,42 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ marginTop: 26 }}>
+{/* COACH BODY */}
+<View
+  style={{
+    marginTop: 26,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#0f172a",
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  }}
+>
+  <Text style={{ color: "#fff", fontWeight: "900" }}>
+    COACH BODY
+  </Text>
+
+  <Text style={{ color: "#fff", opacity: 0.7, marginTop: 6 }}>
+    {remainingP > remainingG && remainingP > remainingL
+      ? `Tu manques surtout de PROTÉINES (${remainingP}g)`
+      : remainingG > remainingL
+      ? `Tu manques surtout de GLUCIDES (${remainingG}g)`
+      : `Tu manques surtout de LIPIDES (${remainingL}g)`
+    }
+  </Text>
+
+  <Text style={{ color: "#fff", marginTop: 10 }}>
+    {remainingP > remainingG && remainingP > remainingL &&
+      "• Poulet • Thon • Œufs • Shake protéiné"}
+
+    {remainingG > remainingP && remainingG > remainingL &&
+      "• Riz • Avoine • Pâtes • Banane"}
+
+    {remainingL > remainingP && remainingL > remainingG &&
+      "• Amandes • Avocat • Huile d’olive"}
+  </Text>
+</View>
+
           <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>DERNIERS AJOUTS</Text>
           {log.length === 0 ? (
             <Text style={{ color: "#fff", opacity: 0.6, marginTop: 10 }}>Rien pour l’instant.</Text>
@@ -419,17 +537,17 @@ export default function HomeScreen() {
           <Text style={{ color: "#fff", opacity: 0.6, textAlign: "center" }}>Reset journée</Text>
         </TouchableOpacity>
 
-        {manualOpen && (
-          <View
-            style={{
-              marginTop: 16,
-              padding: 14,
-              borderRadius: 14,
-              backgroundColor: "#0f172a",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
+       {manualOpen && (
+  <View
+    style={{
+      marginTop: 16,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: "#0f172a",
+      borderWidth: 1,
+      borderColor: "#1f2937",
+    }}
+  >
             <Text style={{ color: "#fff", fontWeight: "900" }}>AJOUT PERSO</Text>
 
             <View style={{ flexDirection: "row", marginTop: 10 }}>
