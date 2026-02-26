@@ -11,7 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 
-const API_URL = "https://TON-SERVER/analyze-meal"; // <-- à remplacer plus tard
+const API_URL = "http://192.168.1.45:4000/analyze-meal";// <-- à remplacer plus tard
 const STORE_KEY = "FITSCAN_V1";
 
 type Goal = "gain" | "cut" | "maintain";
