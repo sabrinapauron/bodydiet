@@ -58,10 +58,10 @@ export default function HomeScreen() {
 
   // Ajout perso
   const [manualOpen, setManualOpen] = useState(false);
-  const [manualP, setManualP] = useState("25");
+  const [manualP, setManualP] = useState("0");
   const [manualCarb, setManualCarb] = useState("0");
   const [manualF, setManualF] = useState("0");
-  const [manualC, setManualC] = useState("120");
+  const [manualC, setManualC] = useState("0");
 
   const scrollRef = useRef<any>(null);
 const manualRef = useRef<View | null>(null);
@@ -130,6 +130,20 @@ const proteinProgress = Math.min(
   1,
   protein / Math.max(1, targets.protein)
 );
+const carbProgress = Math.min(
+  1,
+  carbs / Math.max(1, targets.carbs)
+);
+
+const fatProgress = Math.min(
+  1,
+  fat / Math.max(1, targets.fat)
+);
+
+const perfectDay =
+  proteinProgress >= 1 &&
+  carbProgress >= 1 &&
+  fatProgress >= 1;
 
   const persist = async (next: StoredState) => {
     await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
@@ -320,6 +334,56 @@ const proteinProgress = Math.min(
 
   if (!loaded) return null;
 
+  type MacroBarProps = {
+  label: string;
+  value: number;
+  target: number;
+  progress: number;
+  color: string;
+};
+
+const MacroBar = ({
+  label,
+  value,
+  target,
+  progress,
+  color,
+}: MacroBarProps) => {
+
+  let dynamicColor = color;
+
+  if (progress >= 1) {
+    dynamicColor = "#22c55e"; // ✅ objectif atteint
+  } else if (progress > 0.7) {
+    dynamicColor = "#f59e0b"; // presque
+  }
+
+  return (
+    <View style={{ marginTop: 10 }}>
+      <Text style={{ color: "#fff", fontSize: 12, opacity: 0.8 }}>
+        {label} {value}g / {target}g
+      </Text>
+
+      <View
+        style={{
+          height: 10,
+          backgroundColor: "#111827",
+          borderRadius: 999,
+          overflow: "hidden",
+          marginTop: 4,
+        }}
+      >
+        <View
+          style={{
+            height: "100%",
+            width: `${progress * 100}%`,
+            backgroundColor: dynamicColor,
+          }}
+        />
+      </View>
+    </View>
+  );
+};
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView
@@ -634,14 +698,29 @@ const proteinProgress = Math.min(
 
               <TouchableOpacity
                 onPress={async () => {
-                  const p = Math.max(0, parseInt(manualP || "0", 10) || 0);
-                  const carb = Math.max(0, parseInt(manualCarb || "0", 10) || 0);
-                  const f = Math.max(0, parseInt(manualF || "0", 10) || 0);
-                  const c = Math.max(0, parseInt(manualC || "0", 10) || 0);
-                  if (!p && !carb && !f && !c) return;
-                  await addEntry({ foods: ["Ajout perso"], p, carb, f, c });
-                  setManualOpen(false);
-                }}
+  const p = Math.max(0, parseInt(manualP || "0", 10) || 0);
+  const carb = Math.max(0, parseInt(manualCarb || "0", 10) || 0);
+  const f = Math.max(0, parseInt(manualF || "0", 10) || 0);
+
+  let c = Math.max(0, parseInt(manualC || "0", 10) || 0);
+
+  // ✅ si calories non renseignées → calcul auto
+  if (!c) {
+    c = p * 4 + carb * 4 + f * 9;
+  }
+
+  if (!p && !carb && !f && !c) return;
+
+  await addEntry({
+    foods: ["Ajout perso"],
+    p,
+    carb,
+    f,
+    c,
+  });
+
+  setManualOpen(false);
+}}
                 style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#ffffff" }}
               >
                 <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>AJOUTER</Text>
