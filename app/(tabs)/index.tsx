@@ -37,6 +37,7 @@ type StoredState = {
   streak: number;
   graceUsed: boolean;
 lastPerfectDay: string | null;
+ points: number;
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -71,6 +72,8 @@ export default function HomeScreen() {
   const [showStreakUp, setShowStreakUp] = useState(false);
   // ✅ Premium (mock pour l’instant, on branchera RevenueCat après)
 const [isPro, setIsPro] = useState(false);
+const [points, setPoints] = useState(0);
+
   const scrollRef = useRef<any>(null);
 const manualRef = useRef<View | null>(null);
 
@@ -169,6 +172,10 @@ useEffect(() => {
 
   setStreak(nextStreak);
   setLastPerfectDay(today);
+  const earnedPoints = 10;
+const nextPoints = points + earnedPoints;
+
+setPoints(nextPoints);
 
   // ✅ optionnel : mini animation "Série +1"
   setShowStreakUp(true);
@@ -187,9 +194,10 @@ useEffect(() => {
 
     streak: nextStreak,
     lastPerfectDay: today,
+    points: nextPoints,
     graceUsed,
   });
-}, [perfectDay, lastPerfectDay, streak, day, protein, carbs, fat, calories, log, weightKg, goal, graceUsed]);
+}, [perfectDay, lastPerfectDay, streak, day, protein, carbs, fat, calories, log, weightKg, goal, points, graceUsed]);
 
   const persist = async (next: Partial<StoredState>) => {
   await AsyncStorage.setItem(
@@ -224,6 +232,7 @@ setLastPerfectDay(
 );
 
 setGraceUsed(Boolean(s.graceUsed));
+setPoints(Number(s.points) || 0);
         // reset journalier
         if (s.day !== tk) {
           const next: StoredState = {
@@ -242,6 +251,8 @@ setGraceUsed(Boolean(s.graceUsed));
       ? s.lastPerfectDay
       : null,
       graceUsed: Boolean(s.graceUsed),
+      points: Number(s.points) || 0,
+      
 };
           await persist(next);
 
@@ -316,6 +327,7 @@ setGraceUsed(Boolean(s.graceUsed));
       graceUsed,
       weightKg,
       goal,
+      points,
     });
   };
 
@@ -338,6 +350,7 @@ setGraceUsed(Boolean(s.graceUsed));
       log: [],
       weightKg,
       goal,
+      points,
     });
   };
 
@@ -432,15 +445,15 @@ const coachFreeFoods =
 
 const premiumTitle =
   goal === "cut"
-    ? "Plan seche (premium)"
+    ? "Plan seche PERSONNALISE"
     : goal === "gain"
-    ? "Plan masse (premium)"
-    : "Plan maintien (premium)";
+    ? "Plan masse PERSONNALISE"
+    : "Plan maintien PERSONNALISE";
 
 const premiumPreviewLines = [
-  "Tes macros exactes (kcal + P/G/L) + ajustement auto",
-  "Plan repas (journee type) + equivalences",
-  "Liste de courses + swaps simples",
+  "Tes macros CIBLE  + ajustement PERSONNALISE",
+  "Ton plan repas adapté et equivalences",
+  "Ta Liste de courses + tes points d'achats multiplier par 2",
 ];
 
   type MacroBarProps = {
@@ -506,10 +519,20 @@ const MacroBar = ({
   </Text>
 
   {streak > 0 && (
-    <Text style={{ color: "#f59e0b", marginTop: 4, fontWeight: "700" }}>
+  <View style={{ marginTop: 4 }}>
+    <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
       🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
     </Text>
-  )}
+
+    <Text style={{ color: "#22c55e", marginTop: 4, fontWeight: "700" }}>
+      🎯 Points BODY : {points}
+    </Text>
+
+    <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
+      Cumule des points grâce à ta régularité et gagne des bons d'achats pour tes prot
+    </Text>
+  </View>
+)}
 
   {/* animation streak */}
   {showStreakUp && (
@@ -679,7 +702,7 @@ const MacroBar = ({
               value={weightKg}
               onChangeText={async (v) => {
                 setWeightKg(v);
-                await persist({ day, protein, carbs, fat, calories, log, weightKg: v, goal });
+                await persist({ day, protein, carbs, fat, calories, log, weightKg: v, points, goal });
               }}
               keyboardType="numeric"
               style={{
@@ -702,7 +725,7 @@ const MacroBar = ({
                 label="Masse"
                 onPress={async () => {
                   setGoal("gain");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "gain" });
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "gain" });
                 }}
               />
               <MiniBtn
@@ -710,7 +733,7 @@ const MacroBar = ({
                 label="Sèche"
                 onPress={async () => {
                   setGoal("cut");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "cut" });
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "cut" });
                 }}
               />
               <MiniBtn
@@ -718,7 +741,7 @@ const MacroBar = ({
                 label="Maintien"
                 onPress={async () => {
                   setGoal("maintain");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, goal: "maintain" });
+                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "maintain" });
                 }}
               />
             </View>
