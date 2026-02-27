@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-purchases",
       [
         "expo-splash-screen",
         {
@@ -40,6 +41,7 @@
         }
       ]
     ],
+
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
