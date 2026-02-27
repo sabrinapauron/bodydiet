@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "body",
-    "slug": "body",
+    "name": "Fitness Diet",
+    "slug": "fitness-diet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
