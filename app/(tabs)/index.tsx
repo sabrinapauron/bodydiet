@@ -69,6 +69,8 @@ export default function HomeScreen() {
   const [manualC, setManualC] = useState("0");
   const [graceUsed, setGraceUsed] = useState(false);
   const [showStreakUp, setShowStreakUp] = useState(false);
+  // ✅ Premium (mock pour l’instant, on branchera RevenueCat après)
+const [isPro, setIsPro] = useState(false);
   const scrollRef = useRef<any>(null);
 const manualRef = useRef<View | null>(null);
 
@@ -400,6 +402,46 @@ setGraceUsed(Boolean(s.graceUsed));
     remainP === 0 ? "OBJECTIF ATTEINT" : remainP <= 25 ? "PRESQUE" : "EN COURS";
 
   if (!loaded) return null;
+const biggestGap: "P" | "G" | "L" =
+  remainingP >= remainingG && remainingP >= remainingL
+    ? "P"
+    : remainingG >= remainingL
+    ? "G"
+    : "L";
+
+const coachFreeLine =
+  biggestGap === "P"
+    ? "Tu manques surtout de PROTEINES (" + remainingP + "g)."
+    : biggestGap === "G"
+    ? "Tu manques surtout de GLUCIDES (" + remainingG + "g)."
+    : "Tu manques surtout de LIPIDES (" + remainingL + "g).";
+
+const coachFreeAction =
+  biggestGap === "P"
+    ? "Action simple: ajoute 1 portion proteinee au prochain repas."
+    : biggestGap === "G"
+    ? "Action simple: ajoute 1 portion de glucides au prochain repas."
+    : "Action simple: ajoute 1 source de bons lipides au prochain repas.";
+
+const coachFreeFoods =
+  biggestGap === "P"
+    ? "Idees: poulet, thon, oeufs, skyr, shake."
+    : biggestGap === "G"
+    ? "Idees: riz, avoine, pates, pommes de terre, banane."
+    : "Idees: amandes, avocat, huile d olive, beurre de cacahuete.";
+
+const premiumTitle =
+  goal === "cut"
+    ? "Plan seche (premium)"
+    : goal === "gain"
+    ? "Plan masse (premium)"
+    : "Plan maintien (premium)";
+
+const premiumPreviewLines = [
+  "Tes macros exactes (kcal + P/G/L) + ajustement auto",
+  "Plan repas (journee type) + equivalences",
+  "Liste de courses + swaps simples",
+];
 
   type MacroBarProps = {
   label: string;
@@ -587,6 +629,7 @@ const MacroBar = ({
   Reste : P {remainingP} • G {remainingG} • L {remainingL}
 </Text>
 
+
         </View>
 
         <TouchableOpacity
@@ -724,29 +767,74 @@ const MacroBar = ({
     borderColor: "#1f2937",
   }}
 >
-  <Text style={{ color: "#fff", fontWeight: "900" }}>
-    COACH BODY
+  <Text style={{ color: "#fff", fontWeight: "900" }}>COACH BODY</Text>
+
+  {/* ✅ Gratuit : ultra court + action */}
+  <Text style={{ color: "#fff", opacity: 0.8, marginTop: 6 }}>
+    {coachFreeLine}
   </Text>
 
-  <Text style={{ color: "#fff", opacity: 0.7, marginTop: 6 }}>
-    {remainingP > remainingG && remainingP > remainingL
-      ? `Tu manques surtout de PROTÉINES (${remainingP}g)`
-      : remainingG > remainingL
-      ? `Tu manques surtout de GLUCIDES (${remainingG}g)`
-      : `Tu manques surtout de LIPIDES (${remainingL}g)`
-    }
+  <Text style={{ color: "#fff", opacity: 0.75, marginTop: 8 }}>
+    {coachFreeAction}
   </Text>
 
   <Text style={{ color: "#fff", marginTop: 10 }}>
-    {remainingP > remainingG && remainingP > remainingL &&
-      "• Poulet • Thon • Œufs • Shake protéiné"}
-
-    {remainingG > remainingP && remainingG > remainingL &&
-      "• Riz • Avoine • Pâtes • Banane"}
-
-    {remainingL > remainingP && remainingL > remainingG &&
-      "• Amandes • Avocat • Huile d’olive"}
+    {coachFreeFoods}
   </Text>
+
+  {/* 🔒 Premium */}
+  <View
+    style={{
+      marginTop: 14,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: "#1f2937",
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "900" }}>
+      {premiumTitle}
+    </Text>
+
+    {isPro ? (
+      <>
+        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 8 }}>
+          • Objectif du jour + répartition sur tes repas
+        </Text>
+        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
+          • Exemple concret (petit-déj / déj / dîner)
+        </Text>
+        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
+          • Ajustement si tu es en dessous/au-dessus
+        </Text>
+      </>
+    ) : (
+      <>
+        {premiumPreviewLines.map((l) => (
+          <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
+            {l}
+          </Text>
+        ))}
+
+        <TouchableOpacity
+          onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+          style={{
+            marginTop: 12,
+            paddingVertical: 12,
+            borderRadius: 12,
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
+            🔓 Débloquer Premium
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
+          Aperçu uniquement. Le coaching complet est en Premium.
+        </Text>
+      </>
+    )}
+  </View>
 </View>
 
           <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>DERNIERS AJOUTS</Text>
