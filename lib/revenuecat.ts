@@ -1,69 +1,85 @@
-import Purchases from "react-native-purchases";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { Platform } from "react-native";
 
-/**
- * 🔑 Clés RevenueCat (SDK API keys)
- * -> celles visibles dans RevenueCat dashboard
- */
-
-const RC_API_KEY_ANDROID = "rc_public_xxxxxxxxxxxxx";
+// ⚠️ Mets tes vraies clés RevenueCat ici (Project settings > API keys)
+const RC_API_KEY_ANDROID = "test_fzsebNzeBOlLVYJwDDYQJpXnyum";
 const RC_API_KEY_IOS = "appl_public_xxxxxxxxxxxxx";
 
-/**
- * 🎯 Entitlement créé dans RevenueCat
- */
 export const ENTITLEMENT_ID = "pro";
 
 /**
  * ✅ Initialisation RevenueCat
  */
-export const initRevenueCat = async () => {
+export async function initRevenueCat() {
   try {
-    const apiKey =
-      Platform.OS === "android"
-        ? RC_API_KEY_ANDROID
-        : RC_API_KEY_IOS;
+    const apiKey = Platform.OS === "android" ? RC_API_KEY_ANDROID : RC_API_KEY_IOS;
 
     await Purchases.configure({ apiKey });
+
+    // Optionnel (utile en debug)
+    // Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 
     console.log("✅ RevenueCat initialisé");
   } catch (e) {
     console.log("❌ RevenueCat init error", e);
   }
-};
+}
 
 /**
  * ✅ Vérifie si utilisateur Pro
  */
 export async function getIsPro(): Promise<boolean> {
-  const info = await Purchases.getCustomerInfo();
-  return !!info.entitlements.active[ENTITLEMENT_ID];
+  try {
+    const info = await Purchases.getCustomerInfo();
+    return !!info.entitlements.active?.[ENTITLEMENT_ID];
+  } catch (e) {
+    console.log("❌ getIsPro error", e);
+    return false;
+  }
 }
 
 /**
- * ✅ Récupère abonnement disponible
+ * ✅ Récupère l'offre "monthly" (si elle existe)
  */
-export async function getMonthlyPackage() {
-  const offerings = await Purchases.getOfferings();
-  const current = offerings.current;
+export async function getMonthlyPackage(): Promise<PurchasesPackage | null> {
+  try {
+    const offerings = await Purchases.getOfferings();
+    const current = offerings.current;
+    if (!current) return null;
 
-  if (!current) return null;
+    // Cherche explicitement le package mensuel
+    const monthly =
+      current.availablePackages.find((p) => p.packageType === "MONTHLY") ?? null;
 
-  return current.availablePackages?.[0] ?? null;
+    return monthly;
+  } catch (e) {
+    console.log("❌ getMonthlyPackage error", e);
+    return null;
+  }
 }
 
 /**
  * ✅ Achat abonnement
  */
-export async function purchasePackage(pkg: any) {
-  const { customerInfo } = await Purchases.purchasePackage(pkg);
-  return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+export async function purchasePackage(pkg: PurchasesPackage) {
+  try {
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    return !!customerInfo.entitlements.active?.[ENTITLEMENT_ID];
+  } catch (e) {
+    console.log("❌ purchasePackage error", e);
+    return false;
+  }
 }
 
 /**
  * ✅ Restaurer achats
  */
 export async function restorePurchases() {
-  const info = await Purchases.restorePurchases();
-  return !!info.entitlements.active[ENTITLEMENT_ID];
+  try {
+    const info = await Purchases.restorePurchases();
+    return !!info.entitlements.active?.[ENTITLEMENT_ID];
+  } catch (e) {
+    console.log("❌ restorePurchases error", e);
+    return false;
+  }
 }

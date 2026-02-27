@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sab.body"
     },
     "web": {
       "output": "static",
@@ -27,7 +28,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-purchases",
       [
         "expo-splash-screen",
         {
@@ -41,7 +41,6 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
