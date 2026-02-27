@@ -68,7 +68,7 @@ export default function HomeScreen() {
   const [manualF, setManualF] = useState("0");
   const [manualC, setManualC] = useState("0");
   const [graceUsed, setGraceUsed] = useState(false);
-
+  const [showStreakUp, setShowStreakUp] = useState(false);
   const scrollRef = useRef<any>(null);
 const manualRef = useRef<View | null>(null);
 
@@ -150,6 +150,7 @@ const perfectDay =
   proteinProgress >= 1 &&
   carbProgress >= 1 &&
   fatProgress >= 1;
+
 useEffect(() => {
   if (!perfectDay) return;
 
@@ -162,14 +163,31 @@ useEffect(() => {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = yesterday.toISOString().slice(0, 10);
 
-  if (lastPerfectDay === yesterdayKey) {
-    setStreak((s) => s + 1);
-  } else {
-    setStreak(1);
-  }
+  const nextStreak = lastPerfectDay === yesterdayKey ? streak + 1 : 1;
 
+  setStreak(nextStreak);
   setLastPerfectDay(today);
-}, [perfectDay]);
+
+  // ✅ optionnel : mini animation "Série +1"
+  setShowStreakUp(true);
+  setTimeout(() => setShowStreakUp(false), 1800);
+
+  // ✅ on persiste TOUT avec le streak calculé
+  persist({
+    day,
+    protein,
+    carbs,
+    fat,
+    calories,
+    log,
+    weightKg,
+    goal,
+
+    streak: nextStreak,
+    lastPerfectDay: today,
+    graceUsed,
+  });
+}, [perfectDay, lastPerfectDay, streak, day, protein, carbs, fat, calories, log, weightKg, goal, graceUsed]);
 
   const persist = async (next: Partial<StoredState>) => {
   await AsyncStorage.setItem(
@@ -440,14 +458,35 @@ const MacroBar = ({
   contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
 >
 
-        <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
-          AUJOURD’HUI • {day}
-          {streak > 0 && (
-  <Text style={{ color: "#f59e0b", marginTop: 4, fontWeight: "700" }}>
-    🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
+       <View style={{ marginTop: 6 }}>
+  <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
+    AUJOURD’HUI • {day}
   </Text>
-)}
-        </Text>
+
+  {streak > 0 && (
+    <Text style={{ color: "#f59e0b", marginTop: 4, fontWeight: "700" }}>
+      🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
+    </Text>
+  )}
+
+  {/* animation streak */}
+  {showStreakUp && (
+    <View
+      style={{
+        marginTop: 6,
+        alignSelf: "flex-start",
+        backgroundColor: "#16a34a",
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "900" }}>🏆 Série +1</Text>
+    </View>
+  )}
+</View>
+
+       
 
         <View style={{ marginTop: 10 }}>
           {/* ✅ MULTI-JAUGE MACROS */}
