@@ -359,7 +359,7 @@ const MacroBar = ({
   }
 
   return (
-    <View style={{ marginTop: 10 }}>
+    <View style={{ marginTop: 6 }}>
       <Text style={{ color: "#fff", fontSize: 12, opacity: 0.8 }}>
         {label} {value}g / {target}g
       </Text>
@@ -388,38 +388,18 @@ const MacroBar = ({
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView
   ref={scrollRef}
-  contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+  contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
 >
 
-        <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7 }}>
+        <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
           AUJOURD’HUI • {day}
         </Text>
 
         <View style={{ marginTop: 10 }}>
           {/* ✅ MULTI-JAUGE MACROS */}
-<MacroBar
-  label="Protéines"
-  value={protein}
-  target={targets.protein}
-  progress={Math.min(1, protein / Math.max(1, targets.protein))}
-  color="#22c55e"
-/>
 
-<MacroBar
-  label="Glucides"
-  value={carbs}
-  target={targets.carbs}
-  progress={Math.min(1, carbs / Math.max(1, targets.carbs))}
-  color="#60a5fa"
-/>
 
-<MacroBar
-  label="Lipides"
-  value={fat}
-  target={targets.fat}
-  progress={Math.min(1, fat / Math.max(1, targets.fat))}
-  color="#f59e0b"
-/>
+
           <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
             {protein}
             <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
@@ -448,21 +428,67 @@ const MacroBar = ({
       }}
     />
   </View>
-          <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7, marginTop: 2 }}>
-            PROTÉINES • {status}
-          </Text>
+          <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+  }}
+>
+  <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+  }}
+>
+  <Text style={{ color: "#fff", fontSize: 14, opacity: 0.75 }}>
+    PROTÉINES • {status}
+  </Text>
 
-          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "700", marginTop: 10 }}>
-            {remainP === 0 ? "✅ OK" : `Encore ${remainP}g`}
-          </Text>
+ <Text
+  style={{
+    color: "#fff",
+    fontWeight: "800",
+    marginLeft: 12, // ← espace ajouté
+  }}
+>
+  {remainP === 0 ? "✅ OK" : `Encore ${remainP}g`}
+</Text>
+</View>
+</View>
 
-          <Text style={{ color: "#fff", fontSize: 14, opacity: 0.7, marginTop: 6 }}>
-            Calories (approx) : {calories} kcal
-          </Text>
+          
+           
+           <MacroBar
+  label="Glucides"
+  value={carbs}
+  target={targets.carbs}
+  progress={Math.min(1, carbs / Math.max(1, targets.carbs))}
+  color="#60a5fa"
+/>
 
-          <Text style={{ color: "#fff", opacity: 0.75, marginTop: 10 }}>
-            P {protein}g  •  G {carbs}g  •  L {fat}g
-          </Text>
+<MacroBar
+  label="Lipides"
+  value={fat}
+  target={targets.fat}
+  progress={Math.min(1, fat / Math.max(1, targets.fat))}
+  color="#f59e0b"
+/>
+      <Text
+  style={{
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 12,
+    opacity: 0.85,
+  }}
+>
+  🔥 {calories} kcal aujourd’hui
+</Text>
 
           <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
   Reste : P {remainingP} • G {remainingG} • L {remainingL}
