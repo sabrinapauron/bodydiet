@@ -34,6 +34,9 @@ type StoredState = {
   log: LogEntry[];
   weightKg: string;
   goal: Goal;
+  streak: number;
+  graceUsed: boolean;
+lastPerfectDay: string | null;
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -58,10 +61,13 @@ export default function HomeScreen() {
 
   // Ajout perso
   const [manualOpen, setManualOpen] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [lastPerfectDay, setLastPerfectDay] = useState<string | null>(null);
   const [manualP, setManualP] = useState("0");
   const [manualCarb, setManualCarb] = useState("0");
   const [manualF, setManualF] = useState("0");
   const [manualC, setManualC] = useState("0");
+  const [graceUsed, setGraceUsed] = useState(false);
 
   const scrollRef = useRef<any>(null);
 const manualRef = useRef<View | null>(null);
@@ -144,10 +150,37 @@ const perfectDay =
   proteinProgress >= 1 &&
   carbProgress >= 1 &&
   fatProgress >= 1;
+useEffect(() => {
+  if (!perfectDay) return;
 
-  const persist = async (next: StoredState) => {
-    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
-  };
+  const today = todayKey();
+
+  // évite double comptage
+  if (lastPerfectDay === today) return;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+  if (lastPerfectDay === yesterdayKey) {
+    setStreak((s) => s + 1);
+  } else {
+    setStreak(1);
+  }
+
+  setLastPerfectDay(today);
+}, [perfectDay]);
+
+  const persist = async (next: Partial<StoredState>) => {
+  await AsyncStorage.setItem(
+    STORE_KEY,
+    JSON.stringify({
+      streak,
+      lastPerfectDay,
+      ...next,
+    })
+  );
+};
 
   useEffect(() => {
     (async () => {
@@ -162,19 +195,34 @@ const perfectDay =
         }
 
         const s = JSON.parse(raw) as Partial<StoredState>;
+       setStreak(Number(s.streak) || 0);
 
+setLastPerfectDay(
+  typeof s.lastPerfectDay === "string"
+    ? s.lastPerfectDay
+    : null
+);
+
+setGraceUsed(Boolean(s.graceUsed));
         // reset journalier
         if (s.day !== tk) {
           const next: StoredState = {
-            day: tk,
-            protein: 0,
-            carbs: 0,
-            fat: 0,
-            calories: 0,
-            log: [],
-            weightKg: String(s.weightKg ?? "75"),
-            goal: (s.goal ?? "gain") as Goal,
-          };
+  day: tk,
+  protein: 0,
+  carbs: 0,
+  fat: 0,
+  calories: 0,
+  log: [],
+  weightKg: String(s.weightKg ?? "75"),
+  goal: (s.goal ?? "gain") as Goal,
+
+  streak: Number(s.streak) || 0,
+  lastPerfectDay:
+    typeof s.lastPerfectDay === "string"
+      ? s.lastPerfectDay
+      : null,
+      graceUsed: Boolean(s.graceUsed),
+};
           await persist(next);
 
           setDay(tk);
@@ -245,6 +293,7 @@ const perfectDay =
       fat: nextFat,
       calories: nextCalories,
       log: nextLog,
+      graceUsed,
       weightKg,
       goal,
     });
@@ -393,6 +442,11 @@ const MacroBar = ({
 
         <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
           AUJOURD’HUI • {day}
+          {streak > 0 && (
+  <Text style={{ color: "#f59e0b", marginTop: 4, fontWeight: "700" }}>
+    🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
+  </Text>
+)}
         </Text>
 
         <View style={{ marginTop: 10 }}>
