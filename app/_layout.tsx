@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { initRevenueCat } from "../lib/revenuecat";
@@ -13,14 +13,20 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
-  useEffect(() => {
-    const setupRevenueCat = async () => {
+  const rcInitRef = useRef(false);
+useEffect(() => {
+  
+  const setupRevenueCat = async () => {
+    try {
       await initRevenueCat();
-    };
+      console.log("✅ RevenueCat initialisé");
+    } catch (e) {
+      console.log("❌ RevenueCat init error:", e);
+    }
+  };
 
-    setupRevenueCat();
-  }, []);
+  setupRevenueCat();
+}, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
