@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 // ⚠️ Mets tes vraies clés RevenueCat ici (Project settings > API keys)
 const RC_API_KEY_ANDROID = "test_fzsebNzeBOlLVYJwDDYQJpXnyum";
-const RC_API_KEY_IOS = "appl_public_xxxxxxxxxxxxx";
+const RC_API_KEY_IOS = "test_fzsebNzeBOlLVYJwDDYQJpXnyum";
 
 export const ENTITLEMENT_ID = "pro";
 
