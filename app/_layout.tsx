@@ -5,7 +5,7 @@ import "react-native-reanimated";
 import { useEffect } from "react";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { initRevenueCat } from "@/lib/revenuecat";
+import { initRevenueCat } from "../lib/revenuecat";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -15,7 +15,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    initRevenueCat();
+    const setupRevenueCat = async () => {
+      await initRevenueCat();
+    };
+
+    setupRevenueCat();
   }, []);
 
   return (
