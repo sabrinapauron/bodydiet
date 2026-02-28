@@ -570,16 +570,49 @@ return (
       contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
     >
       {/* HEADER JOUR */}
-      <View style={{ marginTop: 6 }}>
+      <View
+  style={{
+    marginTop: 6,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "#111827",
+
+    shadowColor: "#000",
+shadowOpacity: 0.25,
+shadowRadius: 12,
+shadowOffset: { width: 0, height: 6 },
+elevation: 4,
+  }}
+>
         <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
           AUJOURD’HUI • {day}
         </Text>
-
+<View
+  style={{
+    marginTop: 6,
+    alignSelf: "flex-start",
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "#1e293b",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  }}
+>
+  <Text style={{ color: "#e5e7eb", fontWeight: "800", fontSize: 12 }}>
+     Challenge du jour actif
+  </Text>
+</View>
        
           <View style={{ marginTop: 4 }}>
-  <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-    🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
-  </Text>
+ <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+  🏆 {streak === 0
+    ? "Série prête • Jour 1 à valider"
+    : `Série active : ${streak} jour${streak > 1 ? "s" : ""}`
+  } (Objectif : {streakGoal} jours)
+</Text>
 
   {daysToGoal > 0 ? (
     <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
@@ -598,7 +631,13 @@ return (
   )}
 
   {/* ✅ bloc points + joker (toujours visible) */}
-  <View style={{ marginTop: 6, position: "relative" }}>
+  <View
+  style={{
+    marginTop: 6,
+    position: "relative",
+    alignSelf: "flex-start",
+  }}
+>
     <Text style={{ color: "#22c55e", fontWeight: "700" }}>
       🎯 Points BODY : {points}
     </Text>
@@ -611,24 +650,33 @@ return (
     <Animated.View
       style={{
         position: "absolute",
-        right: 10,
-        top: 6,
+        right: 4,
+        top: 2,
         transform: [{ scale: jokerPulse }],
         opacity: graceUsed || perfectDay ? 0.35 : 1,
       }}
     >
       <TouchableOpacity
-        onPress={useJoker}
-        disabled={graceUsed || perfectDay}
-        style={{
-          backgroundColor: "rgba(2,6,23,0.85)",
-          borderWidth: 1,
-          borderColor: "#60a5fa",
-          paddingVertical: 6,
-          paddingHorizontal: 10,
-          borderRadius: 999,
-        }}
-      >
+  onPress={useJoker}
+  disabled={graceUsed || perfectDay}
+  style={{
+    backgroundColor: "rgba(2,6,23,0.9)",
+    borderWidth: 1,
+    borderColor: graceUsed ? "#475569" : "#60a5fa",
+
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+
+    // ⭐ halo visuel
+    shadowColor: "#60a5fa",
+    shadowOpacity: graceUsed ? 0 : 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+
+    elevation: graceUsed ? 0 : 6,
+  }}
+>
         <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
       </TouchableOpacity>
     </Animated.View>
