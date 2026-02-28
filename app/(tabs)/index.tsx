@@ -480,7 +480,16 @@ const premiumPreviewLines = [
   progress: number;
   color: string;
 };
+// ✅ Objectifs de série progressifs
+const streakGoal =
+  streak < 1 ? 1 :
+  streak < 3 ? 3 :
+  streak < 7 ? 7 :
+  14; // ensuite objectif stable
 
+
+const daysToGoal = Math.max(0, streakGoal - streak);
+const goalJustReached = streak > 0 && daysToGoal === 0;
 const MacroBar = ({
   label,
   value,
@@ -537,9 +546,44 @@ const MacroBar = ({
   </Text>
 {streak > 0 && (
   <View style={{ marginTop: 4 }}>
-    <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-      🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
+  
+<Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+  🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
+</Text>
+
+{daysToGoal > 0 && (
+  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+    Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
+  </Text>
+)}
+{goalJustReached && (
+  <View
+    style={{
+      marginTop: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: "#052e16",
+      borderWidth: 1,
+      borderColor: "#22c55e",
+    }}
+  >
+    <Text style={{ color: "#22c55e", fontWeight: "900" }}>
+      🎉 Objectif valide !
     </Text>
+
+    <Text style={{ color: "#bbf7d0", opacity: 0.9, marginTop: 4, fontSize: 12 }}>
+      Bonus BODY debloque. Nouveau round jusqu’a {streakGoal} jours.
+    </Text>
+  </View>
+)}
+{daysToGoal > 0 && (
+  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+    {daysToGoal === 1
+      ? "Dernier jour avant validation de l’objectif. Nouveau round !"
+      : `Encore ${daysToGoal} jours pour valider l’objectif.`}
+  </Text>
+)}
 
     <Text style={{ color: "#22c55e", marginTop: 4, fontWeight: "700" }}>
       🎯 Points BODY : {points}
