@@ -586,9 +586,10 @@ shadowOffset: { width: 0, height: 6 },
 elevation: 4,
   }}
 >
-        <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
-          AUJOURD’HUI • {day}
-        </Text>
+      <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
+  AUJOURD’HUI • {day}
+</Text>
+
 <View
   style={{
     marginTop: 6,
@@ -602,17 +603,18 @@ elevation: 4,
   }}
 >
   <Text style={{ color: "#e5e7eb", fontWeight: "800", fontSize: 12 }}>
-     Challenge du jour actif
+    Challenge du jour actif
   </Text>
 </View>
-       
-          <View style={{ marginTop: 4 }}>
- <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-  🏆 {streak === 0
-    ? "Série prête • Jour 1 à valider"
-    : `Série active : ${streak} jour${streak > 1 ? "s" : ""}`
-  } (Objectif : {streakGoal} jours)
-</Text>
+
+<View style={{ marginTop: 10 }}>
+  <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+    🏆{" "}
+    {streak === 0
+      ? "Série prête • Jour 1 à valider"
+      : `Série active : ${streak} jour${streak > 1 ? "s" : ""}`}{" "}
+    (Objectif : {streakGoal} jours)
+  </Text>
 
   {daysToGoal > 0 ? (
     <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
@@ -624,93 +626,90 @@ elevation: 4,
     </Text>
   )}
 
-  {isLastDayBeforeGoal && (
+  {/* ✅ seulement si streak > 0 (sinon ça faisait "dernier jour" à tort) */}
+  {streak > 0 && isLastDayBeforeGoal && (
     <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
       Dernier jour avant validation. Nouveau round !
     </Text>
   )}
 
-  {/* ✅ bloc points + joker (toujours visible) */}
+  {/* ✅ Points + Joker sur une ligne (plus de chevauchement) */}
   <View
-  style={{
-    marginTop: 6,
-    position: "relative",
-    alignSelf: "flex-start",
-  }}
->
-    <Text style={{ color: "#22c55e", fontWeight: "700" }}>
-      🎯 Points BODY : {points}
-    </Text>
+    style={{
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}
+  >
+    <View style={{ paddingRight: 12 }}>
+      <Text style={{ color: "#22c55e", fontWeight: "700" }}>
+        🎯 Points BODY : {points}
+      </Text>
 
-    <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
-      Prochaine recompense : {nextReward} pts
-    </Text>
+      <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
+        Prochaine recompense : {nextReward} pts
+      </Text>
+    </View>
 
-    {/* ✅ Joker toujours affiché */}
     <Animated.View
       style={{
-        position: "absolute",
-        right: 4,
-        top: 2,
         transform: [{ scale: jokerPulse }],
         opacity: graceUsed || perfectDay ? 0.35 : 1,
       }}
     >
       <TouchableOpacity
-  onPress={useJoker}
-  disabled={graceUsed || perfectDay}
-  style={{
-    backgroundColor: "rgba(2,6,23,0.9)",
-    borderWidth: 1,
-    borderColor: graceUsed ? "#475569" : "#60a5fa",
+        onPress={useJoker}
+        disabled={graceUsed || perfectDay}
+        style={{
+          backgroundColor: "rgba(2,6,23,0.9)",
+          borderWidth: 1,
+          borderColor: graceUsed ? "#475569" : "#60a5fa",
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: 999,
 
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-
-    // ⭐ halo visuel
-    shadowColor: "#60a5fa",
-    shadowOpacity: graceUsed ? 0 : 0.6,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-
-    elevation: graceUsed ? 0 : 6,
-  }}
->
+          shadowColor: "#60a5fa",
+          shadowOpacity: graceUsed ? 0 : 0.6,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: graceUsed ? 0 : 6,
+        }}
+      >
         <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
       </TouchableOpacity>
     </Animated.View>
   </View>
 
-  <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
+  <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 8 }}>
     Cumule des points grace a ta regularite et convertis-les en bons.
   </Text>
 
-            {graceUsed && (
-              <>
-                <View
-                  style={{
-                    marginTop: 8,
-                    alignSelf: "flex-start",
-                    backgroundColor: "#0f172a",
-                    borderWidth: 1,
-                    borderColor: "#334155",
-                    paddingVertical: 6,
-                    paddingHorizontal: 10,
-                    borderRadius: 999,
-                  }}
-                >
-                  <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
-                    🛟 Joker utilise (1/1)
-                  </Text>
-                </View>
+  {graceUsed && (
+    <>
+      <View
+        style={{
+          marginTop: 8,
+          alignSelf: "flex-start",
+          backgroundColor: "#0f172a",
+          borderWidth: 1,
+          borderColor: "#334155",
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+        }}
+      >
+        <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
+          🛟 Joker utilise (1/1)
+        </Text>
+      </View>
 
-                <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
-                  Ta serie est protegee pour aujourd hui.
-                </Text>
-              </>
-            )}
-          </View>
+      <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
+        Ta serie est protegee pour aujourd hui.
+      </Text>
+    </>
+  )}
+</View> 
         
 
         {showGoalReachedBanner && (
