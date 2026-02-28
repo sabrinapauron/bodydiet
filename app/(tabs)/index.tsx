@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,10 +19,10 @@ type Goal = "gain" | "cut" | "maintain";
 type LogEntry = {
   t: number;
   foods: string[];
-  p: number;     // protein
-  carb: number;  // carbs
-  f: number;     // fat
-  c: number;     // calories
+  p: number; // protein
+  carb: number; // carbs
+  f: number; // fat
+  c: number; // calories
 };
 
 type StoredState = {
@@ -34,10 +34,13 @@ type StoredState = {
   log: LogEntry[];
   weightKg: string;
   goal: Goal;
+
   streak: number;
+  lastPerfectDay: string | null;
   graceUsed: boolean;
-lastPerfectDay: string | null;
- points: number;
+
+  points: number;
+  lastGoalRewardDay: string | null;
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -62,125 +65,27 @@ export default function HomeScreen() {
 
   // Ajout perso
   const [manualOpen, setManualOpen] = useState(false);
-  const [streak, setStreak] = useState(0);
-  const [lastPerfectDay, setLastPerfectDay] = useState<string | null>(null);
   const [manualP, setManualP] = useState("0");
   const [manualCarb, setManualCarb] = useState("0");
   const [manualF, setManualF] = useState("0");
   const [manualC, setManualC] = useState("0");
+
+  // Série / points
+  const [streak, setStreak] = useState(0);
+  const [lastPerfectDay, setLastPerfectDay] = useState<string | null>(null);
   const [graceUsed, setGraceUsed] = useState(false);
   const [showStreakUp, setShowStreakUp] = useState(false);
-  // ✅ Premium (mock pour l’instant, on branchera RevenueCat après)
-const [isPro, setIsPro] = useState(false);
-const [points, setPoints] = useState(0);
 
-  const scrollRef = useRef<any>(null);
-const manualRef = useRef<View | null>(null);
+  // Premium (mock)
+  const [isPro, setIsPro] = useState(false);
 
- // Objectif protéines (simple)
-const targetProtein = useMemo(() => {
-  const w = Number(weightKg) || 0;
-  if (!w) return 150;
+  const [points, setPoints] = useState(0);
+  const [lastGoalRewardDay, setLastGoalRewardDay] = useState<string | null>(null);
 
-  const factor =
-    goal === "cut"
-      ? 1.8
-      : goal === "maintain"
-      ? 1.6
-      : 2.0;
+  const scrollRef = useRef<ScrollView | null>(null);
 
-  return Math.round(w * factor);
-}, [weightKg, goal]);
-
-// Objectifs macros complets (P/G/L + calories)
-const targets = useMemo(() => {
-  const w = Number(weightKg) || 0;
-
-  // fallback si poids vide
-  if (!w) {
-    return {
-      protein: targetProtein,
-      carbs: 250,
-      fat: 70,
-      calories: 2200,
-    };
-  }
-
-  if (goal === "gain") {
-    return {
-      protein: Math.round(w * 2.0),
-      carbs: Math.round(w * 4.0),
-      fat: Math.round(w * 1.0),
-      calories: Math.round(w * 35),
-    };
-  }
-
-  if (goal === "cut") {
-    return {
-      protein: Math.round(w * 2.2),
-      carbs: Math.round(w * 2.2),
-      fat: Math.round(w * 0.9),
-      calories: Math.round(w * 28),
-    };
-  }
-
-  // maintain
-  return {
-    protein: Math.round(w * 1.8),
-    carbs: Math.round(w * 3.0),
-    fat: Math.round(w * 1.0),
-    calories: Math.round(w * 32),
-  };
-}, [weightKg, goal, targetProtein]);
-
-const remainingP = Math.max(0, targets.protein - protein);
-const remainingG = Math.max(0, targets.carbs - carbs);
-const remainingL = Math.max(0, targets.fat - fat);
-
-const proteinProgress = Math.min(
-  1,
-  protein / Math.max(1, targets.protein)
-);
-const carbProgress = Math.min(
-  1,
-  carbs / Math.max(1, targets.carbs)
-);
-
-const fatProgress = Math.min(
-  1,
-  fat / Math.max(1, targets.fat)
-);
-
-const perfectDay =
-  proteinProgress >= 1 &&
-  carbProgress >= 1 &&
-  fatProgress >= 1;
-
-useEffect(() => {
-  const today = todayKey();
-
-  if (perfectDay) {
-    if (lastPerfectDay === today) return;
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = yesterday.toISOString().slice(0, 10);
-
-    const nextStreak =
-      lastPerfectDay === yesterdayKey ? streak + 1 : 1;
-
-    const earnedPoints = 10;
-    const nextPoints = points + earnedPoints;
-
-    setStreak(nextStreak);
-    setLastPerfectDay(today);
-    setPoints(nextPoints);
-    setGraceUsed(false); // ✅ joker rechargé
-
-    setShowStreakUp(true);
-    setTimeout(() => setShowStreakUp(false), 1800);
-
-    persist({
+  const persist = async (next: Partial<StoredState>) => {
+    const payload: StoredState = {
       day,
       protein,
       carbs,
@@ -189,39 +94,125 @@ useEffect(() => {
       log,
       weightKg,
       goal,
-      streak: nextStreak,
-      lastPerfectDay: today,
-      graceUsed: false,
-      points: nextPoints,
-    });
-  }
-}, [
-  perfectDay,
-  lastPerfectDay,
-  streak,
-  points,
-  day,
-  protein,
-  carbs,
-  fat,
-  calories,
-  log,
-  weightKg,
-  goal,
-]);
 
-
-  const persist = async (next: Partial<StoredState>) => {
-  await AsyncStorage.setItem(
-    STORE_KEY,
-    JSON.stringify({
       streak,
       lastPerfectDay,
-      ...next,
-    })
-  );
-};
+      graceUsed,
 
+      points,
+      lastGoalRewardDay,
+
+      ...next,
+    };
+
+    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(payload));
+  };
+
+  // Objectifs macros complets
+  const targets = useMemo(() => {
+    const w = Number(weightKg) || 0;
+
+    if (!w) {
+      return {
+        protein: 150,
+        carbs: 250,
+        fat: 70,
+        calories: 2200,
+      };
+    }
+
+    if (goal === "gain") {
+      return {
+        protein: Math.round(w * 2.0),
+        carbs: Math.round(w * 4.0),
+        fat: Math.round(w * 1.0),
+        calories: Math.round(w * 35),
+      };
+    }
+
+    if (goal === "cut") {
+      return {
+        protein: Math.round(w * 2.2),
+        carbs: Math.round(w * 2.2),
+        fat: Math.round(w * 0.9),
+        calories: Math.round(w * 28),
+      };
+    }
+
+    return {
+      protein: Math.round(w * 1.8),
+      carbs: Math.round(w * 3.0),
+      fat: Math.round(w * 1.0),
+      calories: Math.round(w * 32),
+    };
+  }, [weightKg, goal]);
+
+  const remainingP = Math.max(0, targets.protein - protein);
+  const remainingG = Math.max(0, targets.carbs - carbs);
+  const remainingL = Math.max(0, targets.fat - fat);
+
+  const proteinProgress = Math.min(1, protein / Math.max(1, targets.protein));
+  const carbProgress = Math.min(1, carbs / Math.max(1, targets.carbs));
+  const fatProgress = Math.min(1, fat / Math.max(1, targets.fat));
+
+  const perfectDay = proteinProgress >= 1 && carbProgress >= 1 && fatProgress >= 1;
+
+  // Objectif de série progressif (1 / 3 / 7 / 14)
+  const streakGoal =
+    streak < 1 ? 1 : streak < 3 ? 3 : streak < 7 ? 7 : 14;
+
+  const daysToGoal = Math.max(0, streakGoal - streak);
+  const isLastDayBeforeGoal = daysToGoal === 1;
+
+  // Récompenses points (paliers)
+  const rewardSteps = [200, 600, 1000, 2000];
+  const nextReward =
+    rewardSteps.find((step) => points < step) ??
+    rewardSteps[rewardSteps.length - 1];
+
+  // Coach gratuit : gap principal
+  const biggestGap: "P" | "G" | "L" =
+    remainingP >= remainingG && remainingP >= remainingL
+      ? "P"
+      : remainingG >= remainingL
+      ? "G"
+      : "L";
+
+  const coachFreeLine =
+    biggestGap === "P"
+      ? `Tu manques surtout de PROTEINES (${remainingP}g).`
+      : biggestGap === "G"
+      ? `Tu manques surtout de GLUCIDES (${remainingG}g).`
+      : `Tu manques surtout de LIPIDES (${remainingL}g).`;
+
+  const coachFreeAction =
+    biggestGap === "P"
+      ? "Action simple: ajoute 1 portion proteinee au prochain repas."
+      : biggestGap === "G"
+      ? "Action simple: ajoute 1 portion de glucides au prochain repas."
+      : "Action simple: ajoute 1 source de bons lipides au prochain repas.";
+
+  const coachFreeFoods =
+    biggestGap === "P"
+      ? "Idees: poulet, thon, oeufs, skyr, shake."
+      : biggestGap === "G"
+      ? "Idees: riz, avoine, pates, pommes de terre, banane."
+      : "Idees: amandes, avocat, huile d olive, beurre de cacahuete.";
+
+  const premiumTitle =
+    goal === "cut"
+      ? "Plan seche PERSONNALISE"
+      : goal === "gain"
+      ? "Plan masse PERSONNALISE"
+      : "Plan maintien PERSONNALISE";
+
+  const premiumPreviewLines = [
+    "Tes macros CIBLE + ajustement PERSONNALISE",
+    "Ton plan repas adapté et equivalences",
+    "Ta Liste de courses + tes points convertibles multipliés par 2",
+  ];
+
+  // Auto-chargement
   useEffect(() => {
     (async () => {
       try {
@@ -235,38 +226,34 @@ useEffect(() => {
         }
 
         const s = JSON.parse(raw) as Partial<StoredState>;
-       setStreak(Number(s.streak) || 0);
 
-setLastPerfectDay(
-  typeof s.lastPerfectDay === "string"
-    ? s.lastPerfectDay
-    : null
-);
+        setStreak(Number(s.streak) || 0);
+        setLastPerfectDay(typeof s.lastPerfectDay === "string" ? s.lastPerfectDay : null);
+        setLastGoalRewardDay(typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null);
+        setGraceUsed(Boolean(s.graceUsed));
+        setPoints(Number(s.points) || 0);
 
-setGraceUsed(Boolean(s.graceUsed));
-setPoints(Number(s.points) || 0);
         // reset journalier
         if (s.day !== tk) {
           const next: StoredState = {
-  day: tk,
-  protein: 0,
-  carbs: 0,
-  fat: 0,
-  calories: 0,
-  log: [],
-  weightKg: String(s.weightKg ?? "75"),
-  goal: (s.goal ?? "gain") as Goal,
+            day: tk,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            calories: 0,
+            log: [],
+            weightKg: String(s.weightKg ?? "75"),
+            goal: (s.goal ?? "gain") as Goal,
 
-  streak: Number(s.streak) || 0,
-  lastPerfectDay:
-    typeof s.lastPerfectDay === "string"
-      ? s.lastPerfectDay
-      : null,
-      graceUsed: Boolean(s.graceUsed),
-      points: Number(s.points) || 0,
-      
-};
-          await persist(next);
+            streak: Number(s.streak) || 0,
+            lastPerfectDay: typeof s.lastPerfectDay === "string" ? s.lastPerfectDay : null,
+            graceUsed: Boolean(s.graceUsed),
+
+            points: Number(s.points) || 0,
+            lastGoalRewardDay: typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null,
+          };
+
+          await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
 
           setDay(tk);
           setProtein(0);
@@ -299,6 +286,54 @@ setPoints(Number(s.points) || 0);
       }
     })();
   }, []);
+
+  // Validation “perfect day” -> streak + points (et bonus 1/3/7/14)
+  useEffect(() => {
+    const today = todayKey();
+    if (!perfectDay) return;
+    if (lastPerfectDay === today) return;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+    const nextStreak = lastPerfectDay === yesterdayKey ? streak + 1 : 1;
+
+    const earnedPoints = 10;
+    const goalBonus = nextStreak === 1 || nextStreak === 3 || nextStreak === 7 || nextStreak === 14 ? 50 : 0;
+
+    const nextPoints = points + earnedPoints + goalBonus;
+
+    setStreak(nextStreak);
+    setLastPerfectDay(today);
+    setPoints(nextPoints);
+
+    if (goalBonus > 0) setLastGoalRewardDay(today);
+
+    setGraceUsed(false); // joker rechargé
+
+    setShowStreakUp(true);
+    setTimeout(() => setShowStreakUp(false), 1800);
+
+    persist({
+      day,
+      protein,
+      carbs,
+      fat,
+      calories,
+      log,
+      weightKg,
+      goal,
+
+      streak: nextStreak,
+      lastPerfectDay: today,
+      graceUsed: false,
+
+      points: nextPoints,
+      lastGoalRewardDay: goalBonus > 0 ? today : lastGoalRewardDay,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perfectDay]);
 
   const addEntry = async ({
     foods = [],
@@ -336,10 +371,6 @@ setPoints(Number(s.points) || 0);
       fat: nextFat,
       calories: nextCalories,
       log: nextLog,
-      graceUsed,
-      weightKg,
-      goal,
-      points,
     });
   };
 
@@ -360,9 +391,6 @@ setPoints(Number(s.points) || 0);
       fat: 0,
       calories: 0,
       log: [],
-      weightKg,
-      goal,
-      points,
     });
   };
 
@@ -419,359 +447,263 @@ setPoints(Number(s.points) || 0);
     await addEntry({ foods: [label], p, carb, f, c });
   };
 
-  const remainP = Math.max(0, targets.protein - protein);
-  const remainCarb = Math.max(0, targets.carbs - carbs);
-  const remainF = Math.max(0, targets.fat - fat);
-
   const status =
-    remainP === 0 ? "OBJECTIF ATTEINT" : remainP <= 25 ? "PRESQUE" : "EN COURS";
-const rewardSteps = [200, 600, 1000, 2000];
+    remainingP === 0 ? "OBJECTIF ATTEINT" : remainingP <= 25 ? "PRESQUE" : "EN COURS";
 
-const nextReward =
-  rewardSteps.find((step) => points < step) ??
-  rewardSteps[rewardSteps.length - 1];
+  const showGoalReachedBanner = lastGoalRewardDay === day;
 
   if (!loaded) return null;
-const biggestGap: "P" | "G" | "L" =
-  remainingP >= remainingG && remainingP >= remainingL
-    ? "P"
-    : remainingG >= remainingL
-    ? "G"
-    : "L";
-
-const coachFreeLine =
-  biggestGap === "P"
-    ? "Tu manques surtout de PROTEINES (" + remainingP + "g)."
-    : biggestGap === "G"
-    ? "Tu manques surtout de GLUCIDES (" + remainingG + "g)."
-    : "Tu manques surtout de LIPIDES (" + remainingL + "g).";
-
-const coachFreeAction =
-  biggestGap === "P"
-    ? "Action simple: ajoute 1 portion proteinee au prochain repas."
-    : biggestGap === "G"
-    ? "Action simple: ajoute 1 portion de glucides au prochain repas."
-    : "Action simple: ajoute 1 source de bons lipides au prochain repas.";
-
-const coachFreeFoods =
-  biggestGap === "P"
-    ? "Idees: poulet, thon, oeufs, skyr, shake."
-    : biggestGap === "G"
-    ? "Idees: riz, avoine, pates, pommes de terre, banane."
-    : "Idees: amandes, avocat, huile d olive, beurre de cacahuete.";
-
-const premiumTitle =
-  goal === "cut"
-    ? "Plan seche PERSONNALISE"
-    : goal === "gain"
-    ? "Plan masse PERSONNALISE"
-    : "Plan maintien PERSONNALISE";
-
-const premiumPreviewLines = [
-  "Tes macros CIBLE  + ajustement PERSONNALISE",
-  "Ton plan repas adapté et equivalences",
-  "Ta Liste de courses + tes points convertibles multipliés par 2",
-];
 
   type MacroBarProps = {
-  label: string;
-  value: number;
-  target: number;
-  progress: number;
-  color: string;
-};
-// ✅ Objectifs de série progressifs
-const streakGoal =
-  streak < 1 ? 1 :
-  streak < 3 ? 3 :
-  streak < 7 ? 7 :
-  14; // ensuite objectif stable
+    label: string;
+    value: number;
+    target: number;
+    progress: number;
+    color: string;
+  };
 
+  const MacroBar = ({ label, value, target, progress, color }: MacroBarProps) => {
+    let dynamicColor = color;
+    if (progress >= 1) dynamicColor = "#22c55e";
+    else if (progress > 0.7) dynamicColor = "#f59e0b";
 
-const daysToGoal = Math.max(0, streakGoal - streak);
-const goalJustReached = streak > 0 && daysToGoal === 0;
-const MacroBar = ({
-  label,
-  value,
-  target,
-  progress,
-  color,
-}: MacroBarProps) => {
+    return (
+      <View style={{ marginTop: 10 }}>
+        <Text style={{ color: "#fff", fontSize: 12, opacity: 0.8 }}>
+          {label} {value}g / {target}g
+        </Text>
 
-  let dynamicColor = color;
-
-  if (progress >= 1) {
-    dynamicColor = "#22c55e"; // ✅ objectif atteint
-  } else if (progress > 0.7) {
-    dynamicColor = "#f59e0b"; // presque
-  }
-
-  return (
-    <View style={{ marginTop: 6 }}>
-      <Text style={{ color: "#fff", fontSize: 12, opacity: 0.8 }}>
-        {label} {value}g / {target}g
-      </Text>
-
-      <View
-        style={{
-          height: 10,
-          backgroundColor: "#111827",
-          borderRadius: 999,
-          overflow: "hidden",
-          marginTop: 4,
-        }}
-      >
         <View
           style={{
-            height: "100%",
-            width: `${progress * 100}%`,
-            backgroundColor: dynamicColor,
+            height: 10,
+            backgroundColor: "#111827",
+            borderRadius: 999,
+            overflow: "hidden",
+            marginTop: 4,
           }}
-        />
+        >
+          <View
+            style={{
+              height: "100%",
+              width: `${Math.min(1, progress) * 100}%`,
+              backgroundColor: dynamicColor,
+            }}
+          />
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView
-  ref={scrollRef}
-  contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
->
-
-       <View style={{ marginTop: 6 }}>
-  <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
-    AUJOURD’HUI • {day}
-  </Text>
-{streak > 0 && (
-  <View style={{ marginTop: 4 }}>
-  
-<Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-  🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
-</Text>
-
-{daysToGoal > 0 && (
-  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
-    Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
-  </Text>
-)}
-{goalJustReached && (
-  <View
-    style={{
-      marginTop: 10,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 14,
-      backgroundColor: "#052e16",
-      borderWidth: 1,
-      borderColor: "#22c55e",
-    }}
-  >
-    <Text style={{ color: "#22c55e", fontWeight: "900" }}>
-      🎉 Objectif valide !
-    </Text>
-
-    <Text style={{ color: "#bbf7d0", opacity: 0.9, marginTop: 4, fontSize: 12 }}>
-      Bonus BODY debloque. Nouveau round jusqu’a {streakGoal} jours.
-    </Text>
-  </View>
-)}
-{daysToGoal > 0 && (
-  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
-    {daysToGoal === 1
-      ? "Dernier jour avant validation de l’objectif. Nouveau round !"
-      : `Encore ${daysToGoal} jours pour valider l’objectif.`}
-  </Text>
-)}
-
-    <Text style={{ color: "#22c55e", marginTop: 4, fontWeight: "700" }}>
-      🎯 Points BODY : {points}
-    </Text>
-
-    <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
-  Prochaine recompense : {nextReward} pts
-</Text>
-
-    <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
-      Cumule des points grace a ta regularite et convertis-les en bons.
-    </Text>
-
-    {graceUsed && (
-      <>
-        <View
-          style={{
-            marginTop: 8,
-            alignSelf: "flex-start",
-            backgroundColor: "#0f172a",
-            borderWidth: 1,
-            borderColor: "#334155",
-            paddingVertical: 6,
-            paddingHorizontal: 10,
-            borderRadius: 999,
-          }}
-        >
-          <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
-            🛟 Joker utilise (1/1)
+        ref={scrollRef}
+        contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
+      >
+        {/* HEADER JOUR */}
+        <View style={{ marginTop: 6 }}>
+          <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
+            AUJOURD’HUI • {day}
           </Text>
+
+          {streak > 0 && (
+            <View style={{ marginTop: 4 }}>
+              <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+                🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
+              </Text>
+
+              {daysToGoal > 0 && (
+                <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+                  Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
+                </Text>
+              )}
+
+              {isLastDayBeforeGoal && (
+                <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
+                  Dernier jour avant validation. Nouveau round !
+                </Text>
+              )}
+
+              <Text style={{ color: "#22c55e", marginTop: 6, fontWeight: "700" }}>
+                🎯 Points BODY : {points}
+              </Text>
+
+              <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
+                Prochaine recompense : {nextReward} pts
+              </Text>
+
+              <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
+                Cumule des points grace a ta regularite et convertis-les en bons.
+              </Text>
+
+              {graceUsed && (
+                <>
+                  <View
+                    style={{
+                      marginTop: 8,
+                      alignSelf: "flex-start",
+                      backgroundColor: "#0f172a",
+                      borderWidth: 1,
+                      borderColor: "#334155",
+                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
+                      🛟 Joker utilise (1/1)
+                    </Text>
+                  </View>
+
+                  <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
+                    Ta serie est protegee pour aujourd hui.
+                  </Text>
+                </>
+              )}
+            </View>
+          )}
+
+          {showGoalReachedBanner && (
+            <View
+              style={{
+                marginTop: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: "#052e16",
+                borderWidth: 1,
+                borderColor: "#22c55e",
+              }}
+            >
+              <Text style={{ color: "#22c55e", fontWeight: "900" }}>
+                🎉 Objectif valide !
+              </Text>
+
+              <Text style={{ color: "#bbf7d0", opacity: 0.9, marginTop: 4, fontSize: 12 }}>
+                Bonus BODY debloque. Nouveau round jusqu’a {streakGoal} jours.
+              </Text>
+            </View>
+          )}
+
+          {/* animation si echec */}
+          {!perfectDay && (
+            <View
+              style={{
+                marginTop: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 14,
+                backgroundColor: "#111827",
+                borderWidth: 1,
+                borderColor: "#1f2937",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>
+                Demain, tu reussiras. Nouveau round !
+              </Text>
+
+              <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
+                Un seul objectif: avancer ! Une journée à la fois.
+              </Text>
+            </View>
+          )}
+
+          {/* animation streak */}
+          {showStreakUp && (
+            <View
+              style={{
+                marginTop: 10,
+                alignSelf: "flex-start",
+                backgroundColor: "#16a34a",
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 999,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>🏆 Série +1</Text>
+            </View>
+          )}
         </View>
 
-        <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
-          Ta serie est protegee pour aujourd hui.
-        </Text>
-      </>
-    )}
-  </View>
-)}
-  
-{/* animation si echec */}
-{!perfectDay && (
-  <View
-    style={{
-      marginTop: 10,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 14,
-      backgroundColor: "#111827",
-      borderWidth: 1,
-      borderColor: "#1f2937",
-    }}
-  >
-    <Text style={{ color: "#fff", fontWeight: "900" }}>
-      Demain, tu reussiras. nouveau round !
-    </Text>
-
-    <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
-      Un seul objectif: avancer !  Une journée à la fois.
-    </Text>
-  </View>
-)}
-{graceUsed && streak > 0 && (
-  <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
-    Ta serie est protegee pour aujourd hui.
-  </Text>
-)}
-  {/* animation streak */}
-  {showStreakUp && (
-    <View
-      style={{
-        marginTop: 6,
-        alignSelf: "flex-start",
-        backgroundColor: "#16a34a",
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 999,
-      }}
-    >
-      <Text style={{ color: "#fff", fontWeight: "900" }}>🏆 Série +1</Text>
-    </View>
-  )}
-</View>
-
-       
-
-        <View style={{ marginTop: 10 }}>
-          {/* ✅ MULTI-JAUGE MACROS */}
-
-
-
+        {/* MACROS */}
+        <View style={{ marginTop: 14 }}>
           <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
             {protein}
             <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
           </Text>
-              
-              {/* ✅ JAUGE PROTÉINES (colle ici) */}
-  <View
-    style={{
-      marginTop: 12,
-      height: 12,
-      backgroundColor: "#111827",
-      borderRadius: 999,
-      overflow: "hidden",
-    }}
-  >
-    <View
-      style={{
-        height: "100%",
-        width: `${proteinProgress * 100}%`,
-        backgroundColor:
-          proteinProgress >= 1
-            ? "#22c55e"
-            : proteinProgress > 0.6
-            ? "#f59e0b"
-            : "#ef4444",
-      }}
-    />
-  </View>
+
+          {/* JAUGE PROT */}
           <View
-  style={{
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-  }}
->
-  <View
-  style={{
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-  }}
->
-  <Text style={{ color: "#fff", fontSize: 14, opacity: 0.75 }}>
-    PROTÉINES • {status}
-  </Text>
+            style={{
+              marginTop: 12,
+              height: 12,
+              backgroundColor: "#111827",
+              borderRadius: 999,
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                height: "100%",
+                width: `${proteinProgress * 100}%`,
+                backgroundColor:
+                  proteinProgress >= 1 ? "#22c55e" : proteinProgress > 0.6 ? "#f59e0b" : "#ef4444",
+              }}
+            />
+          </View>
 
- <Text
-  style={{
-    color: "#fff",
-    fontWeight: "800",
-    marginLeft: 12, // ← espace ajouté
-  }}
->
-  {remainP === 0 ? "✅ OK" : `Encore ${remainP}g`}
-</Text>
-</View>
-</View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 6,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 14, opacity: 0.75 }}>
+              PROTÉINES • {status}
+            </Text>
 
-          
-           
-           <MacroBar
-  label="Glucides"
-  value={carbs}
-  target={targets.carbs}
-  progress={Math.min(1, carbs / Math.max(1, targets.carbs))}
-  color="#60a5fa"
-/>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>
+              {remainingP === 0 ? "✅ OK" : `Encore ${remainingP}g`}
+            </Text>
+          </View>
 
-<MacroBar
-  label="Lipides"
-  value={fat}
-  target={targets.fat}
-  progress={Math.min(1, fat / Math.max(1, targets.fat))}
-  color="#f59e0b"
-/>
-      <Text
-  style={{
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "center",
-    marginTop: 12,
-    opacity: 0.85,
-  }}
->
-  🔥 {calories} kcal aujourd’hui
-</Text>
+          <MacroBar
+            label="Glucides"
+            value={carbs}
+            target={targets.carbs}
+            progress={carbProgress}
+            color="#60a5fa"
+          />
+
+          <MacroBar
+            label="Lipides"
+            value={fat}
+            target={targets.fat}
+            progress={fatProgress}
+            color="#f59e0b"
+          />
+
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 15,
+              fontWeight: "700",
+              textAlign: "center",
+              marginTop: 14,
+              opacity: 0.85,
+            }}
+          >
+            🔥 {calories} kcal aujourd’hui
+          </Text>
 
           <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
-  Reste : P {remainingP} • G {remainingG} • L {remainingL}
-</Text>
-
-
+            Reste : P {remainingP} • G {remainingG} • L {remainingL}
+          </Text>
         </View>
 
+        {/* SCAN */}
         <TouchableOpacity
           onPress={scanMeal}
           disabled={busy}
@@ -787,6 +719,7 @@ const MacroBar = ({
           </Text>
         </TouchableOpacity>
 
+        {/* AJOUT RAPIDE */}
         <Text style={{ color: "#fff", marginTop: 22, fontSize: 12, opacity: 0.7 }}>
           AJOUT RAPIDE (COMPLÉMENTS)
         </Text>
@@ -798,16 +731,17 @@ const MacroBar = ({
           <Pill label="Barre protéinée" onPress={() => quickSupp("Barre protéinée", 15, 20, 7, 200)} />
           <Pill label="Gainer" onPress={() => quickSupp("Gainer (portion)", 20, 60, 5, 350)} />
           <Pill
-  label="Ajout perso"
-  onPress={() => {
-    setManualOpen(true);
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 120);
-  }}
-/>
+            label="Ajout perso"
+            onPress={() => {
+              setManualOpen(true);
+              setTimeout(() => {
+                scrollRef.current?.scrollToEnd({ animated: true });
+              }, 120);
+            }}
+          />
         </View>
 
+        {/* PROFIL */}
         <Text style={{ color: "#fff", marginTop: 26, fontSize: 12, opacity: 0.7 }}>
           PROFIL
         </Text>
@@ -819,7 +753,7 @@ const MacroBar = ({
               value={weightKg}
               onChangeText={async (v) => {
                 setWeightKg(v);
-                await persist({ day, protein, carbs, fat, calories, log, weightKg: v, points, goal });
+                await persist({ weightKg: v });
               }}
               keyboardType="numeric"
               style={{
@@ -842,7 +776,7 @@ const MacroBar = ({
                 label="Masse"
                 onPress={async () => {
                   setGoal("gain");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "gain" });
+                  await persist({ goal: "gain" });
                 }}
               />
               <MiniBtn
@@ -850,7 +784,7 @@ const MacroBar = ({
                 label="Sèche"
                 onPress={async () => {
                   setGoal("cut");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "cut" });
+                  await persist({ goal: "cut" });
                 }}
               />
               <MiniBtn
@@ -858,133 +792,133 @@ const MacroBar = ({
                 label="Maintien"
                 onPress={async () => {
                   setGoal("maintain");
-                  await persist({ day, protein, carbs, fat, calories, log, weightKg, points, goal: "maintain" });
+                  await persist({ goal: "maintain" });
                 }}
               />
             </View>
           </View>
         </View>
 
-        <View style={{ marginTop: 26 }}>
+        {/* PERFECT DAY */}
+        {perfectDay && (
+          <View
+            style={{
+              marginTop: 18,
+              padding: 14,
+              borderRadius: 14,
+              backgroundColor: "#052e16",
+              borderWidth: 1,
+              borderColor: "#22c55e",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 22 }}>🔥</Text>
 
-          {perfectDay && (
-  <View
-    style={{
-      marginTop: 18,
-      padding: 14,
-      borderRadius: 14,
-      backgroundColor: "#052e16",
-      borderWidth: 1,
-      borderColor: "#22c55e",
-      alignItems: "center",
-    }}
-  >
-    <Text style={{ fontSize: 22 }}>🔥</Text>
+            <Text style={{ color: "#22c55e", fontWeight: "900", marginTop: 4 }}>
+              JOURNÉE PARFAITE
+            </Text>
 
-    <Text
-      style={{
-        color: "#22c55e",
-        fontWeight: "900",
-        marginTop: 4,
-      }}
-    >
-      JOURNÉE PARFAITE
-    </Text>
+            <Text style={{ color: "#86efac", opacity: 0.8 }}>
+              Objectifs nutrition atteints
+            </Text>
+          </View>
+        )}
 
-    <Text style={{ color: "#86efac", opacity: 0.8 }}>
-      Objectifs nutrition atteints
-    </Text>
-  </View>
-)}
-{/* COACH BODY */}
-<View
-  style={{
-    marginTop: 26,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: "#0f172a",
-    borderWidth: 1,
-    borderColor: "#1f2937",
-  }}
->
-  <Text style={{ color: "#fff", fontWeight: "900" }}>COACH BODY</Text>
-
-  {/* ✅ Gratuit : ultra court + action */}
-  <Text style={{ color: "#fff", opacity: 0.8, marginTop: 6 }}>
-    {coachFreeLine}
-  </Text>
-
-  <Text style={{ color: "#fff", opacity: 0.75, marginTop: 8 }}>
-    {coachFreeAction}
-  </Text>
-
-  <Text style={{ color: "#fff", marginTop: 10 }}>
-    {coachFreeFoods}
-  </Text>
-
-  {/* 🔒 Premium */}
-  <View
-    style={{
-      marginTop: 14,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: "#1f2937",
-    }}
-  >
-    <Text style={{ color: "#fff", fontWeight: "900" }}>
-      {premiumTitle}
-    </Text>
-
-    {isPro ? (
-      <>
-        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 8 }}>
-          • Objectif du jour + répartition sur tes repas
-        </Text>
-        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
-          • Exemple concret (petit-déj / déj / dîner)
-        </Text>
-        <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
-          • Ajustement si tu es en dessous/au-dessus
-        </Text>
-      </>
-    ) : (
-      <>
-        {premiumPreviewLines.map((l) => (
-          <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
-            {l}
-          </Text>
-        ))}
-
-        <TouchableOpacity
-          onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+        {/* COACH */}
+        <View
           style={{
-            marginTop: 12,
-            paddingVertical: 12,
-            borderRadius: 12,
-            backgroundColor: "#ffffff",
+            marginTop: 26,
+            padding: 14,
+            borderRadius: 14,
+            backgroundColor: "#0f172a",
+            borderWidth: 1,
+            borderColor: "#1f2937",
           }}
         >
-          <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
-            🔓 Débloquer Premium
+          <Text style={{ color: "#fff", fontWeight: "900" }}>COACH BODY</Text>
+
+          <Text style={{ color: "#fff", opacity: 0.8, marginTop: 6 }}>
+            {coachFreeLine}
           </Text>
-        </TouchableOpacity>
 
-        <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
-          Aperçu uniquement. Le coaching complet est en Premium.
-        </Text>
-      </>
-    )}
-  </View>
-</View>
+          <Text style={{ color: "#fff", opacity: 0.75, marginTop: 8 }}>
+            {coachFreeAction}
+          </Text>
 
+          <Text style={{ color: "#fff", marginTop: 10 }}>
+            {coachFreeFoods}
+          </Text>
+
+          <View
+            style={{
+              marginTop: 14,
+              paddingTop: 12,
+              borderTopWidth: 1,
+              borderTopColor: "#1f2937",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "900" }}>{premiumTitle}</Text>
+
+            {isPro ? (
+              <>
+                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 8 }}>
+                  • Objectif du jour + répartition sur tes repas
+                </Text>
+                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
+                  • Exemple concret (petit-déj / déj / dîner)
+                </Text>
+                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
+                  • Ajustement si tu es en dessous/au-dessus
+                </Text>
+              </>
+            ) : (
+              <>
+                {premiumPreviewLines.map((l) => (
+                  <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
+                    {l}
+                  </Text>
+                ))}
+
+                <TouchableOpacity
+                  onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+                  style={{
+                    marginTop: 12,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: "#ffffff",
+                  }}
+                >
+                  <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
+                    🔓 Débloquer Premium
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
+                  Aperçu uniquement. Le coaching complet est en Premium.
+                </Text>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* LOG */}
+        <View style={{ marginTop: 26 }}>
           <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>DERNIERS AJOUTS</Text>
+
           {log.length === 0 ? (
-            <Text style={{ color: "#fff", opacity: 0.6, marginTop: 10 }}>Rien pour l’instant.</Text>
+            <Text style={{ color: "#fff", opacity: 0.6, marginTop: 10 }}>
+              Rien pour l’instant.
+            </Text>
           ) : (
             log.slice(0, 8).map((e) => (
               <View
                 key={String(e.t)}
-                style={{ marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "#111827" }}
+                style={{
+                  marginTop: 10,
+                  padding: 12,
+                  borderRadius: 12,
+                  backgroundColor: "#111827",
+                }}
               >
                 <Text style={{ color: "#fff", fontWeight: "800" }}>
                   +{e.p}P • +{e.carb}G • +{e.f}L
@@ -999,20 +933,23 @@ const MacroBar = ({
         </View>
 
         <TouchableOpacity onPress={resetDay} style={{ marginTop: 18, paddingVertical: 14 }}>
-          <Text style={{ color: "#fff", opacity: 0.6, textAlign: "center" }}>Reset journée</Text>
+          <Text style={{ color: "#fff", opacity: 0.6, textAlign: "center" }}>
+            Reset journée
+          </Text>
         </TouchableOpacity>
 
-       {manualOpen && (
-  <View
-    style={{
-      marginTop: 16,
-      padding: 14,
-      borderRadius: 14,
-      backgroundColor: "#0f172a",
-      borderWidth: 1,
-      borderColor: "#1f2937",
-    }}
-  >
+        {/* AJOUT PERSO */}
+        {manualOpen && (
+          <View
+            style={{
+              marginTop: 16,
+              padding: 14,
+              borderRadius: 14,
+              backgroundColor: "#0f172a",
+              borderWidth: 1,
+              borderColor: "#1f2937",
+            }}
+          >
             <Text style={{ color: "#fff", fontWeight: "900" }}>AJOUT PERSO</Text>
 
             <View style={{ flexDirection: "row", marginTop: 10 }}>
@@ -1092,39 +1029,44 @@ const MacroBar = ({
             <View style={{ flexDirection: "row", marginTop: 12 }}>
               <TouchableOpacity
                 onPress={() => setManualOpen(false)}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#111827", marginRight: 10 }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: "#111827",
+                  marginRight: 10,
+                }}
               >
-                <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>FERMER</Text>
+                <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
+                  FERMER
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={async () => {
-  const p = Math.max(0, parseInt(manualP || "0", 10) || 0);
-  const carb = Math.max(0, parseInt(manualCarb || "0", 10) || 0);
-  const f = Math.max(0, parseInt(manualF || "0", 10) || 0);
+                  const p = Math.max(0, parseInt(manualP || "0", 10) || 0);
+                  const carb = Math.max(0, parseInt(manualCarb || "0", 10) || 0);
+                  const f = Math.max(0, parseInt(manualF || "0", 10) || 0);
 
-  let c = Math.max(0, parseInt(manualC || "0", 10) || 0);
+                  let c = Math.max(0, parseInt(manualC || "0", 10) || 0);
+                  if (!c) c = p * 4 + carb * 4 + f * 9;
 
-  // ✅ si calories non renseignées → calcul auto
-  if (!c) {
-    c = p * 4 + carb * 4 + f * 9;
-  }
+                  if (!p && !carb && !f && !c) return;
 
-  if (!p && !carb && !f && !c) return;
+                  await addEntry({ foods: ["Ajout perso"], p, carb, f, c });
 
-  await addEntry({
-    foods: ["Ajout perso"],
-    p,
-    carb,
-    f,
-    c,
-  });
-
-  setManualOpen(false);
-}}
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: "#ffffff" }}
+                  setManualOpen(false);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  backgroundColor: "#ffffff",
+                }}
               >
-                <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>AJOUTER</Text>
+                <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
+                  AJOUTER
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
