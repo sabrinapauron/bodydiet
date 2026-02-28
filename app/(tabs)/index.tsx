@@ -521,6 +521,13 @@ useEffect(() => {
   carbs > 0 ||
   fat > 0;
 
+  const firstActionHint =
+  !hasStartedToday
+    ? "⚡ Scanne ton 1er repas pour lancer la journée."
+    : !perfectDay
+    ? `⚡ Il te manque surtout : ${biggestGap} (P ${remainingP} • G ${remainingG} • L ${remainingL}).`
+    : "✅ Journée validée. Tu peux sécuriser ta série.";
+
   if (!loaded) return null;
 
   type MacroBarProps = {
@@ -606,7 +613,9 @@ elevation: 4,
     Challenge du jour actif
   </Text>
 </View>
-
+<Text style={{ color: "#e5e7eb", opacity: 0.75, fontSize: 12, marginTop: 8 }}>
+  {firstActionHint}
+</Text>
 <View style={{ marginTop: 10 }}>
   <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
     🏆{" "}
@@ -616,22 +625,23 @@ elevation: 4,
     (Objectif : {streakGoal} jours)
   </Text>
 
-  {daysToGoal > 0 ? (
-    <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
-      Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
-    </Text>
-  ) : (
-    <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
-      Objectif du round atteint. Nouveau round !
-    </Text>
-  )}
+  {streak === 0 && (
+  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+    Valide aujourd’hui pour démarrer ta série.
+  </Text>
+)}
 
-  {/* ✅ seulement si streak > 0 (sinon ça faisait "dernier jour" à tort) */}
-  {streak > 0 && isLastDayBeforeGoal && (
-    <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
-      Dernier jour avant validation. Nouveau round !
-    </Text>
-  )}
+{streak > 0 && daysToGoal > 1 && (
+  <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+    Encore {daysToGoal} jours pour valider l’objectif.
+  </Text>
+)}
+
+{streak > 0 && daysToGoal === 1 && (
+  <Text style={{ color: "#22c55e", fontSize: 12 }}>
+    Dernier jour avant validation !
+  </Text>
+)}
 
   {/* ✅ Points + Joker sur une ligne (plus de chevauchement) */}
   <View
@@ -642,7 +652,7 @@ elevation: 4,
       justifyContent: "space-between",
     }}
   >
-    <View style={{ paddingRight: 12 }}>
+    <View style={{ flex: 1 }}>
       <Text style={{ color: "#22c55e", fontWeight: "700" }}>
         🎯 Points BODY : {points}
       </Text>
