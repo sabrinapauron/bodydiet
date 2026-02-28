@@ -157,47 +157,59 @@ const perfectDay =
   fatProgress >= 1;
 
 useEffect(() => {
-  if (!perfectDay) return;
-
   const today = todayKey();
 
-  // évite double comptage
-  if (lastPerfectDay === today) return;
+  if (perfectDay) {
+    if (lastPerfectDay === today) return;
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = yesterday.toISOString().slice(0, 10);
 
-  const nextStreak = lastPerfectDay === yesterdayKey ? streak + 1 : 1;
+    const nextStreak =
+      lastPerfectDay === yesterdayKey ? streak + 1 : 1;
 
-  setStreak(nextStreak);
-  setLastPerfectDay(today);
-  const earnedPoints = 10;
-const nextPoints = points + earnedPoints;
+    const earnedPoints = 10;
+    const nextPoints = points + earnedPoints;
 
-setPoints(nextPoints);
+    setStreak(nextStreak);
+    setLastPerfectDay(today);
+    setPoints(nextPoints);
+    setGraceUsed(false); // ✅ joker rechargé
 
-  // ✅ optionnel : mini animation "Série +1"
-  setShowStreakUp(true);
-  setTimeout(() => setShowStreakUp(false), 1800);
+    setShowStreakUp(true);
+    setTimeout(() => setShowStreakUp(false), 1800);
 
-  // ✅ on persiste TOUT avec le streak calculé
-  persist({
-    day,
-    protein,
-    carbs,
-    fat,
-    calories,
-    log,
-    weightKg,
-    goal,
+    persist({
+      day,
+      protein,
+      carbs,
+      fat,
+      calories,
+      log,
+      weightKg,
+      goal,
+      streak: nextStreak,
+      lastPerfectDay: today,
+      graceUsed: false,
+      points: nextPoints,
+    });
+  }
+}, [
+  perfectDay,
+  lastPerfectDay,
+  streak,
+  points,
+  day,
+  protein,
+  carbs,
+  fat,
+  calories,
+  log,
+  weightKg,
+  goal,
+]);
 
-    streak: nextStreak,
-    lastPerfectDay: today,
-    points: nextPoints,
-    graceUsed,
-  });
-}, [perfectDay, lastPerfectDay, streak, day, protein, carbs, fat, calories, log, weightKg, goal, points, graceUsed]);
 
   const persist = async (next: Partial<StoredState>) => {
   await AsyncStorage.setItem(
@@ -413,6 +425,11 @@ setPoints(Number(s.points) || 0);
 
   const status =
     remainP === 0 ? "OBJECTIF ATTEINT" : remainP <= 25 ? "PRESQUE" : "EN COURS";
+const rewardSteps = [200, 600, 1000, 2000];
+
+const nextReward =
+  rewardSteps.find((step) => points < step) ??
+  rewardSteps[rewardSteps.length - 1];
 
   if (!loaded) return null;
 const biggestGap: "P" | "G" | "L" =
@@ -453,7 +470,7 @@ const premiumTitle =
 const premiumPreviewLines = [
   "Tes macros CIBLE  + ajustement PERSONNALISE",
   "Ton plan repas adapté et equivalences",
-  "Ta Liste de courses + tes points d'achats multiplier par 2",
+  "Ta Liste de courses + tes points convertibles multipliés par 2",
 ];
 
   type MacroBarProps = {
@@ -506,6 +523,7 @@ const MacroBar = ({
     </View>
   );
 };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView
@@ -517,8 +535,7 @@ const MacroBar = ({
   <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
     AUJOURD’HUI • {day}
   </Text>
-
-  {streak > 0 && (
+{streak > 0 && (
   <View style={{ marginTop: 4 }}>
     <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
       🏆 Série active : {streak} jour{streak > 1 ? "s" : ""}
@@ -528,12 +545,68 @@ const MacroBar = ({
       🎯 Points BODY : {points}
     </Text>
 
+    <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
+  Prochaine recompense : {nextReward} pts
+</Text>
+
     <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
-      Cumule des points grâce à ta régularité et gagne des bons d'achats pour tes prot
+      Cumule des points grace a ta regularite et convertis-les en bons.
+    </Text>
+
+    {graceUsed && (
+      <>
+        <View
+          style={{
+            marginTop: 8,
+            alignSelf: "flex-start",
+            backgroundColor: "#0f172a",
+            borderWidth: 1,
+            borderColor: "#334155",
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: 999,
+          }}
+        >
+          <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
+            🛟 Joker utilise (1/1)
+          </Text>
+        </View>
+
+        <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
+          Ta serie est protegee pour aujourd hui.
+        </Text>
+      </>
+    )}
+  </View>
+)}
+  
+{/* animation si echec */}
+{!perfectDay && (
+  <View
+    style={{
+      marginTop: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 14,
+      backgroundColor: "#111827",
+      borderWidth: 1,
+      borderColor: "#1f2937",
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "900" }}>
+      Demain, tu reussiras. nouveau round !
+    </Text>
+
+    <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
+      Un seul objectif: avancer !  Une journée à la fois.
     </Text>
   </View>
 )}
-
+{graceUsed && streak > 0 && (
+  <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
+    Ta serie est protegee pour aujourd hui.
+  </Text>
+)}
   {/* animation streak */}
   {showStreakUp && (
     <View
