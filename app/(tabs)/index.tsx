@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { Animated } from "react-native";
 
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 const STORE_KEY = "FITSCAN_V1";
@@ -83,6 +84,7 @@ export default function HomeScreen() {
   const [lastGoalRewardDay, setLastGoalRewardDay] = useState<string | null>(null);
 
   const scrollRef = useRef<ScrollView | null>(null);
+  const jokerPulse = useRef(new Animated.Value(1)).current;
 
   const persist = async (next: Partial<StoredState>) => {
     const payload: StoredState = {
@@ -286,6 +288,57 @@ export default function HomeScreen() {
       }
     })();
   }, []);
+
+  const useJoker = async () => {
+  if (streak <= 0) return;
+  if (graceUsed) return;
+
+  Alert.alert(
+    "Utiliser le joker ?",
+    "Ça protège ta série aujourd’hui (sans points).",
+    [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Utiliser",
+        style: "default",
+        onPress: async () => {
+          const today = todayKey();
+
+          // ✅ protège la série : on “valide” la journée pour la continuité,
+          // mais on ne donne PAS de points (et on bloque un perfectDay tardif aujourd’hui)
+          setGraceUsed(true);
+          setLastPerfectDay(today);
+
+          await persist({
+            graceUsed: true,
+            lastPerfectDay: today,
+          });
+        },
+      },
+    ]
+  );
+};
+
+useEffect(() => {
+  if (streak > 0 && !perfectDay && !graceUsed) {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(jokerPulse, {
+          toValue: 1.08,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(jokerPulse, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  } else {
+    jokerPulse.setValue(1);
+  }
+}, [streak, perfectDay, graceUsed]);
 
   // Validation “perfect day” -> streak + points (et bonus 1/3/7/14)
   useEffect(() => {
@@ -494,37 +547,39 @@ export default function HomeScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
-      >
-        {/* HEADER JOUR */}
-        <View style={{ marginTop: 6 }}>
-          <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
-            AUJOURD’HUI • {day}
-          </Text>
+return (
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
+    <ScrollView
+      ref={scrollRef}
+      contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
+    >
+      {/* HEADER JOUR */}
+      <View style={{ marginTop: 6 }}>
+        <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
+          AUJOURD’HUI • {day}
+        </Text>
 
-          {streak > 0 && (
-            <View style={{ marginTop: 4 }}>
-              <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-                🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
+        {streak > 0 && (
+          <View style={{ marginTop: 4 }}>
+            <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+              🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
+            </Text>
+
+            {daysToGoal > 0 && (
+              <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+                Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
               </Text>
+            )}
 
-              {daysToGoal > 0 && (
-                <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
-                  Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
-                </Text>
-              )}
+            {isLastDayBeforeGoal && (
+              <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
+                Dernier jour avant validation. Nouveau round !
+              </Text>
+            )}
 
-              {isLastDayBeforeGoal && (
-                <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
-                  Dernier jour avant validation. Nouveau round !
-                </Text>
-              )}
-
-              <Text style={{ color: "#22c55e", marginTop: 6, fontWeight: "700" }}>
+            {/* ✅ bloc points + joker */}
+            <View style={{ marginTop: 6, position: "relative" }}>
+              <Text style={{ color: "#22c55e", fontWeight: "700" }}>
                 🎯 Points BODY : {points}
               </Text>
 
@@ -532,98 +587,124 @@ export default function HomeScreen() {
                 Prochaine recompense : {nextReward} pts
               </Text>
 
-              <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
-                Cumule des points grace a ta regularite et convertis-les en bons.
-              </Text>
-
-              {graceUsed && (
-                <>
-                  <View
+              {streak > 0 && !perfectDay && !graceUsed && (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: 6,
+                    transform: [{ scale: jokerPulse }],
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={useJoker}
                     style={{
-                      marginTop: 8,
-                      alignSelf: "flex-start",
-                      backgroundColor: "#0f172a",
+                      backgroundColor: "rgba(2,6,23,0.85)",
                       borderWidth: 1,
-                      borderColor: "#334155",
+                      borderColor: "#60a5fa",
                       paddingVertical: 6,
                       paddingHorizontal: 10,
                       borderRadius: 999,
                     }}
                   >
-                    <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
-                      🛟 Joker utilise (1/1)
-                    </Text>
-                  </View>
-
-                  <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
-                    Ta serie est protegee pour aujourd hui.
-                  </Text>
-                </>
+                    <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
+                  </TouchableOpacity>
+                </Animated.View>
               )}
             </View>
-          )}
 
-          {showGoalReachedBanner && (
-            <View
-              style={{
-                marginTop: 10,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 14,
-                backgroundColor: "#052e16",
-                borderWidth: 1,
-                borderColor: "#22c55e",
-              }}
-            >
-              <Text style={{ color: "#22c55e", fontWeight: "900" }}>
-                🎉 Objectif valide !
-              </Text>
+            <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
+              Cumule des points grace a ta regularite et convertis-les en bons.
+            </Text>
 
-              <Text style={{ color: "#bbf7d0", opacity: 0.9, marginTop: 4, fontSize: 12 }}>
-                Bonus BODY debloque. Nouveau round jusqu’a {streakGoal} jours.
-              </Text>
-            </View>
-          )}
+            {graceUsed && (
+              <>
+                <View
+                  style={{
+                    marginTop: 8,
+                    alignSelf: "flex-start",
+                    backgroundColor: "#0f172a",
+                    borderWidth: 1,
+                    borderColor: "#334155",
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Text style={{ color: "#cbd5e1", fontWeight: "900", fontSize: 12 }}>
+                    🛟 Joker utilise (1/1)
+                  </Text>
+                </View>
 
-          {/* animation si echec */}
-          {!perfectDay && (
-            <View
-              style={{
-                marginTop: 10,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 14,
-                backgroundColor: "#111827",
-                borderWidth: 1,
-                borderColor: "#1f2937",
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "900" }}>
-                Demain, tu reussiras. Nouveau round !
-              </Text>
+                <Text style={{ color: "#fff", opacity: 0.55, marginTop: 6, fontSize: 12 }}>
+                  Ta serie est protegee pour aujourd hui.
+                </Text>
+              </>
+            )}
+          </View>
+        )}
 
-              <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
-                Un seul objectif: avancer ! Une journée à la fois.
-              </Text>
-            </View>
-          )}
+        {showGoalReachedBanner && (
+          <View
+            style={{
+              marginTop: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: "#052e16",
+              borderWidth: 1,
+              borderColor: "#22c55e",
+            }}
+          >
+            <Text style={{ color: "#22c55e", fontWeight: "900" }}>🎉 Objectif valide !</Text>
 
-          {/* animation streak */}
-          {showStreakUp && (
-            <View
-              style={{
-                marginTop: 10,
-                alignSelf: "flex-start",
-                backgroundColor: "#16a34a",
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                borderRadius: 999,
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "900" }}>🏆 Série +1</Text>
-            </View>
-          )}
-        </View>
+            <Text style={{ color: "#bbf7d0", opacity: 0.9, marginTop: 4, fontSize: 12 }}>
+              Bonus BODY debloque. Nouveau round jusqu’a {streakGoal} jours.
+            </Text>
+          </View>
+        )}
+
+        {/* animation si echec */}
+        {!perfectDay && (
+          <View
+            style={{
+              marginTop: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: "#111827",
+              borderWidth: 1,
+              borderColor: "#1f2937",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "900" }}>
+              Demain, tu reussiras. Nouveau round !
+            </Text>
+
+            <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
+              Un seul objectif: avancer ! Une journée à la fois.
+            </Text>
+          </View>
+        )}
+
+        {/* animation streak */}
+        {showStreakUp && (
+          <View
+            style={{
+              marginTop: 10,
+              alignSelf: "flex-start",
+              backgroundColor: "#16a34a",
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 999,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "900" }}>🏆 Série +1</Text>
+          </View>
+        )}
+      </View>
+
+      {/* ... ensuite tu reprends ton bloc MACROS ici ... */}
 
         {/* MACROS */}
         <View style={{ marginTop: 14 }}>
