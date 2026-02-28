@@ -290,8 +290,9 @@ export default function HomeScreen() {
   }, []);
 
   const useJoker = async () => {
-  if (streak <= 0) return;
+  // ✅ autorisé même si streak=0 (jour 1 du challenge)
   if (graceUsed) return;
+  if (perfectDay) return;
 
   Alert.alert(
     "Utiliser le joker ?",
@@ -303,9 +304,6 @@ export default function HomeScreen() {
         style: "default",
         onPress: async () => {
           const today = todayKey();
-
-          // ✅ protège la série : on “valide” la journée pour la continuité,
-          // mais on ne donne PAS de points (et on bloque un perfectDay tardif aujourd’hui)
           setGraceUsed(true);
           setLastPerfectDay(today);
 
@@ -319,26 +317,39 @@ export default function HomeScreen() {
   );
 };
 
+
+const jokerLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
 useEffect(() => {
-  if (streak > 0 && !perfectDay && !graceUsed) {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(jokerPulse, {
-          toValue: 1.08,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(jokerPulse, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  } else {
-    jokerPulse.setValue(1);
+  // stop loop précédente
+  if (jokerLoopRef.current) {
+    jokerLoopRef.current.stop();
+    jokerLoopRef.current = null;
   }
-}, [streak, perfectDay, graceUsed]);
+
+  jokerPulse.setValue(1);
+
+  const shouldPulse = !perfectDay && !graceUsed;
+
+  if (shouldPulse) {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(jokerPulse, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(jokerPulse, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    );
+
+    jokerLoopRef.current = loop;
+    loop.start();
+  }
+
+  return () => {
+    if (jokerLoopRef.current) {
+      jokerLoopRef.current.stop();
+      jokerLoopRef.current = null;
+    }
+  };
+}, [perfectDay, graceUsed, jokerPulse]);
 
   // Validation “perfect day” -> streak + points (et bonus 1/3/7/14)
   useEffect(() => {
@@ -504,6 +515,11 @@ useEffect(() => {
     remainingP === 0 ? "OBJECTIF ATTEINT" : remainingP <= 25 ? "PRESQUE" : "EN COURS";
 
   const showGoalReachedBanner = lastGoalRewardDay === day;
+  const hasStartedToday =
+  calories > 0 ||
+  protein > 0 ||
+  carbs > 0 ||
+  fat > 0;
 
   if (!loaded) return null;
 
@@ -559,63 +575,68 @@ return (
           AUJOURD’HUI • {day}
         </Text>
 
-        {streak > 0 && (
+       
           <View style={{ marginTop: 4 }}>
-            <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
-              🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
-            </Text>
+  <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+    🏆 Série active : {streak} jour{streak > 1 ? "s" : ""} (Objectif : {streakGoal} jours)
+  </Text>
 
-            {daysToGoal > 0 && (
-              <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
-                Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
-              </Text>
-            )}
+  {daysToGoal > 0 ? (
+    <Text style={{ color: "#fff", opacity: 0.6, fontSize: 12 }}>
+      Encore {daysToGoal} jour{daysToGoal > 1 ? "s" : ""} pour valider l’objectif.
+    </Text>
+  ) : (
+    <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
+      Objectif du round atteint. Nouveau round !
+    </Text>
+  )}
 
-            {isLastDayBeforeGoal && (
-              <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
-                Dernier jour avant validation. Nouveau round !
-              </Text>
-            )}
+  {isLastDayBeforeGoal && (
+    <Text style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>
+      Dernier jour avant validation. Nouveau round !
+    </Text>
+  )}
 
-            {/* ✅ bloc points + joker */}
-            <View style={{ marginTop: 6, position: "relative" }}>
-              <Text style={{ color: "#22c55e", fontWeight: "700" }}>
-                🎯 Points BODY : {points}
-              </Text>
+  {/* ✅ bloc points + joker (toujours visible) */}
+  <View style={{ marginTop: 6, position: "relative" }}>
+    <Text style={{ color: "#22c55e", fontWeight: "700" }}>
+      🎯 Points BODY : {points}
+    </Text>
 
-              <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
-                Prochaine recompense : {nextReward} pts
-              </Text>
+    <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
+      Prochaine recompense : {nextReward} pts
+    </Text>
 
-              {streak > 0 && !perfectDay && !graceUsed && (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    right: 10,
-                    top: 6,
-                    transform: [{ scale: jokerPulse }],
-                  }}
-                >
-                  <TouchableOpacity
-                    onPress={useJoker}
-                    style={{
-                      backgroundColor: "rgba(2,6,23,0.85)",
-                      borderWidth: 1,
-                      borderColor: "#60a5fa",
-                      paddingVertical: 6,
-                      paddingHorizontal: 10,
-                      borderRadius: 999,
-                    }}
-                  >
-                    <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              )}
-            </View>
+    {/* ✅ Joker toujours affiché */}
+    <Animated.View
+      style={{
+        position: "absolute",
+        right: 10,
+        top: 6,
+        transform: [{ scale: jokerPulse }],
+        opacity: graceUsed || perfectDay ? 0.35 : 1,
+      }}
+    >
+      <TouchableOpacity
+        onPress={useJoker}
+        disabled={graceUsed || perfectDay}
+        style={{
+          backgroundColor: "rgba(2,6,23,0.85)",
+          borderWidth: 1,
+          borderColor: "#60a5fa",
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+        }}
+      >
+        <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  </View>
 
-            <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
-              Cumule des points grace a ta regularite et convertis-les en bons.
-            </Text>
+  <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12, marginTop: 2 }}>
+    Cumule des points grace a ta regularite et convertis-les en bons.
+  </Text>
 
             {graceUsed && (
               <>
@@ -642,7 +663,7 @@ return (
               </>
             )}
           </View>
-        )}
+        
 
         {showGoalReachedBanner && (
           <View
@@ -665,7 +686,8 @@ return (
         )}
 
         {/* animation si echec */}
-        {!perfectDay && (
+       
+        {hasStartedToday && !perfectDay && (
           <View
             style={{
               marginTop: 10,
@@ -676,6 +698,7 @@ return (
               borderWidth: 1,
               borderColor: "#1f2937",
             }}
+            
           >
             <Text style={{ color: "#fff", fontWeight: "900" }}>
               Demain, tu reussiras. Nouveau round !
