@@ -27,6 +27,7 @@ type LogEntry = {
   f: number; // fat
   c: number; // calories
    photo?: string;
+   title?: string; 
 };
 
 type StoredState = {
@@ -42,6 +43,7 @@ type StoredState = {
   streak: number;
   lastPerfectDay: string | null;
   graceUsed: boolean;
+  savePhotos?: boolean;
 
   points: number;
   lastGoalRewardDay: string | null;
@@ -85,6 +87,7 @@ export default function HomeScreen() {
   const [isPro, setIsPro] = useState(false);
 
   const [points, setPoints] = useState(0);
+  const [savePhotos, setSavePhotos] = useState(true);
   const [lastGoalRewardDay, setLastGoalRewardDay] = useState<string | null>(null);
 
   const scrollRef = useRef<ScrollView | null>(null);
@@ -109,6 +112,7 @@ export default function HomeScreen() {
       lastGoalRewardDay,
 
       ...next,
+      savePhotos,
     };
 
     await saveState(payload);
@@ -238,6 +242,7 @@ export default function HomeScreen() {
         setLastGoalRewardDay(typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null);
         setGraceUsed(Boolean(s.graceUsed));
         setPoints(Number(s.points) || 0);
+        setSavePhotos(typeof s.savePhotos === "boolean" ? s.savePhotos : true);
 
         // reset journalier
         if (s.day !== tk) {
@@ -254,7 +259,7 @@ export default function HomeScreen() {
             streak: Number(s.streak) || 0,
             lastPerfectDay: typeof s.lastPerfectDay === "string" ? s.lastPerfectDay : null,
             graceUsed: Boolean(s.graceUsed),
-
+            savePhotos: typeof s.savePhotos === "boolean" ? s.savePhotos : true,
             points: Number(s.points) || 0,
             lastGoalRewardDay: typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null,
           };
@@ -278,6 +283,7 @@ export default function HomeScreen() {
           setLog(Array.isArray(s.log) ? (s.log as LogEntry[]) : []);
           setWeightKg(String(s.weightKg ?? "75"));
           setGoal((s.goal ?? "gain") as Goal);
+          setSavePhotos(typeof s.savePhotos === "boolean" ? s.savePhotos : true);
         }
       } catch {
         const tk = todayKey();
@@ -398,6 +404,7 @@ useEffect(() => {
       graceUsed: false,
 
       points: nextPoints,
+      
       lastGoalRewardDay: goalBonus > 0 ? today : lastGoalRewardDay,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -410,6 +417,7 @@ useEffect(() => {
   f = 0,
   c = 0,
   photo,
+   title,
 }: Partial<LogEntry> & { foods?: string[]; photo?: string }) => {
   const nextProtein = protein + (p || 0);
   const nextCarbs = carbs + (carb || 0);
@@ -424,6 +432,7 @@ useEffect(() => {
     f: f || 0,
     c: c || 0,
     photo: photo || undefined, // ✅
+    title,
   };
 
   const nextLog = [newEntry, ...log].slice(0, 50);
@@ -474,7 +483,8 @@ const scanMeal = async () => {
       carb: 0,
       f: 0,
       c: 0,
-      photo: base64,
+      photo: savePhotos ? base64 : undefined,
+      title: "Photo repas",
     });
   };
 
@@ -531,14 +541,20 @@ if (!base64) {
       return;
     }
 
-    await addEntry({
-      foods: Array.isArray(data.foods) ? data.foods : [],
-      p: Math.max(0, roundInt(data.protein_g)),
-      carb: Math.max(0, roundInt(data.carbs_g)),
-      f: Math.max(0, roundInt(data.fat_g)),
-      c: Math.max(0, roundInt(data.calories_kcal)),
-      photo: base64, // ✅ stocke photo + macros
-    });
+   const autoTitle =
+  Array.isArray(data.foods) && data.foods.length
+    ? String(data.foods[0]) // 1er item comme “indice”
+    : "Repas";
+
+await addEntry({
+  foods: Array.isArray(data.foods) ? data.foods : [],
+  p: Math.max(0, roundInt(data.protein_g)),
+  carb: Math.max(0, roundInt(data.carbs_g)),
+  f: Math.max(0, roundInt(data.fat_g)),
+  c: Math.max(0, roundInt(data.calories_kcal)),
+  photo: savePhotos ? base64 : undefined,
+  title: autoTitle, // ✅
+}); 
   } catch {
     await savePhotoOnly();
     Alert.alert(
@@ -921,9 +937,35 @@ elevation: 4,
           }}
         >
           <Text style={{ textAlign: "center", fontSize: 16, fontWeight: "800", color: "#0b1220" }}>
-            {busy ? "ANALYSE…" : "📷 SCAN REPAS"}
+            {busy ? "ANALYSE…" : " SCAN REPAS"}
           </Text>
         </TouchableOpacity>
+<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+  <Text style={{ color: "#fff", opacity: 0.7, fontSize: 12 }}>
+    Album repas : {savePhotos ? "ON" : "OFF"}
+  </Text>
+
+  <TouchableOpacity
+    onPress={async () => {
+      const next = !savePhotos;
+      setSavePhotos(next);
+      await persist({ savePhotos: next });
+    }}
+    style={{
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      backgroundColor: "#111827",
+      borderWidth: 1,
+      borderColor: savePhotos ? "#1c2fe2" : "#334155",
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
+      {savePhotos ? " ON" : " OFF"}
+    </Text>
+  </TouchableOpacity>
+</View>
+
         <TouchableOpacity
   onPress={() => router.push("/album-meals")}
   style={{

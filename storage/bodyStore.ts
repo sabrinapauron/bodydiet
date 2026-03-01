@@ -14,6 +14,7 @@ export type LogEntry = {
   f: number;
   c: number;
   photo?: string;
+   title?: string; 
 };
 
 export type StoredState = {
@@ -31,6 +32,7 @@ export type StoredState = {
   graceUsed: boolean;
 
   points: number;
+  savePhotos?: boolean;
   lastGoalRewardDay: string | null;
 };
 
@@ -47,7 +49,62 @@ export async function loadState(): Promise<StoredState | null> {
     return null;
   }
 }
+/* =========================
+   UPDATE HELPERS
+========================= */
 
+async function updateState(
+  updater: (prev: StoredState) => StoredState
+): Promise<StoredState | null> {
+  const prev = await loadState();
+  if (!prev) return null;
+  const next = updater(prev);
+  await saveState(next);
+  return next;
+}
+
+/* =========================
+   ALBUM ACTIONS
+========================= */
+
+// ✅ Vider l’album : on enlève uniquement les photos (on garde les macros & l’historique)
+export async function clearMealPhotos() {
+  return updateState((prev) => ({
+    ...prev,
+    log: Array.isArray(prev.log)
+      ? prev.log.map((e) => {
+          if (!e?.photo) return e;
+          const { photo, ...rest } = e;
+          return rest;
+        })
+      : [],
+  }));
+}
+
+// ✅ “Supprimer” 1 élément de l’album : on retire la photo de cette entrée
+export async function removeMealPhoto(t: number) {
+  return updateState((prev) => ({
+    ...prev,
+    log: Array.isArray(prev.log)
+      ? prev.log.map((e) => {
+          if (!e || e.t !== t) return e;
+          const { photo, ...rest } = e;
+          return rest;
+        })
+      : [],
+  }));
+}
+
+// ✅ Renommer une entrée (titre affiché dans l’album)
+export async function renameMeal(t: number, title: string) {
+  const clean = String(title ?? "").trim().slice(0, 60);
+  return updateState((prev) => ({
+    ...prev,
+    log: Array.isArray(prev.log)
+      ? prev.log.map((e) => (e && e.t === t ? { ...e, title: clean } : e))
+      : [],
+  }));
+}
 /* =========================
    SAVE GLOBAL STATE
 ========================= */
