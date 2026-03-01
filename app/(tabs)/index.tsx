@@ -8,12 +8,14 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { saveState, loadState } from "../../storage/bodyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Animated } from "react-native";
 
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
-const STORE_KEY = "FITSCAN_V1";
+
 
 type Goal = "gain" | "cut" | "maintain";
 
@@ -24,6 +26,7 @@ type LogEntry = {
   carb: number; // carbs
   f: number; // fat
   c: number; // calories
+   photo?: string;
 };
 
 type StoredState = {
@@ -48,6 +51,7 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 const roundInt = (n: unknown) => Math.round(Number(n) || 0);
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [loaded, setLoaded] = useState(false);
 
   // Profil
@@ -107,7 +111,7 @@ export default function HomeScreen() {
       ...next,
     };
 
-    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(payload));
+    await saveState(payload);
   };
 
   // Objectifs macros complets
@@ -218,16 +222,16 @@ export default function HomeScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORE_KEY);
+        const s = await loadState();
         const tk = todayKey();
 
-        if (!raw) {
+        if (!s) {
           setDay(tk);
           setLoaded(true);
           return;
         }
 
-        const s = JSON.parse(raw) as Partial<StoredState>;
+       
 
         setStreak(Number(s.streak) || 0);
         setLastPerfectDay(typeof s.lastPerfectDay === "string" ? s.lastPerfectDay : null);
@@ -255,7 +259,7 @@ export default function HomeScreen() {
             lastGoalRewardDay: typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null,
           };
 
-          await AsyncStorage.setItem(STORE_KEY, JSON.stringify(next));
+         await saveState(next);
 
           setDay(tk);
           setProtein(0);
@@ -399,45 +403,46 @@ useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [perfectDay]);
 
-  const addEntry = async ({
-    foods = [],
-    p = 0,
-    carb = 0,
-    f = 0,
-    c = 0,
-  }: Partial<LogEntry> & { foods?: string[] }) => {
-    const nextProtein = protein + (p || 0);
-    const nextCarbs = carbs + (carb || 0);
-    const nextFat = fat + (f || 0);
-    const nextCalories = calories + (c || 0);
+ const addEntry = async ({
+  foods = [],
+  p = 0,
+  carb = 0,
+  f = 0,
+  c = 0,
+  photo,
+}: Partial<LogEntry> & { foods?: string[]; photo?: string }) => {
+  const nextProtein = protein + (p || 0);
+  const nextCarbs = carbs + (carb || 0);
+  const nextFat = fat + (f || 0);
+  const nextCalories = calories + (c || 0);
 
-    const newEntry: LogEntry = {
-      t: Date.now(),
-      foods: Array.isArray(foods) ? foods.filter(Boolean) : [],
-      p: p || 0,
-      carb: carb || 0,
-      f: f || 0,
-      c: c || 0,
-    };
-
-    const nextLog = [newEntry, ...log].slice(0, 50);
-
-    setProtein(nextProtein);
-    setCarbs(nextCarbs);
-    setFat(nextFat);
-    setCalories(nextCalories);
-    setLog(nextLog);
-
-    await persist({
-      day,
-      protein: nextProtein,
-      carbs: nextCarbs,
-      fat: nextFat,
-      calories: nextCalories,
-      log: nextLog,
-    });
+  const newEntry: LogEntry = {
+    t: Date.now(),
+    foods: Array.isArray(foods) ? foods.filter(Boolean) : [],
+    p: p || 0,
+    carb: carb || 0,
+    f: f || 0,
+    c: c || 0,
+    photo: photo || undefined, // ✅
   };
 
+  const nextLog = [newEntry, ...log].slice(0, 50);
+
+  setProtein(nextProtein);
+  setCarbs(nextCarbs);
+  setFat(nextFat);
+  setCalories(nextCalories);
+  setLog(nextLog);
+
+  await persist({
+    day,
+    protein: nextProtein,
+    carbs: nextCarbs,
+    fat: nextFat,
+    calories: nextCalories,
+    log: nextLog,
+  });
+};
   const resetDay = async () => {
     const tk = todayKey();
 
@@ -499,6 +504,7 @@ useEffect(() => {
         carb: Math.max(0, roundInt(data.carbs_g)),
         f: Math.max(0, roundInt(data.fat_g)),
         c: Math.max(0, roundInt(data.calories_kcal)),
+        photo: base64,
       });
     } catch {
       Alert.alert("Scan", "Erreur réseau.");
@@ -879,6 +885,19 @@ elevation: 4,
             {busy ? "ANALYSE…" : "📷 SCAN REPAS"}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+  onPress={() => router.push("/album-meals")}
+  style={{
+    marginTop: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+  }}
+>
+  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
+    📚 ALBUM REPAS
+  </Text>
+</TouchableOpacity>
 
         {/* AJOUT RAPIDE */}
         <Text style={{ color: "#fff", marginTop: 22, fontSize: 12, opacity: 0.7 }}>
