@@ -6,6 +6,8 @@ export const STORE_KEY = "FITSCAN_V1";
    TYPES
 ========================= */
 
+export type Goal = "gain" | "cut" | "maintain";
+
 export type LogEntry = {
   t: number;
   foods: string[];
@@ -14,7 +16,7 @@ export type LogEntry = {
   f: number;
   c: number;
   photo?: string;
-   title?: string; 
+  title?: string;
 };
 
 export type StoredState = {
@@ -25,19 +27,19 @@ export type StoredState = {
   calories: number;
   log: LogEntry[];
   weightKg: string;
-  goal: "gain" | "cut" | "maintain";
+  goal: Goal;
 
   streak: number;
   lastPerfectDay: string | null;
   graceUsed: boolean;
 
   points: number;
-  savePhotos?: boolean;
+  savePhotos?: boolean; // switch album ON/OFF
   lastGoalRewardDay: string | null;
 };
 
 /* =========================
-   LOAD GLOBAL STATE
+   LOAD / SAVE GLOBAL STATE
 ========================= */
 
 export async function loadState(): Promise<StoredState | null> {
@@ -49,8 +51,13 @@ export async function loadState(): Promise<StoredState | null> {
     return null;
   }
 }
+
+export async function saveState(state: StoredState) {
+  await AsyncStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+
 /* =========================
-   UPDATE HELPERS
+   UPDATE HELPER
 ========================= */
 
 async function updateState(
@@ -64,10 +71,31 @@ async function updateState(
 }
 
 /* =========================
+   LOG HELPERS
+========================= */
+
+export async function loadLog(): Promise<LogEntry[]> {
+  const state = await loadState();
+  if (!state || !Array.isArray(state.log)) return [];
+  return state.log;
+}
+
+/* =========================
+   SETTINGS (Album ON/OFF)
+========================= */
+
+export async function setSavePhotosEnabled(enabled: boolean) {
+  return updateState((prev) => ({
+    ...prev,
+    savePhotos: !!enabled,
+  }));
+}
+
+/* =========================
    ALBUM ACTIONS
 ========================= */
 
-// ✅ Vider l’album : on enlève uniquement les photos (on garde les macros & l’historique)
+// ✅ Vider l’album : on enlève uniquement les photos (on garde macros & historique)
 export async function clearMealPhotos() {
   return updateState((prev) => ({
     ...prev,
@@ -104,21 +132,4 @@ export async function renameMeal(t: number, title: string) {
       ? prev.log.map((e) => (e && e.t === t ? { ...e, title: clean } : e))
       : [],
   }));
-}
-/* =========================
-   SAVE GLOBAL STATE
-========================= */
-
-export async function saveState(state: StoredState) {
-  await AsyncStorage.setItem(STORE_KEY, JSON.stringify(state));
-}
-
-/* =========================
-   LOAD LOG ONLY
-========================= */
-
-export async function loadLog(): Promise<LogEntry[]> {
-  const state = await loadState();
-  if (!state || !Array.isArray(state.log)) return [];
-  return state.log;
 }
