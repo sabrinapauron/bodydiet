@@ -463,55 +463,94 @@ useEffect(() => {
     });
   };
 
-  const scanMeal = async () => {
+const scanMeal = async () => {
+  let base64: string | undefined;
+
+  const savePhotoOnly = async () => {
+    if (!base64) return;
+    await addEntry({
+      foods: ["Photo repas (non analysé)"],
+      p: 0,
+      carb: 0,
+      f: 0,
+      c: 0,
+      photo: base64,
+    });
+  };
+
+  try {
+    setBusy(true);
+
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Caméra", "Permission caméra refusée.");
+      return;
+    }
+
+    const shot = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (shot.canceled) return;
+
+    const asset = (shot as any).assets?.[0];
+base64 = asset?.base64;
+
+if (!base64) {
+  Alert.alert("Scan", "Image non exploitable.");
+  return;
+}
+
+    // ✅ FETCH avec timeout (12s)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let resp: Response;
     try {
-      setBusy(true);
-
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Caméra", "Permission caméra refusée.");
-        return;
-      }
-
-      const shot = await ImagePicker.launchCameraAsync({
-        quality: 0.7,
-        base64: true,
-      });
-
-      if (shot.canceled) return;
-
-      const base64 = shot.assets?.[0]?.base64;
-      if (!base64) {
-        Alert.alert("Scan", "Image non exploitable.");
-        return;
-      }
-
-      const resp = await fetch(API_URL, {
+      resp = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64 }),
+        signal: controller.signal,
       });
-
-      const data = (await resp.json()) as any;
-      if (!data?.ok) {
-        Alert.alert("Scan", data?.error || "Analyse impossible");
-        return;
-      }
-
-      await addEntry({
-        foods: Array.isArray(data.foods) ? data.foods : [],
-        p: Math.max(0, roundInt(data.protein_g)),
-        carb: Math.max(0, roundInt(data.carbs_g)),
-        f: Math.max(0, roundInt(data.fat_g)),
-        c: Math.max(0, roundInt(data.calories_kcal)),
-        photo: base64,
-      });
-    } catch {
-      Alert.alert("Scan", "Erreur réseau.");
     } finally {
-      setBusy(false);
+      clearTimeout(timeoutId);
     }
-  };
+
+    if (!resp.ok) {
+      await savePhotoOnly();
+      Alert.alert("Scan", `Serveur indisponible (${resp.status}). Photo ajoutée à l’album.`);
+      return;
+    }
+
+    const data = (await resp.json()) as any;
+    if (!data?.ok) {
+      await savePhotoOnly();
+      Alert.alert("Scan", (data?.error || "Analyse impossible") + " — Photo ajoutée à l’album.");
+      return;
+    }
+
+    await addEntry({
+      foods: Array.isArray(data.foods) ? data.foods : [],
+      p: Math.max(0, roundInt(data.protein_g)),
+      carb: Math.max(0, roundInt(data.carbs_g)),
+      f: Math.max(0, roundInt(data.fat_g)),
+      c: Math.max(0, roundInt(data.calories_kcal)),
+      photo: base64, // ✅ stocke photo + macros
+    });
+  } catch {
+    await savePhotoOnly();
+    Alert.alert(
+      "Scan",
+      "Analyse impossible (serveur injoignable). La photo a été ajoutée à l’album."
+    );
+  } finally {
+    setBusy(false);
+  }
+};
+
+
 
   const quickSupp = async (label: string, p: number, carb: number, f: number, c: number) => {
     await addEntry({ foods: [label], p, carb, f, c });
