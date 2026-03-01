@@ -909,7 +909,7 @@ elevation: 4,
 
         <View style={{ flexDirection: "row", marginTop: 10 }}>
           <View style={{ flex: 1, marginRight: 10 }}>
-            <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Poids (kg)</Text>
+            <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Ton Poids (kg)</Text>
             <TextInput
               value={weightKg}
               onChangeText={async (v) => {
@@ -1214,9 +1214,15 @@ elevation: 4,
 
                   if (!p && !carb && !f && !c) return;
 
-                  await addEntry({ foods: ["Ajout perso"], p, carb, f, c });
+                 await addEntry({ foods: ["Ajout perso"], p, carb, f, c });
 
-                  setManualOpen(false);
+// ✅ reset champs pour prochain ajout
+setManualP("");
+setManualCarb("");
+setManualF("");
+setManualC("");
+
+setManualOpen(false);
                 }}
                 style={{
                   flex: 1,
