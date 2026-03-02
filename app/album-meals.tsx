@@ -17,7 +17,8 @@ import { loadLog, LogEntry, clearMealPhotos, removeMealPhoto, renameMeal } from 
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
-
+import * as IntentLauncher from "expo-intent-launcher";
+import { Platform } from "react-native";
 
 export default function AlbumMeals() {
   const router = useRouter();
@@ -76,49 +77,58 @@ const shareMeal = async (item: LogEntry) => {
       return;
     }
 
-    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? null;
-
-    console.log("cacheDirectory:", FileSystem.cacheDirectory);
-    console.log("documentDirectory:", FileSystem.documentDirectory);
-
+    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
     if (!baseDir) {
       Alert.alert("Partage", "Stockage temporaire indisponible.");
       return;
     }
 
-    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
-
-    // ✅ base64 PUR (sans "data:image/...base64,")
+    // ✅ base64 pur
     const rawB64 = item.photo.includes("base64,")
       ? item.photo.split("base64,")[1]
       : item.photo;
 
-    // ✅ écriture du fichier en base64
+    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
+
     await FileSystem.writeAsStringAsync(fileUri, rawB64, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // ✅ sanity check
     const info = await FileSystem.getInfoAsync(fileUri);
-    if (!info.exists) {
-      Alert.alert("Partage", "Impossible de générer l’image.");
+    if (!info.exists || !info.size || info.size < 1000) {
+      console.log("shareMeal file info:", info);
+      Alert.alert("Partage", "Image non générée (fichier vide).");
       return;
     }
 
-    const canShare = await Sharing.isAvailableAsync();
-    if (!canShare) {
-      Alert.alert("Partage", "Partage indisponible sur cet appareil.");
+    // ✅ iOS : expo-sharing marche très bien
+    if (Platform.OS === "ios") {
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert("Partage", "Partage indisponible sur cet appareil.");
+        return;
+      }
+      await Sharing.shareAsync(fileUri, {
+        mimeType: "image/jpeg",
+        dialogTitle: "Partager ton repas",
+        UTI: "public.jpeg",
+      });
       return;
     }
 
-    await Sharing.shareAsync(fileUri, {
-      mimeType: "image/jpeg",
-      dialogTitle: "Partager ton repas",
-      UTI: "public.jpeg",
+    // ✅ ANDROID : convertir en content:// (lisible par les autres apps)
+    const contentUri = await FileSystem.getContentUriAsync(fileUri);
+
+    await IntentLauncher.startActivityAsync("android.intent.action.SEND", {
+      type: "image/jpeg",
+      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+      extra: {
+        "android.intent.extra.STREAM": contentUri,
+      },
     });
   } catch (e) {
     console.log("shareMeal error:", e);
-    Alert.alert("Partage", "Impossible de générer l’image.");
+    Alert.alert("Partage", "Impossible de partager la photo.");
   }
 };
 
