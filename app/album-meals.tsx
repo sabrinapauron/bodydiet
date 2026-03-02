@@ -30,7 +30,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-const FRAME = require("../assets/images/body diet cadre photo1.png");
+const FRAME = require("../assets/images/cadre2.png");
 const fmtDate = (t: number) =>
   new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
@@ -133,19 +133,41 @@ function ShareCard({
 </View>
             {/* ✅ FILTRE (vraiment ON/OFF) */}
             {shareFilter && (
-              <>
-                {/* vignette douce */}
-                <LinearGradient
-                  colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0)", "rgba(0,0,0,0.65)"]}
-                  style={{ position: "absolute", left: 0, top: 0, right: 0, height: 780 }}
-                />
-                {/* highlight léger */}
-                <LinearGradient
-                  colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
-                  style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
-                />
-              </>
-            )}
+  <View
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.18)",
+    }}
+  />
+)}
+{shareFilter && (
+  <View
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      height: "35%",
+      backgroundColor: "rgba(255,255,255,0.06)",
+    }}
+  />
+)}
+{shareFilter && (
+  <View
+    style={{
+      position: "absolute",
+      left: 0,
+      bottom: 0,
+      right: 0,
+      height: "45%",
+      backgroundColor: "rgba(0,10,25,0.22)",
+    }}
+  />
+)}
 
             {/* BADGE BODY DIET */}
             <View
@@ -265,7 +287,7 @@ function ShareCard({
   >
     <Image
       source={FRAME}
-      resizeMode="contain"
+      resizeMode="stretch"
       style={{
         width: "100%",
         height: "100%",
