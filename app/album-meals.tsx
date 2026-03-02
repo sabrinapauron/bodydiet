@@ -10,7 +10,7 @@ import {
   Modal,
   TextInput,
   Pressable,
-  Share,
+
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { loadLog, LogEntry, clearMealPhotos, removeMealPhoto, renameMeal } from "../storage/bodyStore";
@@ -66,7 +66,49 @@ const confirmRename = async () => {
   await renameMeal(t, nextTitle);
 };
 
-// ✅ suppression d'UNE photo
+
+
+// ✅ partage (texte simple pour l’instant)
+const shareMeal = async (item: LogEntry) => {
+  try {
+    if (!item.photo) {
+      Alert.alert("Partage", "Aucune photo à partager.");
+      return;
+    }
+
+    // ✅ cacheDirectory peut être null selon typings -> fallback documentDirectory
+    const baseDir =
+      FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? null;
+
+    if (!baseDir) {
+      Alert.alert("Partage", "Stockage temporaire indisponible.");
+      return;
+    }
+
+    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
+
+    // ✅ writeAsStringAsync + Base64 (TS-safe)
+    await FileSystem.writeAsStringAsync(fileUri, item.photo, {
+      encoding: "base64",
+    });
+
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      Alert.alert("Partage", "Partage indisponible sur cet appareil.");
+      return;
+    }
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: "image/jpeg",
+      dialogTitle: "Partager ton repas",
+      UTI: "public.jpeg",
+    });
+  } catch (e) {
+    console.log("shareMeal error:", e);
+    Alert.alert("Partage", "Impossible de générer l’image.");
+  }
+};
+
 const confirmDeleteOne = (item: LogEntry) => {
   Alert.alert(
     "Supprimer",
@@ -77,50 +119,15 @@ const confirmDeleteOne = (item: LogEntry) => {
         text: "Supprimer",
         style: "destructive",
         onPress: async () => {
+          // UI immédiat
+          setMeals((prev) => prev.filter((m) => m.t !== item.t));
+          // storage
           await removeMealPhoto(item.t);
-          await refreshMeals();
         },
       },
     ]
   );
 };
-
-// ✅ partage (texte simple pour l’instant)
-const shareMeal = async (item: LogEntry) => {
-  openShare(item);
-
-  // laisse le temps au modal de rendre la carte
-  setTimeout(async () => {
-    try {
-      if (!shareRef.current) return;
-
-      const uri = await captureRef(shareRef, {
-        format: "png",
-        quality: 1,
-      });
-
-      // Android aime mieux un fichier dans cache avec extension
-      const baseDir =
-  FileSystem.cacheDirectory ?? FileSystem.documentDirectory!;
-
-const out = `${baseDir}bodydiet_${item.t}.png`;
-      await FileSystem.copyAsync({ from: uri, to: out });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(out);
-      } else {
-        // fallback (rare)
-        await Share.share({ message: "BODY DIET", url: out as any });
-      }
-    } catch (e) {
-      Alert.alert("Partage", "Impossible de générer l’image.");
-    } finally {
-      setShareOpen(false);
-      setShareItem(null);
-    }
-  }, 250);
-};
-
 // ✅ menu long press
 const onLongPressMeal = (item: LogEntry) => {
   Alert.alert(
