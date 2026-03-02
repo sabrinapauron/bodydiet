@@ -11,6 +11,7 @@ import {
   TextInput,
   Pressable,
   Switch,
+  StyleSheet,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import {
@@ -30,7 +31,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-const FRAME = require("../assets/images/cadre2.png");
+const FRAME = require("../assets/images/body diet 2.png");
 const fmtDate = (t: number) =>
   new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
@@ -132,43 +133,29 @@ function ShareCard({
   )}
 </View>
             {/* ✅ FILTRE (vraiment ON/OFF) */}
-            {shareFilter && (
-  <View
-    style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.18)",
-    }}
-  />
-)}
+           
 {shareFilter && (
-  <View
-    style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      height: "35%",
-      backgroundColor: "rgba(255,255,255,0.06)",
-    }}
-  />
-)}
-{shareFilter && (
-  <View
-    style={{
-      position: "absolute",
-      left: 0,
-      bottom: 0,
-      right: 0,
-      height: "45%",
-      backgroundColor: "rgba(0,10,25,0.22)",
-    }}
-  />
-)}
+  <>
+    {/* vignette douce (sans barre) */}
+    <LinearGradient
+      colors={[
+        "rgba(0,0,0,0.55)",
+        "rgba(0,0,0,0.10)",
+        "rgba(0,0,0,0.10)",
+        "rgba(0,0,0,0.65)",
+      ]}
+      locations={[0, 0.35, 0.65, 1]}
+      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 780 }}
+    />
 
+    {/* highlight léger */}
+    <LinearGradient
+      colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
+      locations={[0, 1]}
+      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
+    />
+  </>
+)}
             {/* BADGE BODY DIET */}
             <View
     style={{
@@ -272,26 +259,17 @@ function ShareCard({
               </Text>
             </View>
 
-            {/* ✅ CADRE BAROQUE (capturé aussi) */}
-           {shareFrame && (
+            
+          {/* ✅ CADRE BAROQUE (capturé aussi) */}
+{shareFrame && (
   <View
     pointerEvents="none"
-    style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      width: "100%",
-      height: "100%",
-      zIndex: 999,
-    }}
+    style={[StyleSheet.absoluteFillObject, { zIndex: 999 }]}
   >
     <Image
       source={FRAME}
       resizeMode="stretch"
-      style={{
-        width: "100%",
-        height: "100%",
-      }}
+      style={StyleSheet.absoluteFillObject}
     />
   </View>
 )}
