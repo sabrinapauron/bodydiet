@@ -56,31 +56,43 @@ const deriveTitle = (e: LogEntry) => {
   if (l >= 18) return "Repas riche";
   return c > 0 ? "Repas maison" : "Photo repas";
 };
-
-function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFrame: boolean; shareFilter: boolean }) {
+function ShareCard({
+  item,
+  shareFrame,
+  shareFilter,
+}: {
+  item: LogEntry;
+  shareFrame: boolean;
+  shareFilter: boolean;
+}) {
   const title = deriveTitle(item);
 
   return (
     <View
       style={{
-        width: 1080,          // ✅ qualité partage
-        height: 1350,         // ✅ format story-ish
+        width: 1080,
+        height: 1350,
         padding: 34,
         backgroundColor: "#0b1220",
       }}
     >
-      {/* CADRE “moulure noire glossy” */}
+      {/* ✅ CONTENU (tout ce qui est capturé) */}
       <View
         style={{
           flex: 1,
           borderRadius: 34,
           padding: 14,
           backgroundColor: "#05070c",
+          overflow: "hidden", // important si on superpose le cadre
         }}
       >
         {/* effet brillant (gloss) */}
         <LinearGradient
-          colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0.02)", "rgba(0,0,0,0.35)"]}
+          colors={[
+            "rgba(255,255,255,0.18)",
+            "rgba(255,255,255,0.02)",
+            "rgba(0,0,0,0.35)",
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
@@ -111,40 +123,21 @@ function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFra
               <View style={{ width: "100%", height: 780, backgroundColor: "#111827" }} />
             )}
 
-            {/* FILTRE “embellisseur” simple (vignette + léger voile) */}
-           
-{shareFilter && (
-  <LinearGradient
-    colors={[
-      "rgba(0,0,0,0.55)",
-      "rgba(0,0,0,0.05)",
-      "rgba(0,0,0,0.70)",
-    ]}
-    start={{ x: 0.1, y: 0 }}
-    end={{ x: 0.9, y: 1 }}
-    style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      right: 0,
-      height: 780,
-    }}
-  />
-)}
-{shareFilter && (
-  <>
-    {/* vignette douce */}
-    <LinearGradient
-      colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0)", "rgba(0,0,0,0.65)"]}
-      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
-    />
-    {/* highlight léger */}
-    <LinearGradient
-      colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
-      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
-    />
-  </>
-)}
+            {/* ✅ FILTRE (vraiment ON/OFF) */}
+            {shareFilter && (
+              <>
+                {/* vignette douce */}
+                <LinearGradient
+                  colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0)", "rgba(0,0,0,0.65)"]}
+                  style={{ position: "absolute", left: 0, top: 0, right: 0, height: 780 }}
+                />
+                {/* highlight léger */}
+                <LinearGradient
+                  colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
+                  style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
+                />
+              </>
+            )}
 
             {/* BADGE BODY DIET */}
             <View
@@ -167,8 +160,10 @@ function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFra
 
             {/* INFOS */}
             <View style={{ padding: 28 }}>
-              <Text style={{ color: "#fff", fontSize: 46, fontWeight: "900" }} numberOfLines={1}
-              ellipsizeMode="tail"
+              <Text
+                style={{ color: "#fff", fontSize: 46, fontWeight: "900" }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
               >
                 {title}
               </Text>
@@ -188,33 +183,47 @@ function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFra
                     borderColor: "rgba(255,255,255,0.08)",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
-                    {item.p}P
-                  </Text>
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>{item.p}P</Text>
                 </View>
 
-                <View style={{
-                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
-                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
-                }}>
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 14,
+                    backgroundColor: "#111827",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
                   <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
                     {item.carb}G
                   </Text>
                 </View>
 
-                <View style={{
-                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
-                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
-                }}>
-                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
-                    {item.f}L
-                  </Text>
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 14,
+                    backgroundColor: "#111827",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>{item.f}L</Text>
                 </View>
 
-                <View style={{
-                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
-                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
-                }}>
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 14,
+                    backgroundColor: "#111827",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
                   <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
                     {item.c} kcal
                   </Text>
@@ -225,6 +234,23 @@ function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFra
                 Scan & album — Body Diet
               </Text>
             </View>
+
+            {/* ✅ CADRE BAROQUE (capturé aussi) */}
+            {shareFrame && (
+              <Image
+                source={FRAME}
+                resizeMode="stretch"
+                style={{
+                  position: "absolute",
+                  left: -22,
+                  right: -22,
+                  top: -22,
+                  bottom: -22,
+                  width: undefined,
+                  height: undefined,
+                }}
+              />
+            )}
           </View>
         </LinearGradient>
       </View>
@@ -297,7 +323,8 @@ const shareMeal = async (item: LogEntry) => {
     setShareItem(item);
 
     // laisse le temps au composant caché de se rendre
-    await new Promise((r) => setTimeout(r, 80));
+    // laisse le temps au composant caché de se rendre
+await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     if (!shareCaptureRef.current) {
   Alert.alert("Partage", "Impossible de préparer la carte.");
