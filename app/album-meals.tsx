@@ -77,7 +77,6 @@ const shareMeal = async (item: LogEntry) => {
       return;
     }
 
-    // ✅ legacy API => cacheDirectory / documentDirectory OK
     const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
     if (!baseDir) {
       Alert.alert("Partage", "Stockage temporaire indisponible.");
@@ -94,18 +93,26 @@ const shareMeal = async (item: LogEntry) => {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    const contentUri = await FileSystem.getContentUriAsync(fileUri);
+    // ✅ check existence (utile si ça rebug)
+    const info = await FileSystem.getInfoAsync(fileUri);
+    if (!info.exists) {
+      Alert.alert("Partage", "Fichier image introuvable.");
+      return;
+    }
 
-    await IntentLauncher.startActivityAsync("android.intent.action.SEND", {
-      type: "image/jpeg",
-      flags: 1,
-      extra: {
-        "android.intent.extra.STREAM": contentUri,
-      },
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      Alert.alert("Partage", "Partage indisponible sur cet appareil.");
+      return;
+    }
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: "image/jpeg",
+      dialogTitle: "Partager ton repas",
     });
   } catch (e) {
     console.log("shareMeal error:", e);
-    Alert.alert("Partage", "Impossible de partager.");
+    Alert.alert("Partage", "Impossible de partager la photo.");
   }
 };
 
