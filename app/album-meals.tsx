@@ -237,20 +237,28 @@ function ShareCard({
 
             {/* ✅ CADRE BAROQUE (capturé aussi) */}
             {shareFrame && (
-              <Image
-                source={FRAME}
-                resizeMode="stretch"
-                style={{
-                  position: "absolute",
-                  left: -22,
-                  right: -22,
-                  top: -22,
-                  bottom: -22,
-                  width: undefined,
-                  height: undefined,
-                }}
-              />
-            )}
+  <View
+    pointerEvents="none"
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 50,
+    }}
+  >
+    <Image
+      source={FRAME}
+      resizeMode="stretch"
+      style={{
+        width: "100%",
+        height: "100%",
+        backgroundColor: "red",
+      }}
+    />
+  </View>
+)}
           </View>
         </LinearGradient>
       </View>
@@ -325,6 +333,7 @@ const shareMeal = async (item: LogEntry) => {
     // laisse le temps au composant caché de se rendre
     // laisse le temps au composant caché de se rendre
 await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+await new Promise((r) => setTimeout(r, 80));
 
     if (!shareCaptureRef.current) {
   Alert.alert("Partage", "Impossible de préparer la carte.");
@@ -727,7 +736,7 @@ const onLongPressMeal = (item: LogEntry) => {
     position: "absolute",
     left: -9999,
     top: -9999,
-    opacity: 0,
+    
   }}
 >
   <View ref={shareCaptureRef} collapsable={false}>
