@@ -76,9 +76,10 @@ const shareMeal = async (item: LogEntry) => {
       return;
     }
 
-    // ✅ cacheDirectory peut être null selon typings -> fallback documentDirectory
-    const baseDir =
-      FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? null;
+    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? null;
+
+    console.log("cacheDirectory:", FileSystem.cacheDirectory);
+    console.log("documentDirectory:", FileSystem.documentDirectory);
 
     if (!baseDir) {
       Alert.alert("Partage", "Stockage temporaire indisponible.");
@@ -87,10 +88,22 @@ const shareMeal = async (item: LogEntry) => {
 
     const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
 
-    // ✅ writeAsStringAsync + Base64 (TS-safe)
-    await FileSystem.writeAsStringAsync(fileUri, item.photo, {
-      encoding: "base64",
+    // ✅ base64 PUR (sans "data:image/...base64,")
+    const rawB64 = item.photo.includes("base64,")
+      ? item.photo.split("base64,")[1]
+      : item.photo;
+
+    // ✅ écriture du fichier en base64
+    await FileSystem.writeAsStringAsync(fileUri, rawB64, {
+      encoding: FileSystem.EncodingType.Base64,
     });
+
+    // ✅ sanity check
+    const info = await FileSystem.getInfoAsync(fileUri);
+    if (!info.exists) {
+      Alert.alert("Partage", "Impossible de générer l’image.");
+      return;
+    }
 
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) {
@@ -130,17 +143,13 @@ const confirmDeleteOne = (item: LogEntry) => {
 };
 // ✅ menu long press
 const onLongPressMeal = (item: LogEntry) => {
-  Alert.alert(
-    "Photo",
-    "Que veux-tu faire ?",
-    [
-      { text: "Annuler", style: "cancel" },
-      { text: "Renommer", onPress: () => openRename(item) },
-      { text: "Partager", onPress: () => shareMeal(item) },
-      { text: "Supprimer", style: "destructive", onPress: () => confirmDeleteOne(item) },
-    ]
-  );
+  Alert.alert("Photo", "Que veux-tu faire ?", [
+    { text: "Annuler", style: "cancel" },
+    { text: "Partager", onPress: () => shareMeal(item) },
+    { text: "Supprimer", style: "destructive", onPress: () => confirmDeleteOne(item) },
+  ]);
 };
+
   useFocusEffect(
   React.useCallback(() => {
     let alive = true;
@@ -184,24 +193,48 @@ const deriveTitle = (e: LogEntry) => {
 };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
-      <View style={{ padding: 16 }}>
-        <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
-          ALBUM REPAS
-        </Text>
-<TouchableOpacity
-  onPress={async () => {
-    await clearMealPhotos();
-    const log = await loadLog();
-    setMeals(log.filter((m) => m.photo));
+     <View
+  style={{
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   }}
-  style={{ marginTop: 10, alignSelf: "flex-start" }}
 >
-  <Text style={{ color: "#ef4444", fontWeight: "900" }}>🗑️ Vider l’album</Text>
-</TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: "#60a5fa", marginTop: 6 }}>Retour</Text>
-        </TouchableOpacity>
-      </View>
+  {/* TITRE */}
+  <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
+    ALBUM REPAS
+  </Text>
+
+  {/* POUBELLE */}
+  <TouchableOpacity
+    onPress={() => {
+      Alert.alert(
+        "Vider l’album",
+        "Es-tu sûr de vouloir supprimer toutes les photos de l’album ?",
+        [
+          { text: "Annuler", style: "cancel" },
+          {
+            text: "Vider",
+            style: "destructive",
+            onPress: async () => {
+              await clearMealPhotos();
+              const log = await loadLog();
+              setMeals(log.filter((m) => m.photo));
+            },
+          },
+        ]
+      );
+    }}
+    style={{
+    padding: 6,
+    borderRadius: 8,
+  }}
+  >
+    <Text style={{ fontSize: 20 }}>🗑️</Text>
+ 
+  </TouchableOpacity>
+</View>
 
    <FlatList
   data={meals}
