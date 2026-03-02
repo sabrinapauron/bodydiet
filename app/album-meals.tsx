@@ -141,22 +141,29 @@ function ShareCard({
 
             {/* BADGE BODY DIET */}
             <View
-              style={{
-                position: "absolute",
-                right: 26,
-                bottom: 26,
-                paddingVertical: 10,
-                paddingHorizontal: 16,
-                borderRadius: 999,
-                backgroundColor: "rgba(2,6,23,0.70)",
-                borderWidth: 1,
-                borderColor: "rgba(255,255,255,0.16)",
-              }}
-            >
-              <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 2 }}>
-                BODY DIET
-              </Text>
-            </View>
+    style={{
+      position: "absolute",
+      right: 40,
+      bottom: 40,
+      paddingVertical: 12,
+      paddingHorizontal: 18,
+      borderRadius: 999,
+      backgroundColor: "rgba(2,6,23,0.65)",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.25)",
+    }}
+  >
+    <Text
+      style={{
+        color: "#e5e7eb",
+        fontWeight: "900",
+        letterSpacing: 2,
+        fontSize: 28,
+      }}
+    >
+      BODY DIET
+    </Text>
+  </View>
 
             {/* INFOS */}
             <View style={{ padding: 28 }}>
@@ -410,69 +417,64 @@ const onLongPressMeal = (item: LogEntry) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
-     <View
-  style={{
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  }}
->
-  {/* TITRE */}
-  <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
-    ALBUM REPAS - clic et partage tes photos
-  </Text>
-<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-  <Text style={{ color: "#94a3b8" }}>Cadre baroque</Text>
-  <Switch
-    value={shareFrame}
-    onValueChange={async (v) => {
-      setShareFrame(v);
-      await setShareFrameEnabled(v);
-    }}
-  />
-</View>
+    <View style={{ padding: 16 }}>
+  {/* Ligne 1: titre + poubelle */}
+  <View style={{ flexDirection: "row", alignItems: "center" }}>
+    <Text
+      style={{ color: "#fff", fontSize: 20, fontWeight: "900", flex: 1, paddingRight: 10 }}
+      numberOfLines={2}
+    >
+      ALBUM REPAS - clic et partage tes photos
+    </Text>
 
-<View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-  <Text style={{ color: "#94a3b8" }}>Filtre premium</Text>
-  <Switch
-    value={shareFilter}
-    onValueChange={async (v) => {
-      setShareFilter(v);
-      await setShareFilterEnabled(v);
-    }}
-  />
-</View>
-  {/* POUBELLE */}
-  <TouchableOpacity
-    onPress={() => {
-      Alert.alert(
-        "Vider l’album",
-        "Es-tu sûr de vouloir supprimer toutes les photos de l’album ?",
-        [
-          { text: "Annuler", style: "cancel" },
-          {
-            text: "Vider",
-            style: "destructive",
-            onPress: async () => {
-              await clearMealPhotos();
-              const log = await loadLog();
-              setMeals(log.filter((m) => m.photo));
+    <TouchableOpacity
+      onPress={() => {
+        Alert.alert(
+          "Vider l’album",
+          "Es-tu sûr de vouloir supprimer toutes les photos de l’album ?",
+          [
+            { text: "Annuler", style: "cancel" },
+            {
+              text: "Vider",
+              style: "destructive",
+              onPress: async () => {
+                await clearMealPhotos();
+                const log = await loadLog();
+                setMeals(log.filter((m) => m.photo));
+              },
             },
-          },
-        ]
-      );
-    }}
-    style={{
-    padding: 6,
-    borderRadius: 8,
-  }}
-  >
-    <Text style={{ fontSize: 20 }}>🗑️</Text>
- 
-  </TouchableOpacity>
-</View>
+          ]
+        );
+      }}
+      style={{ padding: 6, borderRadius: 8 }}
+    >
+      <Text style={{ fontSize: 20 }}>🗑️</Text>
+    </TouchableOpacity>
+  </View>
 
+  {/* Ligne 2: switches */}
+  <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+    <Text style={{ color: "#94a3b8" }}>Cadre baroque</Text>
+    <Switch
+      value={shareFrame}
+      onValueChange={async (v) => {
+        setShareFrame(v);
+        await setShareFrameEnabled(v);
+      }}
+    />
+  </View>
+
+  <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+    <Text style={{ color: "#94a3b8" }}>Filtre premium</Text>
+    <Switch
+      value={shareFilter}
+      onValueChange={async (v) => {
+        setShareFilter(v);
+        await setShareFilterEnabled(v);
+      }}
+    />
+  </View>
+</View>
    <FlatList
   data={meals}
   keyExtractor={(item) => String(item.t)}
