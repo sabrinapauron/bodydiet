@@ -112,17 +112,25 @@ function ShareCard({
               backgroundColor: "#0b1220",
             }}
           >
-            {/* PHOTO */}
-            {item.photo ? (
-              <Image
-                source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
-                style={{ width: "100%", height: 780 }}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={{ width: "100%", height: 780, backgroundColor: "#111827" }} />
-            )}
-
+           {/* PHOTO */}
+<View
+  style={{
+    width: "100%",
+    aspectRatio: 1, // ✅ rend la zone carrée
+    backgroundColor: "#111827",
+  }}
+>
+  {item.photo && (
+    <Image
+      source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
+      style={{
+        width: "100%",
+        height: "100%",
+      }}
+      resizeMode="cover"
+    />
+  )}
+</View>
             {/* ✅ FILTRE (vraiment ON/OFF) */}
             {shareFilter && (
               <>
