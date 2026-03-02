@@ -10,10 +10,19 @@ import {
   Modal,
   TextInput,
   Pressable,
-
+  Switch,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { loadLog, LogEntry, clearMealPhotos, removeMealPhoto, renameMeal } from "../storage/bodyStore";
+import {
+  loadLog,
+  LogEntry,
+  clearMealPhotos,
+  removeMealPhoto,
+  renameMeal,
+  setShareFrameEnabled,
+  setShareFilterEnabled,
+  loadState,
+} from "../storage/bodyStore";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
@@ -21,7 +30,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-
+const FRAME = require("../assets/images/body diet cadre photo1.png");
 const fmtDate = (t: number) =>
   new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
@@ -48,11 +57,7 @@ const deriveTitle = (e: LogEntry) => {
   return c > 0 ? "Repas maison" : "Photo repas";
 };
 
-function ShareCard({
-  item,
-}: {
-  item: LogEntry;
-}) {
+function ShareCard({ item, shareFrame, shareFilter }: { item: LogEntry; shareFrame: boolean; shareFilter: boolean }) {
   const title = deriveTitle(item);
 
   return (
@@ -107,22 +112,39 @@ function ShareCard({
             )}
 
             {/* FILTRE “embellisseur” simple (vignette + léger voile) */}
-            <LinearGradient
-              colors={[
-                "rgba(0,0,0,0.55)",
-                "rgba(0,0,0,0.05)",
-                "rgba(0,0,0,0.70)",
-              ]}
-              start={{ x: 0.1, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                right: 0,
-                height: 780,
-              }}
-            />
+           
+{shareFilter && (
+  <LinearGradient
+    colors={[
+      "rgba(0,0,0,0.55)",
+      "rgba(0,0,0,0.05)",
+      "rgba(0,0,0,0.70)",
+    ]}
+    start={{ x: 0.1, y: 0 }}
+    end={{ x: 0.9, y: 1 }}
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      right: 0,
+      height: 780,
+    }}
+  />
+)}
+{shareFilter && (
+  <>
+    {/* vignette douce */}
+    <LinearGradient
+      colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0)", "rgba(0,0,0,0.65)"]}
+      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+    />
+    {/* highlight léger */}
+    <LinearGradient
+      colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
+      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
+    />
+  </>
+)}
 
             {/* BADGE BODY DIET */}
             <View
@@ -218,8 +240,10 @@ const [renameValue, setRenameValue] = useState("");
 const [renameTargetTs, setRenameTargetTs] = useState<number | null>(null);
 const [shareOpen, setShareOpen] = useState(false);
 const [shareItem, setShareItem] = useState<LogEntry | null>(null);
-const shareRef = useRef<View>(null);
-
+const sharePreviewRef = useRef<View>(null);  // (optionnel, juste si tu veux capturer le preview)
+const shareCaptureRef = useRef<View>(null);  // ✅ celui qui sert à captureRef
+const [shareFrame, setShareFrame] = useState(false);
+const [shareFilter, setShareFilter] = useState(true);
 const openShare = (item: LogEntry) => {
   setShareItem(item);
   setShareOpen(true);
@@ -228,6 +252,9 @@ const openShare = (item: LogEntry) => {
 const refreshMeals = async () => {
   const log = await loadLog();
   setMeals(log.filter((m) => m.photo));
+  const s = await loadState();
+setShareFrame(!!s?.shareFrame);
+setShareFilter(s?.shareFilter ?? true);
 };
 
 // ✅ ouvre le modal rename
@@ -272,17 +299,16 @@ const shareMeal = async (item: LogEntry) => {
     // laisse le temps au composant caché de se rendre
     await new Promise((r) => setTimeout(r, 80));
 
-    if (!shareRef.current) {
-      Alert.alert("Partage", "Impossible de préparer la carte.");
-      return;
-    }
+    if (!shareCaptureRef.current) {
+  Alert.alert("Partage", "Impossible de préparer la carte.");
+  return;
+}
 
-    const uri = await captureRef(shareRef, {
-      format: "png",
-      quality: 1,
-      result: "tmpfile",
-    });
-
+const uri = await captureRef(shareCaptureRef.current, {
+  format: "png",
+  quality: 1,
+  result: "tmpfile",
+});
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) {
       Alert.alert("Partage", "Partage indisponible sur cet appareil.");
@@ -360,7 +386,27 @@ const onLongPressMeal = (item: LogEntry) => {
   <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
     ALBUM REPAS - clic et partage tes photos
   </Text>
+<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+  <Text style={{ color: "#94a3b8" }}>Cadre baroque</Text>
+  <Switch
+    value={shareFrame}
+    onValueChange={async (v) => {
+      setShareFrame(v);
+      await setShareFrameEnabled(v);
+    }}
+  />
+</View>
 
+<View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+  <Text style={{ color: "#94a3b8" }}>Filtre premium</Text>
+  <Switch
+    value={shareFilter}
+    onValueChange={async (v) => {
+      setShareFilter(v);
+      await setShareFilterEnabled(v);
+    }}
+  />
+</View>
   {/* POUBELLE */}
   <TouchableOpacity
     onPress={() => {
@@ -546,7 +592,6 @@ const onLongPressMeal = (item: LogEntry) => {
     {/* Carte capturée */}
     
     <View
-  ref={shareRef}
   style={{
     width: 320,
     borderRadius: 18,
@@ -588,8 +633,10 @@ const onLongPressMeal = (item: LogEntry) => {
         </Text>
       </View>
 
+     
+
       {/* Infos */}
-      <View style={{ padding: 12 }}>
+      <View style={{ padding: 26 }}>
         <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }} numberOfLines={1}>
           {shareItem ? deriveTitle(shareItem) : ""}
         </Text>
@@ -619,12 +666,34 @@ const onLongPressMeal = (item: LogEntry) => {
       </View>
     </View>
 
+ {/* CADRE BAROQUE */}
+{shareFrame && (
+  <View
+    pointerEvents="none"
+    style={{
+      position: "absolute",
+      left: -22,
+      right: -22,
+      top: -22,
+      bottom: -22,
+      zIndex: 30,
+    }}
+  >
+    <Image
+      source={FRAME}
+      resizeMode="stretch"
+      style={{ width: "100%", height: "100%" }}
+    />
+  </View>
+)}
+
     {/* petit texte pour rassurer (pas capturé) */}
     <Text style={{ color: "#fff", opacity: 0.65, marginTop: 12 }}>
       Génération de l’image…
     </Text>
   </Pressable>
 </Modal>
+{/* ✅ Zone cachée pour générer l’image partage */}
 {/* ✅ Zone cachée pour générer l’image partage */}
 <View
   style={{
@@ -634,8 +703,10 @@ const onLongPressMeal = (item: LogEntry) => {
     opacity: 0,
   }}
 >
-  <View ref={shareRef} collapsable={false}>
-    {shareItem ? <ShareCard item={shareItem} /> : null}
+  <View ref={shareCaptureRef} collapsable={false}>
+    {shareItem ? (
+      <ShareCard item={shareItem} shareFrame={shareFrame} shareFilter={shareFilter} />
+    ) : null}
   </View>
 </View>
     </SafeAreaView>

@@ -36,6 +36,8 @@ export type StoredState = {
   points: number;
   savePhotos?: boolean; // switch album ON/OFF
   lastGoalRewardDay: string | null;
+    shareFrame?: boolean; // ✅ cadre baroque sur les partages
+  shareFilter?: boolean; // ✅ overlay premium sur les partages
 };
 
 /* =========================
@@ -109,6 +111,13 @@ export async function clearMealPhotos() {
   }));
 }
 
+export async function setShareFrameEnabled(v: boolean) {
+  return updateState((prev) => ({ ...prev, shareFrame: !!v }));
+}
+
+export async function setShareFilterEnabled(v: boolean) {
+  return updateState((prev) => ({ ...prev, shareFilter: !!v }));
+}
 // ✅ “Supprimer” 1 élément de l’album : on retire la photo de cette entrée
 export async function removeMealPhoto(t: number) {
   return updateState((prev) => ({
