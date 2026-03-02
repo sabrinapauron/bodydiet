@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useRef  } from "react";
 import {
   SafeAreaView,
   View,
@@ -28,7 +28,7 @@ const [renameValue, setRenameValue] = useState("");
 const [renameTargetTs, setRenameTargetTs] = useState<number | null>(null);
 const [shareOpen, setShareOpen] = useState(false);
 const [shareItem, setShareItem] = useState<LogEntry | null>(null);
-const shareRef = React.useRef<View | null>(null);
+const shareRef = useRef<View>(null);
 
 const openShare = (item: LogEntry) => {
   setShareItem(item);
@@ -73,62 +73,37 @@ const confirmRename = async () => {
 const shareMeal = async (item: LogEntry) => {
   try {
     if (!item.photo) {
-      Alert.alert("Partage", "Aucune photo à partager.");
+      Alert.alert("Partage", "Aucune photo.");
       return;
     }
 
-    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
-    if (!baseDir) {
-      Alert.alert("Partage", "Stockage temporaire indisponible.");
-      return;
-    }
+    const baseDir = FileSystem.Paths.cache;
 
-    // ✅ base64 pur
+    const fileUri = `${baseDir}/bodydiet_${item.t}.jpg`;
+
     const rawB64 = item.photo.includes("base64,")
       ? item.photo.split("base64,")[1]
       : item.photo;
 
-    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
-
     await FileSystem.writeAsStringAsync(fileUri, rawB64, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: "base64"
     });
 
-    const info = await FileSystem.getInfoAsync(fileUri);
-    if (!info.exists || !info.size || info.size < 1000) {
-      console.log("shareMeal file info:", info);
-      Alert.alert("Partage", "Image non générée (fichier vide).");
-      return;
-    }
-
-    // ✅ iOS : expo-sharing marche très bien
-    if (Platform.OS === "ios") {
-      const canShare = await Sharing.isAvailableAsync();
-      if (!canShare) {
-        Alert.alert("Partage", "Partage indisponible sur cet appareil.");
-        return;
-      }
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "image/jpeg",
-        dialogTitle: "Partager ton repas",
-        UTI: "public.jpeg",
-      });
-      return;
-    }
-
-    // ✅ ANDROID : convertir en content:// (lisible par les autres apps)
     const contentUri = await FileSystem.getContentUriAsync(fileUri);
 
-    await IntentLauncher.startActivityAsync("android.intent.action.SEND", {
-      type: "image/jpeg",
-      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
-      extra: {
-        "android.intent.extra.STREAM": contentUri,
-      },
-    });
+    await IntentLauncher.startActivityAsync(
+      "android.intent.action.SEND",
+      {
+        type: "image/jpeg",
+        flags: 1,
+        extra: {
+          "android.intent.extra.STREAM": contentUri,
+        },
+      }
+    );
   } catch (e) {
     console.log("shareMeal error:", e);
-    Alert.alert("Partage", "Impossible de partager la photo.");
+    Alert.alert("Partage", "Impossible de partager.");
   }
 };
 
@@ -399,17 +374,19 @@ const deriveTitle = (e: LogEntry) => {
     }}
   >
     {/* Carte capturée */}
+    
     <View
-      ref={(r) => (shareRef.current = r)}
-      style={{
-        width: 320,
-        borderRadius: 18,
-        overflow: "hidden",
-        backgroundColor: "#0b1220",
-        borderWidth: 2,
-        borderColor: "rgba(191,167,106,0.55)",
-      }}
-    >
+  ref={shareRef}
+  style={{
+    width: 320,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: "#0b1220",
+    borderWidth: 2,
+    borderColor: "rgba(191,167,106,0.55)",
+  }}
+>
+    
       {/* Photo */}
       {shareItem?.photo ? (
         <Image
