@@ -1,4 +1,4 @@
-import React, { useState,useRef  } from "react";
+import React, { useEffect, useState,useRef  } from "react";
 import {
   SafeAreaView,
   View,
@@ -19,6 +19,196 @@ import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+
+
+const fmtDate = (t: number) =>
+  new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+
+const fmtTime = (t: number) =>
+  new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+const deriveTitle = (e: LogEntry) => {
+  if (e?.title) return e.title;
+
+  if (Array.isArray(e?.foods) && e.foods.length && !String(e.foods[0]).includes("Photo repas")) {
+    return String(e.foods[0]);
+  }
+
+  // fallback “jamais ridicule”
+  const p = Number(e?.p) || 0;
+  const g = Number(e?.carb) || 0;
+  const l = Number(e?.f) || 0;
+  const c = Number(e?.c) || 0;
+
+  if (c > 0 && c <= 220) return "Collation";
+  if (p >= 25 && g <= 20) return "Assiette protéinée";
+  if (g >= 45) return "Repas énergie";
+  if (l >= 18) return "Repas riche";
+  return c > 0 ? "Repas maison" : "Photo repas";
+};
+
+function ShareCard({
+  item,
+}: {
+  item: LogEntry;
+}) {
+  const title = deriveTitle(item);
+
+  return (
+    <View
+      style={{
+        width: 1080,          // ✅ qualité partage
+        height: 1350,         // ✅ format story-ish
+        padding: 34,
+        backgroundColor: "#0b1220",
+      }}
+    >
+      {/* CADRE “moulure noire glossy” */}
+      <View
+        style={{
+          flex: 1,
+          borderRadius: 34,
+          padding: 14,
+          backgroundColor: "#05070c",
+        }}
+      >
+        {/* effet brillant (gloss) */}
+        <LinearGradient
+          colors={["rgba(255,255,255,0.18)", "rgba(255,255,255,0.02)", "rgba(0,0,0,0.35)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            flex: 1,
+            borderRadius: 28,
+            padding: 12,
+          }}
+        >
+          {/* “moulure” interne */}
+          <View
+            style={{
+              flex: 1,
+              borderRadius: 22,
+              borderWidth: 2,
+              borderColor: "rgba(255,255,255,0.10)",
+              overflow: "hidden",
+              backgroundColor: "#0b1220",
+            }}
+          >
+            {/* PHOTO */}
+            {item.photo ? (
+              <Image
+                source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
+                style={{ width: "100%", height: 780 }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={{ width: "100%", height: 780, backgroundColor: "#111827" }} />
+            )}
+
+            {/* FILTRE “embellisseur” simple (vignette + léger voile) */}
+            <LinearGradient
+              colors={[
+                "rgba(0,0,0,0.55)",
+                "rgba(0,0,0,0.05)",
+                "rgba(0,0,0,0.70)",
+              ]}
+              start={{ x: 0.1, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                right: 0,
+                height: 780,
+              }}
+            />
+
+            {/* BADGE BODY DIET */}
+            <View
+              style={{
+                position: "absolute",
+                right: 26,
+                bottom: 26,
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 999,
+                backgroundColor: "rgba(2,6,23,0.70)",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.16)",
+              }}
+            >
+              <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 2 }}>
+                BODY DIET
+              </Text>
+            </View>
+
+            {/* INFOS */}
+            <View style={{ padding: 28 }}>
+              <Text style={{ color: "#fff", fontSize: 46, fontWeight: "900" }} numberOfLines={1}
+              ellipsizeMode="tail"
+              >
+                {title}
+              </Text>
+
+              <Text style={{ color: "#cbd5e1", marginTop: 10, fontSize: 26 }}>
+                {fmtDate(item.t)} • {fmtTime(item.t)}
+              </Text>
+
+              <View style={{ marginTop: 22, flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    borderRadius: 14,
+                    backgroundColor: "#111827",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
+                    {item.p}P
+                  </Text>
+                </View>
+
+                <View style={{
+                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
+                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
+                }}>
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
+                    {item.carb}G
+                  </Text>
+                </View>
+
+                <View style={{
+                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
+                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
+                }}>
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
+                    {item.f}L
+                  </Text>
+                </View>
+
+                <View style={{
+                  paddingVertical: 10, paddingHorizontal: 16, borderRadius: 14,
+                  backgroundColor: "#111827", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)"
+                }}>
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 26 }}>
+                    {item.c} kcal
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ color: "#94a3b8", marginTop: 18, fontSize: 20 }}>
+                Scan & album — Body Diet
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    </View>
+  );
+}
 
 export default function AlbumMeals() {
   const router = useRouter();
@@ -67,7 +257,7 @@ const confirmRename = async () => {
   await renameMeal(t, nextTitle);
 };
 
-
+ 
 
 // ✅ partage (texte simple pour l’instant)
 const shareMeal = async (item: LogEntry) => {
@@ -77,28 +267,21 @@ const shareMeal = async (item: LogEntry) => {
       return;
     }
 
-    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
-    if (!baseDir) {
-      Alert.alert("Partage", "Stockage temporaire indisponible.");
+    setShareItem(item);
+
+    // laisse le temps au composant caché de se rendre
+    await new Promise((r) => setTimeout(r, 80));
+
+    if (!shareRef.current) {
+      Alert.alert("Partage", "Impossible de préparer la carte.");
       return;
     }
 
-    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
-
-    const rawB64 = item.photo.includes("base64,")
-      ? item.photo.split("base64,")[1]
-      : item.photo;
-
-    await FileSystem.writeAsStringAsync(fileUri, rawB64, {
-      encoding: FileSystem.EncodingType.Base64,
+    const uri = await captureRef(shareRef, {
+      format: "png",
+      quality: 1,
+      result: "tmpfile",
     });
-
-    // ✅ check existence (utile si ça rebug)
-    const info = await FileSystem.getInfoAsync(fileUri);
-    if (!info.exists) {
-      Alert.alert("Partage", "Fichier image introuvable.");
-      return;
-    }
 
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) {
@@ -106,13 +289,14 @@ const shareMeal = async (item: LogEntry) => {
       return;
     }
 
-    await Sharing.shareAsync(fileUri, {
-      mimeType: "image/jpeg",
+    await Sharing.shareAsync(uri, {
+      mimeType: "image/png",
       dialogTitle: "Partager ton repas",
+      UTI: "public.png",
     });
   } catch (e) {
     console.log("shareMeal error:", e);
-    Alert.alert("Partage", "Impossible de partager la photo.");
+    Alert.alert("Partage", "Impossible de générer l’image.");
   }
 };
 
@@ -160,31 +344,8 @@ const onLongPressMeal = (item: LogEntry) => {
   }, [])
 );
 
-  const fmtDate = (t: number) =>
-  new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+ 
 
-const fmtTime = (t: number) =>
-  new Date(t).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-
-const deriveTitle = (e: LogEntry) => {
-  if (e?.title) return e.title;
-
-  if (Array.isArray(e?.foods) && e.foods.length && !String(e.foods[0]).includes("Photo repas")) {
-    return String(e.foods[0]);
-  }
-
-  // fallback “jamais ridicule”
-  const p = Number(e?.p) || 0;
-  const g = Number(e?.carb) || 0;
-  const l = Number(e?.f) || 0;
-  const c = Number(e?.c) || 0;
-
-  if (c > 0 && c <= 220) return "Collation";
-  if (p >= 25 && g <= 20) return "Assiette protéinée";
-  if (g >= 45) return "Repas énergie";
-  if (l >= 18) return "Repas riche";
-  return c > 0 ? "Repas maison" : "Photo repas";
-};
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
      <View
@@ -197,7 +358,7 @@ const deriveTitle = (e: LogEntry) => {
 >
   {/* TITRE */}
   <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
-    ALBUM REPAS
+    ALBUM REPAS - clic et partage tes photos
   </Text>
 
   {/* POUBELLE */}
@@ -464,7 +625,19 @@ const deriveTitle = (e: LogEntry) => {
     </Text>
   </Pressable>
 </Modal>
-
+{/* ✅ Zone cachée pour générer l’image partage */}
+<View
+  style={{
+    position: "absolute",
+    left: -9999,
+    top: -9999,
+    opacity: 0,
+  }}
+>
+  <View ref={shareRef} collapsable={false}>
+    {shareItem ? <ShareCard item={shareItem} /> : null}
+  </View>
+</View>
     </SafeAreaView>
   );
 }
