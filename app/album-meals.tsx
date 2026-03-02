@@ -31,7 +31,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-const FRAME = require("../assets/images/body diet 2.png");
+const FRAME = require("../assets/images/body diet 2 .png");
 const fmtDate = (t: number) =>
   new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
