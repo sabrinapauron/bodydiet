@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { loadLog, LogEntry, clearMealPhotos, removeMealPhoto, renameMeal } from "../storage/bodyStore";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 import * as IntentLauncher from "expo-intent-launcher";
@@ -73,34 +73,36 @@ const confirmRename = async () => {
 const shareMeal = async (item: LogEntry) => {
   try {
     if (!item.photo) {
-      Alert.alert("Partage", "Aucune photo.");
+      Alert.alert("Partage", "Aucune photo à partager.");
       return;
     }
 
-    const baseDir = FileSystem.Paths.cache;
+    // ✅ legacy API => cacheDirectory / documentDirectory OK
+    const baseDir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+    if (!baseDir) {
+      Alert.alert("Partage", "Stockage temporaire indisponible.");
+      return;
+    }
 
-    const fileUri = `${baseDir}/bodydiet_${item.t}.jpg`;
+    const fileUri = `${baseDir}bodydiet_${item.t}.jpg`;
 
     const rawB64 = item.photo.includes("base64,")
       ? item.photo.split("base64,")[1]
       : item.photo;
 
     await FileSystem.writeAsStringAsync(fileUri, rawB64, {
-      encoding: "base64"
+      encoding: FileSystem.EncodingType.Base64,
     });
 
     const contentUri = await FileSystem.getContentUriAsync(fileUri);
 
-    await IntentLauncher.startActivityAsync(
-      "android.intent.action.SEND",
-      {
-        type: "image/jpeg",
-        flags: 1,
-        extra: {
-          "android.intent.extra.STREAM": contentUri,
-        },
-      }
-    );
+    await IntentLauncher.startActivityAsync("android.intent.action.SEND", {
+      type: "image/jpeg",
+      flags: 1,
+      extra: {
+        "android.intent.extra.STREAM": contentUri,
+      },
+    });
   } catch (e) {
     console.log("shareMeal error:", e);
     Alert.alert("Partage", "Impossible de partager.");
