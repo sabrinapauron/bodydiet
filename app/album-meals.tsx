@@ -159,21 +159,7 @@ function ShareCard({
         />
       </>
     )}
-   {shareFrame && (
-  <View
-    pointerEvents="none"
-    style={{
-      position: "absolute",
-      left: -12,
-      right: -12,
-      top: -12,
-      bottom: -12,
-      zIndex: 999,
-    }}
-  >
-    <Image source={FRAME} resizeMode="stretch" style={{ width: "100%", height: "100%" }} />
-  </View>
-)}
+  
   </View>
 
   {/* ✅ BADGE (sur la photo) */}
@@ -465,6 +451,7 @@ const onLongPressMeal = (item: LogEntry) => {
   </View>
 
   {/* Ligne 2: switches */}
+ {/*
   <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
     <Text style={{ color: "#94a3b8" }}>Cadre baroque</Text>
     <Switch
@@ -475,9 +462,10 @@ const onLongPressMeal = (item: LogEntry) => {
       }}
     />
   </View>
+ */}
 
   <View style={{ marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-    <Text style={{ color: "#94a3b8" }}>Filtre premium</Text>
+    <Text style={{ color: "#94a3b8" }}>Filtre lumière</Text>
     <Switch
       value={shareFilter}
       onValueChange={async (v) => {
