@@ -103,7 +103,9 @@ function ShareCard({
           borderRadius: 34,
           padding: 14,
           backgroundColor: "#05070c",
-          overflow: "visible", // important si on superpose le cadre
+          overflow: "hidden",
+          position: "relative",
+          
         }}
       >
        
@@ -157,6 +159,15 @@ function ShareCard({
         />
       </>
     )}
+    {shareFrame && (
+  <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+    <Image
+      source={FRAME}
+      resizeMode="stretch"
+      style={[StyleSheet.absoluteFillObject, { borderRadius: 34 }]}
+    />
+  </View>
+)}
   </View>
 
   {/* ✅ BADGE (sur la photo) */}
@@ -177,16 +188,6 @@ function ShareCard({
       BODY DIET
     </Text>
   </View>
-
-  {/* ✅ CADRE (1 seule fois, wrapper pour TS) */}
-  {shareFrame && (
-    <View
-      pointerEvents="none"
-      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
-    >
-      <Image source={FRAME} resizeMode="stretch" style={{ width: "100%", height: "100%" }} />
-    </View>
-  )}
 </View> 
 
  
