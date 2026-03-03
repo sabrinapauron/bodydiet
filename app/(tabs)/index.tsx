@@ -13,7 +13,10 @@ import { saveState, loadState } from "../../storage/bodyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Animated } from "react-native";
-
+import EffortModal from "../../components/EffortModal";
+import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore";
+import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
+import { useFocusEffect } from "expo-router";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -55,6 +58,9 @@ const roundInt = (n: unknown) => Math.round(Number(n) || 0);
 export default function HomeScreen() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
+
+const [effortOpen, setEffortOpen] = useState(false);
+const [effort, setEffortState] = useState<EffortEntry | null>(null);
 
   // Profil
   const [weightKg, setWeightKg] = useState("75");
@@ -119,6 +125,8 @@ export default function HomeScreen() {
   };
 
   // Objectifs macros complets
+
+  
   const targets = useMemo(() => {
     const w = Number(weightKg) || 0;
 
@@ -157,15 +165,19 @@ export default function HomeScreen() {
     };
   }, [weightKg, goal]);
 
-  const remainingP = Math.max(0, targets.protein - protein);
-  const remainingG = Math.max(0, targets.carbs - carbs);
-  const remainingL = Math.max(0, targets.fat - fat);
+  const adjustedTargets = applyEffortToTargets(targets, effort);
 
-  const proteinProgress = Math.min(1, protein / Math.max(1, targets.protein));
-  const carbProgress = Math.min(1, carbs / Math.max(1, targets.carbs));
-  const fatProgress = Math.min(1, fat / Math.max(1, targets.fat));
+  const remainingP = Math.max(0, adjustedTargets.protein - protein);
+  const remainingG = Math.max(0, adjustedTargets.carbs - carbs);
+  const remainingL = Math.max(0, adjustedTargets.fat - fat);
+
+  const proteinProgress = Math.min(1, protein / Math.max(1,adjustedTargets .protein));
+  const carbProgress = Math.min(1, carbs / Math.max(1,adjustedTargets .carbs));
+  const fatProgress = Math.min(1, fat / Math.max(1, adjustedTargets.fat));
 
   const perfectDay = proteinProgress >= 1 && carbProgress >= 1 && fatProgress >= 1;
+
+
 
   // Objectif de série progressif (1 / 3 / 7 / 14)
   const streakGoal =
@@ -223,6 +235,20 @@ export default function HomeScreen() {
   ];
 
   // Auto-chargement
+useFocusEffect(
+  React.useCallback(() => {
+    let alive = true;
+    (async () => {
+      const day = todayKey();
+      const e = await loadEffort(day);
+      if (alive) setEffortState(e);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [])
+);
+
   useEffect(() => {
     (async () => {
       try {
@@ -235,7 +261,6 @@ export default function HomeScreen() {
           return;
         }
 
-       
 
         setStreak(Number(s.streak) || 0);
         setLastPerfectDay(typeof s.lastPerfectDay === "string" ? s.lastPerfectDay : null);
@@ -851,7 +876,7 @@ elevation: 4,
         <View style={{ marginTop: 14 }}>
           <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
             {protein}
-            <Text style={{ fontSize: 18, opacity: 0.7 }}> / {targets.protein}g</Text>
+            <Text style={{ fontSize: 18, opacity: 0.7 }}> / {adjustedTargets.protein}g</Text>
           </Text>
 
           {/* JAUGE PROT */}
@@ -923,9 +948,52 @@ elevation: 4,
           <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
             Reste : P {remainingP} • G {remainingG} • L {remainingL}
           </Text>
+{adjustedTargets.appliedKcal > 0 && (
+  <Text style={{ color: "#94a3b8", marginTop: 6 }}>
+    Macros ajustées : +{adjustedTargets.bonusCarbG}G / +{adjustedTargets.bonusFatG}L
+  </Text>
+)}
+
         </View>
 
-        {/* SCAN */}
+{/* EFFORTS PHYSIQUES */}
+<View
+  style={{
+    marginTop: 12,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  }}
+>
+  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+    <View style={{ flex: 1, paddingRight: 10 }}>
+      <Text style={{ color: "#fff", fontWeight: "900" }}>Effort du jour</Text>
+      <Text style={{ color: "#94a3b8", marginTop: 2 }} numberOfLines={1}>
+        {formatEffortLabel(effort)}
+      </Text>
+    </View>
+
+    <TouchableOpacity
+      onPress={() => setEffortOpen(true)}
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: "rgba(255,255,255,0.10)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.16)",
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "900" }}>{effort ? "Modifier" : "Ajouter"}</Text>
+    </TouchableOpacity>
+  </View>
+</View>
+
+
+    {/* SCAN */}
         <TouchableOpacity
           onPress={scanMeal}
           disabled={busy}
@@ -1006,6 +1074,24 @@ elevation: 4,
         <Text style={{ color: "#fff", marginTop: 26, fontSize: 12, opacity: 0.7 }}>
           PROFIL
         </Text>
+
+        <View style={{ marginTop: 14 }}>
+  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Effort du jour</Text>
+
+  <TouchableOpacity
+    onPress={() => setEffortOpen(true)}
+    style={{
+      marginTop: 10,
+      padding: 12,
+      borderRadius: 14,
+      backgroundColor: "#111827",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.10)",
+    }}
+  >
+    <Text style={{ color: "#94a3b8" }}>{formatEffortLabel(effort)}</Text>
+  </TouchableOpacity>
+</View>
 
         <View style={{ flexDirection: "row", marginTop: 10 }}>
           <View style={{ flex: 1, marginRight: 10 }}>
@@ -1339,6 +1425,18 @@ setManualOpen(false);
           </View>
         )}
       </ScrollView>
+<EffortModal
+  visible={effortOpen}
+  initial={effort}
+  onClose={() => setEffortOpen(false)}
+  onSave={async (next) => {
+    const day = todayKey();
+    await setEffort(day, next);
+    setEffortState(next);
+    setEffortOpen(false);
+  }}
+/>
+
     </SafeAreaView>
   );
 }

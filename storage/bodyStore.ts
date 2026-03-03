@@ -7,7 +7,27 @@ export const STORE_KEY = "FITSCAN_V1";
 ========================= */
 
 export type Goal = "gain" | "cut" | "maintain";
+// ===== Effort du jour =====
+export type EffortIntensity = "light" | "moderate" | "intense";
+export type EffortLinearType = "walk" | "run" | "bike";
 
+export type EffortEntry =
+  | {
+      kind: "linear";
+      km: number; // ex 3.2
+      type: EffortLinearType; // walk/run/bike
+      intensity: EffortIntensity;
+      ts: number;
+    }
+  | {
+      kind: "gym";
+      minutes: number; // ex 60
+      intensity: EffortIntensity;
+      ts: number;
+    };
+
+// petit helper date du jour
+export const todayKey = () => new Date().toISOString().slice(0, 10);
 export type LogEntry = {
   t: number;
   foods: string[];
@@ -44,6 +64,40 @@ export type StoredState = {
    LOAD / SAVE GLOBAL STATE
 ========================= */
 
+
+// Charge tout le dictionnaire (jour -> effort)
+async function loadEffortsMap(): Promise<Record<string, EffortEntry>> {
+  try {
+    const raw = await AsyncStorage.getItem(EFFORTS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+async function saveEffortsMap(map: Record<string, EffortEntry>) {
+  await AsyncStorage.setItem(EFFORTS_KEY, JSON.stringify(map));
+}
+
+export async function loadEffort(day: string): Promise<EffortEntry | null> {
+  const map = await loadEffortsMap();
+  return map[day] ?? null;
+}
+
+export async function setEffort(day: string, effort: EffortEntry | null): Promise<void> {
+  const map = await loadEffortsMap();
+  if (!effort) delete map[day];
+  else map[day] = effort;
+  await saveEffortsMap(map);
+}
+
+export async function clearEffort(day: string): Promise<void> {
+  await setEffort(day, null);
+}
+
+const EFFORTS_KEY = "body_efforts_by_day_v1";
 export async function loadState(): Promise<StoredState | null> {
   try {
     const raw = await AsyncStorage.getItem(STORE_KEY);
