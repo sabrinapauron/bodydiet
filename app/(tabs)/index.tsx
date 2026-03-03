@@ -657,7 +657,7 @@ await addEntry({
   };
 
 return (
-  <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0F1F" }}>
     <ScrollView
       ref={scrollRef}
       contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
@@ -703,7 +703,7 @@ elevation: 4,
   {firstActionHint}
 </Text>
 <View style={{ marginTop: 10 }}>
-  <Text style={{ color: "#f59e0b", fontWeight: "700" }}>
+  <Text style={{ color: "#1C2fe2", fontWeight: "700" }}>
     🏆{" "}
     {streak === 0
       ? "Série prête • Jour 1 à valider"
@@ -739,11 +739,11 @@ elevation: 4,
     }}
   >
     <View style={{ flex: 1 }}>
-      <Text style={{ color: "#22c55e", fontWeight: "700" }}>
+      <Text style={{ color: "#38BDF8", fontWeight: "700" }}>
         🎯 Points BODY : {points}
       </Text>
 
-      <Text style={{ color: "#60a5fa", marginTop: 4, fontSize: 12 }}>
+      <Text style={{ color: "#9CA3AF", marginTop: 4, fontSize: 12 }}>
         Prochaine recompense : {nextReward} pts
       </Text>
     </View>
@@ -760,7 +760,7 @@ elevation: 4,
         style={{
           backgroundColor: "rgba(2,6,23,0.9)",
           borderWidth: 1,
-          borderColor: graceUsed ? "#475569" : "#60a5fa",
+          borderColor: graceUsed ? "#374151" : "#1C2FE2",
           paddingVertical: 8,
           paddingHorizontal: 12,
           borderRadius: 999,
@@ -894,7 +894,7 @@ elevation: 4,
                 height: "100%",
                 width: `${proteinProgress * 100}%`,
                 backgroundColor:
-                  proteinProgress >= 1 ? "#22c55e" : proteinProgress > 0.6 ? "#f59e0b" : "#ef4444",
+                  proteinProgress >= 1 ? "#16A34A" : proteinProgress > 0.6 ? "#EA580C" : "#1C2FE2",
               }}
             />
           </View>
@@ -919,17 +919,17 @@ elevation: 4,
           <MacroBar
             label="Glucides"
             value={carbs}
-            target={targets.carbs}
+            target={adjustedTargets.carbs}
             progress={carbProgress}
-            color="#60a5fa"
+            color="#38BDF8"
           />
 
           <MacroBar
             label="Lipides"
             value={fat}
-            target={targets.fat}
+            target={adjustedTargets.fat}
             progress={fatProgress}
-            color="#f59e0b"
+            color="#EA580C"
           />
 
           <Text
