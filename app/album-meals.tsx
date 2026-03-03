@@ -30,8 +30,27 @@ import { captureRef } from "react-native-view-shot";
 import * as IntentLauncher from "expo-intent-launcher";
 import { Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Dimensions } from "react-native";
 
-const FRAME = require("../assets/images/body diet 2 .png");
+const NUM_COLS = 2;
+const GAP = 12;
+const PAD = 16;
+
+const W = Dimensions.get("window").width;
+const TILE = Math.floor((W - PAD * 2 - GAP * (NUM_COLS - 1)) / NUM_COLS);
+
+function formatMeals(data: any[]) {
+  const out: any[] = [...data];
+  const fullRows = Math.floor(out.length / NUM_COLS);
+  let itemsLastRow = out.length - fullRows * NUM_COLS;
+
+  while (itemsLastRow !== 0 && itemsLastRow < NUM_COLS) {
+    out.push({ _empty: true, t: `empty-${itemsLastRow}` });
+    itemsLastRow++;
+  }
+  return out;
+}
+const FRAME = require("../assets/images/body.png");
 const fmtDate = (t: number) =>
   new Date(t).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
@@ -87,21 +106,7 @@ function ShareCard({
           overflow: "visible", // important si on superpose le cadre
         }}
       >
-        {/* effet brillant (gloss) */}
-        <LinearGradient
-          colors={[
-            "rgba(255,255,255,0.18)",
-            "rgba(255,255,255,0.02)",
-            "rgba(0,0,0,0.35)",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            flex: 1,
-            borderRadius: 28,
-            padding: 12,
-          }}
-        >
+       
           {/* “moulure” interne */}
           <View
             style={{
@@ -113,74 +118,79 @@ function ShareCard({
               backgroundColor: "#0b1220",
             }}
           >
-           {/* PHOTO */}
+        {/* ✅ PHOTO BOX (carré) */}
 <View
   style={{
     width: "100%",
-    aspectRatio: 1, // ✅ rend la zone carrée
+    aspectRatio: 1,
+    borderRadius: 18,
+    overflow: "hidden",
     backgroundColor: "#111827",
+    position: "relative",
+    padding: 14, // ajuste 10/12/14/16 selon épaisseur du cadre
   }}
 >
-  {item.photo && (
-    <Image
-      source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
-      style={{
-        width: "100%",
-        height: "100%",
-      }}
-      resizeMode="cover"
-    />
-  )}
-</View>
-            {/* ✅ FILTRE (vraiment ON/OFF) */}
-           
-{shareFilter && (
-  <>
-    {/* vignette douce (sans barre) */}
-    <LinearGradient
-      colors={[
-        "rgba(0,0,0,0.55)",
-        "rgba(0,0,0,0.10)",
-        "rgba(0,0,0,0.10)",
-        "rgba(0,0,0,0.65)",
-      ]}
-      locations={[0, 0.35, 0.65, 1]}
-      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 780 }}
-    />
+  {/* photo (inset) */}
+  <View style={{ flex: 1, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+    {item.photo ? (
+      <Image
+        source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
+        style={{ width: "100%", height: "100%" }}
+        resizeMode="cover"
+      />
+    ) : null}
 
-    {/* highlight léger */}
-    <LinearGradient
-      colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
-      locations={[0, 1]}
-      style={{ position: "absolute", left: 0, top: 0, right: 0, height: 260 }}
-    />
-  </>
-)}
-            {/* BADGE BODY DIET */}
-            <View
+    {/* ✅ FILTRE (1 seule fois, sur la photo) */}
+    {shareFilter && (
+      <>
+        <LinearGradient
+          colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+        />
+        <LinearGradient
+          colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{ position: "absolute", left: 0, top: 0, right: 0, height: 220 }}
+        />
+      </>
+    )}
+  </View>
+
+  {/* ✅ BADGE (sur la photo) */}
+  <View
     style={{
       position: "absolute",
-      right: 40,
-      bottom: 40,
-      paddingVertical: 12,
-      paddingHorizontal: 18,
+      right: 18,
+      bottom: 18,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
       borderRadius: 999,
       backgroundColor: "rgba(2,6,23,0.65)",
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.25)",
+      borderColor: "rgba(255,255,255,0.22)",
     }}
   >
-    <Text
-      style={{
-        color: "#e5e7eb",
-        fontWeight: "900",
-        letterSpacing: 2,
-        fontSize: 28,
-      }}
-    >
+    <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 2, fontSize: 24 }}>
       BODY DIET
     </Text>
   </View>
+
+  {/* ✅ CADRE (1 seule fois, wrapper pour TS) */}
+  {shareFrame && (
+    <View
+      pointerEvents="none"
+      style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+    >
+      <Image source={FRAME} resizeMode="stretch" style={{ width: "100%", height: "100%" }} />
+    </View>
+  )}
+</View> 
+
+ 
+
 
             {/* INFOS */}
             <View style={{ padding: 28 }}>
@@ -260,21 +270,9 @@ function ShareCard({
             </View>
 
             
-          {/* ✅ CADRE BAROQUE (capturé aussi) */}
-{shareFrame && (
-  <View
-    pointerEvents="none"
-    style={[StyleSheet.absoluteFillObject, { zIndex: 999 }]}
-  >
-    <Image
-      source={FRAME}
-      resizeMode="stretch"
-      style={StyleSheet.absoluteFillObject}
-    />
-  </View>
-)}
+         
           </View>
-        </LinearGradient>
+      
       </View>
     </View>
   );
@@ -482,56 +480,60 @@ const onLongPressMeal = (item: LogEntry) => {
     />
   </View>
 </View>
-   <FlatList
-  data={meals}
-  keyExtractor={(item) => String(item.t)}
+<FlatList
+  data={formatMeals(meals)}
+  keyExtractor={(item: any) => String(item.t)}
   numColumns={2}
-  columnWrapperStyle={{ gap: 12 }}
-  contentContainerStyle={{ padding: 16, gap: 12 }}
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onLongPress={() => onLongPressMeal(item)}
-      delayLongPress={250}
-      style={{
-        flex: 1,
-        borderRadius: 14,
-        overflow: "hidden",
-        backgroundColor: "#111827",
-      }}
-    >
-      {/* IMAGE */}
-      {item.photo ? (
-        <View style={{ position: "relative" }}>
-          <Image
-            source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
-            style={{ width: "100%", height: 120 }}
-          />
+  columnWrapperStyle={{ gap: GAP }}
+  contentContainerStyle={{ padding: PAD, gap: GAP }}
+  renderItem={({ item }: any) => {
+    if (item._empty) {
+      return <View style={{ width: TILE }} />; // placeholder invisible
+    }
 
-          
+    return (
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onLongPress={() => onLongPressMeal(item)}
+        delayLongPress={250}
+        style={{
+          width: TILE,              // ✅ largeur fixe
+          borderRadius: 14,
+          overflow: "hidden",
+          backgroundColor: "#111827",
+        }}
+      >
+        {/* IMAGE */}
+        {item.photo ? (
+          <View style={{ position: "relative" }}>
+            <Image
+              source={{ uri: `data:image/jpeg;base64,${item.photo}` }}
+              style={{ width: "100%", height: TILE }} // ✅ carré (mets 120 si tu préfères)
+            />
+          </View>
+        ) : null}
+
+        {/* TEXTS */}
+        <View style={{ padding: 10 }}>
+          <Text
+            style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}
+            numberOfLines={1}
+          >
+            {deriveTitle(item)}
+          </Text>
+
+          <Text style={{ color: "#fff", opacity: 0.7, marginTop: 2, fontSize: 11 }}>
+            {fmtDate(item.t)} • {fmtTime(item.t)}
+          </Text>
+
+          <Text style={{ color: "#fff", opacity: 0.9, marginTop: 4, fontSize: 11 }}>
+            {item.p}P • {item.carb}G • {item.f}L • {item.c} kcal
+          </Text>
         </View>
-      ) : null}
-
-      {/* TEXTS */}
-      <View style={{ padding: 10 }}>
-        <Text
-          style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}
-          numberOfLines={1}
-        >
-          {deriveTitle(item)}
-        </Text>
-
-        <Text style={{ color: "#fff", opacity: 0.7, marginTop: 2, fontSize: 11 }}>
-          {fmtDate(item.t)} • {fmtTime(item.t)}
-        </Text>
-
-        <Text style={{ color: "#fff", opacity: 0.9, marginTop: 4, fontSize: 11 }}>
-          {item.p}P • {item.carb}G • {item.f}L • {item.c} kcal
-        </Text>
-      </View>
-    </TouchableOpacity>
-  )}
-/> 
+      </TouchableOpacity>
+    );
+  }}
+/>
 
 <Modal transparent visible={renameOpen} animationType="fade" onRequestClose={() => setRenameOpen(false)}>
   <Pressable
@@ -610,72 +612,8 @@ const onLongPressMeal = (item: LogEntry) => {
       padding: 18,
     }}
   >
-    {/* Carte capturée */}
-    
-    <View
-  style={{
-    width: 320,
-    borderRadius: 18,
-    overflow: "hidden",
-    backgroundColor: "#0b1220",
-    borderWidth: 2,
-    borderColor: "rgba(191,167,106,0.55)",
-  }}
->
-    
-      {/* Photo */}
-      {shareItem?.photo ? (
-        <Image
-          source={{ uri: `data:image/jpeg;base64,${shareItem.photo}` }}
-          style={{ width: "100%", height: 260 }}
-        />
-      ) : (
-        <View style={{ height: 260, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ color: "#fff", opacity: 0.7 }}>PHOTO</Text>
-        </View>
-      )}
-
-    {/* CADRE (au-dessus de la photo/carte) */}
-{shareFrame && (
-  <Image
-    source={FRAME}
-    resizeMode="stretch"
-    style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      width: "100%",
-      height: "100%",
-      zIndex: 50,
-    }}
-  />
-)}
-
-{/* Overlay watermark */}
-<View
-  style={{
-    position: "absolute",
-    right: 10,
-    bottom: 90,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(2,6,23,0.65)",
-    borderWidth: 1,
-    borderColor: "rgba(191,167,106,0.5)",
-    zIndex: 60, // ✅ badge AU-DESSUS du cadre
-  }}
->
-  <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 1 }}>
-    BODY DIET
-  </Text>
-</View>
 
 
-     </View>
-
-    
- 
 
     {/* petit texte pour rassurer (pas capturé) */}
     <Text style={{ color: "#fff", opacity: 0.65, marginTop: 12 }}>
@@ -683,14 +621,13 @@ const onLongPressMeal = (item: LogEntry) => {
     </Text>
   </Pressable>
 </Modal>
-{/* ✅ Zone cachée pour générer l’image partage */}
+
 {/* ✅ Zone cachée pour générer l’image partage */}
 <View
   style={{
     position: "absolute",
     left: -9999,
     top: -9999,
-    
   }}
 >
   <View ref={shareCaptureRef} collapsable={false}>
