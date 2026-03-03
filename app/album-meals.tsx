@@ -635,24 +635,42 @@ const onLongPressMeal = (item: LogEntry) => {
         </View>
       )}
 
-      {/* Overlay watermark */}
-      <View
-        style={{
-          position: "absolute",
-          right: 10,
-          bottom: 90,
-          paddingVertical: 6,
-          paddingHorizontal: 10,
-          borderRadius: 999,
-          backgroundColor: "rgba(2,6,23,0.65)",
-          borderWidth: 1,
-          borderColor: "rgba(191,167,106,0.5)",
-        }}
-      >
-        <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 1 }}>
-          BODY DIET
-        </Text>
-      </View>
+    {/* CADRE (au-dessus de la photo/carte) */}
+{shareFrame && (
+  <Image
+    source={FRAME}
+    resizeMode="stretch"
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: "100%",
+      height: "100%",
+      zIndex: 50,
+    }}
+  />
+)}
+
+{/* Overlay watermark */}
+<View
+  style={{
+    position: "absolute",
+    right: 10,
+    bottom: 90,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(2,6,23,0.65)",
+    borderWidth: 1,
+    borderColor: "rgba(191,167,106,0.5)",
+    zIndex: 60, // ✅ badge AU-DESSUS du cadre
+  }}
+>
+  <Text style={{ color: "#e5e7eb", fontWeight: "900", letterSpacing: 1 }}>
+    BODY DIET
+  </Text>
+</View>
+
 
      </View>
 
