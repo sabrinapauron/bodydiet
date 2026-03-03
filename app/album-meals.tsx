@@ -103,7 +103,7 @@ function ShareCard({
           borderRadius: 34,
           padding: 14,
           backgroundColor: "#05070c",
-          overflow: "hidden",
+          overflow: "visible",
           position: "relative",
           
         }}
@@ -115,9 +115,9 @@ function ShareCard({
               flex: 1,
               borderRadius: 22,
               borderWidth: 2,
-              borderColor: "rgba(255,255,255,0.10)",
+              borderColor: "rgba(199, 31, 31, 0.86)",
               overflow: "visible",
-              backgroundColor: "#0b1220",
+              backgroundColor: "#225bcf",
             }}
           >
         {/* ✅ PHOTO BOX (carré) */}
@@ -159,13 +159,19 @@ function ShareCard({
         />
       </>
     )}
-    {shareFrame && (
-  <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-    <Image
-      source={FRAME}
-      resizeMode="stretch"
-      style={[StyleSheet.absoluteFillObject, { borderRadius: 34 }]}
-    />
+   {shareFrame && (
+  <View
+    pointerEvents="none"
+    style={{
+      position: "absolute",
+      left: -20,
+      right: -20,
+      top: -20,
+      bottom: -20,
+      zIndex: 999,
+    }}
+  >
+    <Image source={FRAME} resizeMode="stretch" style={{ width: "100%", height: "100%" }} />
   </View>
 )}
   </View>
