@@ -115,9 +115,9 @@ function ShareCard({
               flex: 1,
               borderRadius: 22,
               borderWidth: 2,
-              borderColor: "rgba(199, 31, 31, 0.86)",
+              borderColor: "rgba(124, 125, 129, 0.66)",
               overflow: "visible",
-              backgroundColor: "#225bcf",
+              backgroundColor: "#121a2b",
             }}
           >
         {/* ✅ PHOTO BOX (carré) */}
