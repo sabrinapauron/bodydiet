@@ -1161,6 +1161,21 @@ elevation: 4,
   </Text>
 </TouchableOpacity>
 
+<TouchableOpacity
+  onPress={() => router.push("/body-scan")}
+  style={{
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    alignItems: "center",
+  }}
+>
+  <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Scan Body (3D)</Text>
+</TouchableOpacity>
+
         {/* AJOUT RAPIDE */}
         <Text style={{ color: "#fff", marginTop: 22, fontSize: 12, opacity: 0.7 }}>
           AJOUT RAPIDE (COMPLÉMENTS)

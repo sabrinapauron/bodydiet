@@ -39,6 +39,12 @@ function Sparkline({
   }
 
   const clean = values.map((v) => (Number.isFinite(Number(v)) ? Number(v) : 0));
+
+const smooth = clean.map((v, i) => {
+  const prev = clean[i - 1] ?? v;
+  const next = clean[i + 1] ?? v;
+  return (prev + v + next) / 3;
+});
   const minV = Math.min(...clean);
   const maxV = Math.max(...clean);
   const span = Math.max(1, maxV - minV);
@@ -48,7 +54,7 @@ function Sparkline({
   const innerW = width - padX * 2;
   const innerH = height - padY * 2;
 
-  const pts = clean.map((v, i) => {
+  const pts = smooth.map((v, i) => {
     const x = padX + (i / (n - 1)) * innerW;
     const y = padY + (1 - (v - minV) / span) * innerH;
     return { x, y };
