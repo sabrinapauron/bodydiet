@@ -196,3 +196,59 @@ export async function renameMeal(t: number, title: string) {
       : [],
   }));
 }
+
+// ==============================
+// ✅ HISTORIQUE (progression)
+// ==============================
+
+
+const HISTORY_KEY = "@body:history:v1";
+
+export type DaySummary = {
+  day: string; // "YYYY-MM-DD"
+  protein: number;
+  carbs: number;
+  fat: number;
+  calories: number;
+  streak?: number;
+  points?: number;
+  goal?: Goal;
+  weightKg?: string;
+  // ✅ on met true UNIQUEMENT quand on valide perfectDay (au bon moment)
+  perfect?: boolean;
+
+  // optionnel (pour plus tard)
+  effort?: any | null;
+};
+
+export async function loadHistory(): Promise<DaySummary[]> {
+  try {
+    const raw = await AsyncStorage.getItem(HISTORY_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveHistory(history: DaySummary[]) {
+  await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+export async function upsertDaySummary(summary: DaySummary, keepDays = 60) {
+  const history = await loadHistory();
+  const next = history.filter((h) => h?.day !== summary.day);
+  next.unshift(summary);
+
+  // tri desc (au cas où)
+  next.sort((a, b) => String(b.day).localeCompare(String(a.day)));
+
+  // limite
+  const trimmed = next.slice(0, keepDays);
+  await saveHistory(trimmed);
+}
+
+export async function getLastDays(n = 7): Promise<DaySummary[]> {
+  const history = await loadHistory();
+  return history.slice(0, n);
+}

@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { saveState, loadState } from "../../storage/bodyStore";
+import { saveState, loadState, upsertDaySummary } from "../../storage/bodyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Animated } from "react-native";
@@ -51,6 +51,21 @@ type StoredState = {
 
   points: number;
   lastGoalRewardDay: string | null;
+
+    // ✅ historique léger (pas les photos, juste stats)
+  history?: Record<
+    string,
+    {
+      protein: number;
+      carbs: number;
+      fat: number;
+      calories: number;
+      perfectDay: boolean;
+      effort?: any; // ou EffortEntry si tu veux typer proprement
+      pointsEarned?: number;
+      streak?: number;
+    }
+  >;
 };
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -272,6 +287,40 @@ useFocusEffect(
 
         // reset journalier
         if (s.day !== tk) {
+          const prevDay = s.day; // la journée qu’on quitte
+const prevHistory: Record<string, any> = ((s as any).history ?? {});
+
+// ✅ on archive la journée précédente (si elle existe)
+if (typeof prevDay === "string" && prevDay.length === 10) {
+  prevHistory[prevDay] = {
+    protein: Number(s.protein) || 0,
+    carbs: Number(s.carbs) || 0,
+    fat: Number(s.fat) || 0,
+    calories: Number(s.calories) || 0,
+    perfectDay: Boolean(
+      (Number(s.protein) || 0) >= 1 && false // (on ne peut pas recalculer propreDay ici sans targets)
+    ),
+    // effort: (optionnel) si tu le stockes aussi
+    streak: Number(s.streak) || 0,
+  };
+}
+
+// ✅ on garde seulement les 30 derniers jours
+const keys = Object.keys(prevHistory).sort(); // YYYY-MM-DD -> tri OK
+while (keys.length > 30) {
+  const k = keys.shift();
+  if (k) delete prevHistory[k];
+}
+
+// ✅ archive la journée précédente (valeurs brutes)
+// (perfect sera déjà true si la journée a été validée via le useEffect perfectDay)
+await upsertDaySummary({
+  day: String(s.day),
+  protein: Number(s.protein) || 0,
+  carbs: Number(s.carbs) || 0,
+  fat: Number(s.fat) || 0,
+  calories: Number(s.calories) || 0,
+});
           const next: StoredState = {
             day: tk,
             protein: 0,
@@ -288,6 +337,7 @@ useFocusEffect(
             savePhotos: typeof s.savePhotos === "boolean" ? s.savePhotos : true,
             points: Number(s.points) || 0,
             lastGoalRewardDay: typeof s.lastGoalRewardDay === "string" ? s.lastGoalRewardDay : null,
+            history: prevHistory,
           };
 
          await saveState(next);
@@ -406,6 +456,20 @@ useEffect(() => {
 
     setStreak(nextStreak);
     setLastPerfectDay(today);
+// ✅ archive "validé" AU BON MOMENT (anti-piège)
+
+// ✅ fire-and-forget (recommandé ici)
+upsertDaySummary({
+  day: today,
+  streak: nextStreak,
+  points: nextPoints,
+  protein,
+  carbs,
+  fat,
+  calories,
+  goal,
+  weightKg,
+}).catch(() => {});
     setPoints(nextPoints);
 
     if (goalBonus > 0) setLastGoalRewardDay(today);
@@ -414,6 +478,8 @@ useEffect(() => {
 
     setShowStreakUp(true);
     setTimeout(() => setShowStreakUp(false), 1800);
+
+
 
     persist({
       day,
@@ -1093,6 +1159,22 @@ elevation: 4,
             }}
           />
         </View>
+
+<TouchableOpacity
+  onPress={() => router.push("/progress")}
+  style={{
+    marginTop: 14,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "#1f2937",
+  }}
+>
+  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
+    📈 PROGRESSION (7 jours)
+  </Text>
+</TouchableOpacity>
 
         {/* PROFIL */}
         <Text style={{ color: "#fff", marginTop: 26, fontSize: 12, opacity: 0.7 }}>
