@@ -610,7 +610,7 @@ await addEntry({
 
   const firstActionHint =
   !hasStartedToday
-    ? "⚡ Scanne ton 1er repas pour lancer la journée."
+    ? "⚡ Scanne ton 1er repas pour lancer Le suivi."
     : !perfectDay
     ? `⚡ Il te manque encore : ${biggestGap} (P ${remainingP} • G ${remainingG} • L ${remainingL}).`
     : "✅ Journée validée. Tu peux sécuriser ta série.";
@@ -707,8 +707,8 @@ elevation: 4,
   <Text style={{ color: "#fad711", fontWeight: "700" }}>
     🏆{" "}
     {streak === 0
-      ? "Série prête • Jour 1 à valider"
-      : `Série active : ${streak} jour${streak > 1 ? "s" : ""}`}{" "}
+      ? "Série repas équilibrés • Jour 1 à valider"
+      : `Série repas équilibrés active : ${streak} jour${streak > 1 ? "s" : ""}`}{" "}
     (Objectif : {streakGoal} jours)
   </Text>
 
@@ -994,72 +994,41 @@ elevation: 4,
 </View>
 
 {/* SCAN */}
-<View style={{ marginTop: 18 }}>
+<View
+  style={{
+    marginTop: 18,
 
-  {/* HALO */}
-  {!busy && (
-    <View
-      pointerEvents="none"
-      style={{
-        position: "absolute",
-        left: -10,
-        right: -10,
-        top: -10,
-        bottom: -10,
-        borderRadius: 28,
-        backgroundColor: "rgba(34,211,238,0.18)",
-        shadowColor: "#22d3ee",
-        shadowOpacity: 1,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: 0 },
-        elevation: 15,
-      }}
-    />
-  )}
-
+    // halo lumineux
+    shadowColor: "#38bdf8",
+    shadowOpacity: busy ? 0 : 1,
+    shadowRadius: 50,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: busy ? 0 : 50,
+  }}
+>
   <TouchableOpacity
     onPress={scanMeal}
     disabled={busy}
-    activeOpacity={0.5}
+    activeOpacity={0.9}
     style={{
-      borderRadius: 9,
-      padding: 3,
-      shadowColor: "#90b7e6",
-      shadowOpacity: busy ? 0 : 1,
-      shadowRadius: 5,
-      shadowOffset: { width: 0, height: 0 },
-      elevation: busy ? 0 : 50,
+      paddingVertical: 18,
+      borderRadius: 14,
+      backgroundColor: busy ? "#1f2937" : "#ffffff",
+      alignItems: "center",
     }}
   >
-
-    <LinearGradient
-      colors={
-        busy
-          ? ["#111827", "#111827"]
-          : ["rgba(96,165,250,0.1)", "rgba(34,211,238,0.80)", "rgba(96,165,250,0.90)"]
-      }
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 10, padding: 1 }}
+    <Text
+      style={{
+        textAlign: "center",
+        fontSize: 16,
+        fontWeight: "900",
+        color: "#0b1220",
+        letterSpacing: 0.8,
+      }}
     >
-
-      <View
-        style={{
-          paddingVertical: 18,
-          borderRadius: 10,
-          backgroundColor: busy ? "#1f2937" : "#ffffff",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ fontSize: 16, fontWeight: "900", color: "#0b1220", letterSpacing: 0.8 }}>
-          {busy ? "ANALYSE…" : "SCAN REPAS"}
-        </Text>
-      </View>
-
-    </LinearGradient>
-
+      {busy ? "ANALYSE…" : "SCAN REPAS"}
+    </Text>
   </TouchableOpacity>
-
 </View>
    
        
@@ -1261,45 +1230,121 @@ elevation: 4,
           >
             <Text style={{ color: "#fff", fontWeight: "900" }}>{premiumTitle}</Text>
 
-            {isPro ? (
-              <>
-                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 8 }}>
-                  • Objectif du jour + répartition sur tes repas
-                </Text>
-                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
-                  • Exemple concret (petit-déj / déj / dîner)
-                </Text>
-                <Text style={{ color: "#fff", opacity: 0.85, marginTop: 6 }}>
-                  • Ajustement si tu es en dessous/au-dessus
-                </Text>
-              </>
-            ) : (
-              <>
-                {premiumPreviewLines.map((l) => (
-                  <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
-                    {l}
-                  </Text>
-                ))}
+          {isPro ? (
+  <>
+    <Text style={{ color: "#fff", fontWeight: "900" }}>{premiumTitle}</Text>
 
-                <TouchableOpacity
-                  onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
-                  style={{
-                    marginTop: 12,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    backgroundColor: "#ffffff",
-                  }}
-                >
-                  <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
-                    🔓 Débloquer Premium
-                  </Text>
-                </TouchableOpacity>
+    {/* BADGES PREMIUM */}
+    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8, gap: 8 }}>
+      <View
+        style={{
+          paddingVertical: 4,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+          backgroundColor: "rgba(56,189,248,0.15)",
+        }}
+      >
+        <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 11 }}>Progression</Text>
+      </View>
 
-                <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
-                  Aperçu uniquement. Le coaching complet est en Premium.
-                </Text>
-              </>
-            )}
+      <View
+        style={{
+          paddingVertical: 4,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+          backgroundColor: "rgba(56,189,248,0.15)",
+        }}
+      >
+        <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 11 }}>Ajustement</Text>
+      </View>
+
+      <View
+        style={{
+          paddingVertical: 4,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+          backgroundColor: "rgba(56,189,248,0.15)",
+        }}
+      >
+        <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 11 }}>Body Scan</Text>
+      </View>
+    </View>
+
+    {/* Analyse progression Premium */}
+    <View style={{ marginTop: 14 }}>
+      <Text style={{ color: "#38BDF8", fontWeight: "900" }}>Analyse de progression</Text>
+
+      <Text style={{ color: "#cbd5e1", marginTop: 6 }}>
+        Ton objectif protéines est atteint {proteinProgress >= 1 ? "aujourd'hui." : "partiellement aujourd'hui."}
+      </Text>
+
+      <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+        Sur la semaine, ta régularité nutritionnelle détermine tes résultats.
+      </Text>
+    </View>
+
+    {/* Ajustement nutrition Premium */}
+    <View style={{ marginTop: 14 }}>
+      <Text style={{ color: "#38BDF8", fontWeight: "900" }}>Ajustement nutrition</Text>
+
+      <Text style={{ color: "#cbd5e1", marginTop: 6 }}>
+        {remainingP > 0
+          ? `Ton prochain repas devrait apporter environ ${Math.min(remainingP, 40)}g de protéines.`
+          : "Ton objectif protéines est atteint pour aujourd'hui."}
+      </Text>
+
+      <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+        Une bonne répartition des macros améliore les résultats physiques.
+      </Text>
+    </View>
+
+    {/* Body Scan Premium */}
+    <View style={{ marginTop: 14 }}>
+      <Text style={{ color: "#38BDF8", fontWeight: "900" }}>Body Scan évolution</Text>
+
+      <Text style={{ color: "#cbd5e1", marginTop: 6 }}>
+        Compare ton évolution physique grâce au scan corporel hebdomadaire.
+      </Text>
+
+      <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+        Le suivi visuel montre des changements que la balance ne voit pas.
+      </Text>
+    </View>
+  </>
+) : (
+  <>
+    {premiumPreviewLines.map((l) => (
+      <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
+        {l}
+      </Text>
+    ))}
+
+    <Text style={{ color: "#38BDF8", fontWeight: "800", marginTop: 12 }}>
+      Le coach complet analyse ta progression et ajuste tes macros automatiquement.
+    </Text>
+
+    <TouchableOpacity
+      onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+      style={{
+        marginTop: 12,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: "#ffffff",
+      }}
+    >
+      <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
+        🔒  Body Diet Premium
+      </Text>
+    </TouchableOpacity>
+
+    <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
+      Active Premium pour analyser ta progression et améliorer tes résultats.
+    </Text>
+  </>
+)}
+
+
+
           </View>
         </View>
 
