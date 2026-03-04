@@ -611,7 +611,7 @@ await addEntry({
   !hasStartedToday
     ? "⚡ Scanne ton 1er repas pour lancer la journée."
     : !perfectDay
-    ? `⚡ Il te manque surtout : ${biggestGap} (P ${remainingP} • G ${remainingG} • L ${remainingL}).`
+    ? `⚡ Il te manque encore : ${biggestGap} (P ${remainingP} • G ${remainingG} • L ${remainingL}).`
     : "✅ Journée validée. Tu peux sécuriser ta série.";
 
   if (!loaded) return null;
@@ -703,7 +703,7 @@ elevation: 4,
   {firstActionHint}
 </Text>
 <View style={{ marginTop: 10 }}>
-  <Text style={{ color: "#1C2fe2", fontWeight: "700" }}>
+  <Text style={{ color: "#fad711", fontWeight: "700" }}>
     🏆{" "}
     {streak === 0
       ? "Série prête • Jour 1 à valider"
@@ -767,9 +767,9 @@ elevation: 4,
 
           shadowColor: "#60a5fa",
           shadowOpacity: graceUsed ? 0 : 0.6,
-          shadowRadius: 8,
+          shadowRadius: 14,
           shadowOffset: { width: 0, height: 0 },
-          elevation: graceUsed ? 0 : 6,
+          elevation: graceUsed ? 0 : 10,
         }}
       >
         <Text style={{ color: "#60a5fa", fontWeight: "900" }}>🛟</Text>
@@ -844,7 +844,7 @@ elevation: 4,
             
           >
             <Text style={{ color: "#fff", fontWeight: "900" }}>
-              Demain, tu reussiras. Nouveau round !
+               Nouveau round ! 
             </Text>
 
             <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
@@ -929,7 +929,7 @@ elevation: 4,
             value={fat}
             target={adjustedTargets.fat}
             progress={fatProgress}
-            color="#EA580C"
+            color="#5dea0c"
           />
 
           <Text
@@ -946,7 +946,7 @@ elevation: 4,
           </Text>
 
           <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
-            Reste : P {remainingP} • G {remainingG} • L {remainingL}
+            Reste : P {remainingP}g • G {remainingG}g • L {remainingL}g
           </Text>
 {adjustedTargets.appliedKcal > 0 && (
   <Text style={{ color: "#94a3b8", marginTop: 6 }}>
@@ -997,15 +997,28 @@ elevation: 4,
         <TouchableOpacity
           onPress={scanMeal}
           disabled={busy}
-          style={{
-            marginTop: 18,
-            paddingVertical: 18,
-            borderRadius: 14,
-            backgroundColor: busy ? "#1f2937" : "#ffffff",
-          }}
+         style={{
+  marginTop: 18,
+  paddingVertical: 18,
+  borderRadius: 14,
+
+  backgroundColor: busy ? "#1f2937" : "#ffffff",
+
+  // ✅ halo
+  shadowColor: busy ? "#000" : "#ffffff",
+  shadowOpacity: busy ? 0 : 0.28,
+  shadowRadius: 18,
+  shadowOffset: { width: 0, height: 10 },
+  elevation: busy ? 0 : 10,
+
+  // ✅ petit contour premium (léger)
+  borderWidth: 1,
+  borderColor: busy ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.08)",
+}}
         >
           <Text style={{ textAlign: "center", fontSize: 16, fontWeight: "800", color: "#0b1220" }}>
             {busy ? "ANALYSE…" : " SCAN REPAS"}
+            letterSpacing: 0.8,
           </Text>
         </TouchableOpacity>
 <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -1182,7 +1195,7 @@ elevation: 4,
             borderColor: "#1f2937",
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "900" }}>COACH BODY</Text>
+          <Text style={{ color: "#38BDF8", fontWeight: "900" }}>COACH BODY</Text>
 
           <Text style={{ color: "#fff", opacity: 0.8, marginTop: 6 }}>
             {coachFreeLine}
