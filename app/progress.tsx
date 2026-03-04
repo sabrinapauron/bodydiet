@@ -61,7 +61,7 @@ export default function ProgressScreen() {
           🔥 {d.calories || 0} kcal
         </Text>
         <View style={{ height: 10, borderRadius: 999, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.08)", marginTop: 6 }}>
-          <View style={{ height: "100%", width: `${cW}%`, backgroundColor: "#60a5fa" }} />
+          <View style={{ height: "100%", width: `${cW}%`, backgroundColor: "#38BDF8" }} />
         </View>
 
         {/* Protéines */}
@@ -113,7 +113,7 @@ export default function ProgressScreen() {
         ))}
 
         <Text style={{ color: "#94a3b8", marginTop: 12, fontSize: 12 }}>
-          (Pour rester léger, j’affiche ici les 10 derniers jours du mois. On pourra faire une vraie “courbe” ensuite.)
+         
         </Text>
       </ScrollView>
     </SafeAreaView>

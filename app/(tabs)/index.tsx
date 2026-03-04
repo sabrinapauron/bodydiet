@@ -755,7 +755,7 @@ elevation: 4,
 <View style={{ marginTop: 8 }}>
   <View
     style={{
-      height: 10,
+      height: 3,
       borderRadius: 999,
       backgroundColor: "#1f2937",
       overflow: "hidden",
@@ -765,7 +765,7 @@ elevation: 4,
       style={{
         width: `${dayScore}%`,
         height: "100%",
-        backgroundColor: "#22c55e",
+        backgroundColor: "#f31010",
       }}
     />
   </View>
@@ -936,11 +936,11 @@ elevation: 4,
             
           >
             <Text style={{ color: "#fff", fontWeight: "900" }}>
-               Nouveau round ! 
+               Repas contrôlé, effort récompensé ! 
             </Text>
 
             <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4, fontSize: 12 }}>
-              Un seul objectif: avancer ! Une journée à la fois.
+              C'est la régularité qui donne les résultats, continue demain !
             </Text>
           </View>
         )}
@@ -1037,9 +1037,7 @@ elevation: 4,
             🔥 {calories} kcal aujourd’hui
           </Text>
 
-          <Text style={{ color: "#fff", opacity: 0.6, marginTop: 6 }}>
-            Reste : P {remainingP}g • G {remainingG}g • L {remainingL}g
-          </Text>
+          
 {adjustedTargets.appliedKcal > 0 && (
   <Text style={{ color: "#94a3b8", marginTop: 6 }}>
     Macros ajustées : +{adjustedTargets.bonusCarbG}G / +{adjustedTargets.bonusFatG}L
@@ -1057,7 +1055,7 @@ elevation: 4,
     borderRadius: 14,
     backgroundColor: "#111827",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(248, 243, 243, 0.97)",
   }}
 >
   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -1076,7 +1074,7 @@ elevation: 4,
         borderRadius: 12,
         backgroundColor: "rgba(255,255,255,0.10)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.16)",
+        borderColor: "rgba(207, 203, 203, 0.72)",
       }}
     >
       <Text style={{ color: "#fff", fontWeight: "900" }}>{effort ? "Modifier" : "Ajouter"}</Text>
