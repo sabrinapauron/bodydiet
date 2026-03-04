@@ -190,7 +190,9 @@ const [effort, setEffortState] = useState<EffortEntry | null>(null);
   const proteinProgress = Math.min(1, protein / Math.max(1,adjustedTargets .protein));
   const carbProgress = Math.min(1, carbs / Math.max(1,adjustedTargets .carbs));
   const fatProgress = Math.min(1, fat / Math.max(1, adjustedTargets.fat));
-
+const dayScore = Math.round(
+  ((proteinProgress + carbProgress + fatProgress) / 3) * 100
+);
   const perfectDay = proteinProgress >= 1 && carbProgress >= 1 && fatProgress >= 1;
 
 
@@ -749,6 +751,29 @@ elevation: 4,
       <Text style={{ color: "#fff", fontSize: 16, opacity: 0.7 }}>
   AUJOURD’HUI • {day}
 </Text>
+{/* PROGRESSION JOURNÉE */}
+<View style={{ marginTop: 8 }}>
+  <View
+    style={{
+      height: 10,
+      borderRadius: 999,
+      backgroundColor: "#1f2937",
+      overflow: "hidden",
+    }}
+  >
+    <View
+      style={{
+        width: `${dayScore}%`,
+        height: "100%",
+        backgroundColor: "#22c55e",
+      }}
+    />
+  </View>
+
+  <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
+    Progression nutrition : {dayScore}%
+  </Text>
+</View>
 
 <View
   style={{
