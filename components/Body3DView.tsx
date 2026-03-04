@@ -91,16 +91,9 @@ export default function Body3DViewer({
         }}
       />
 
-      <Animated.View
-        style={{
-          height,
-          justifyContent: "center",
-          alignItems: "center",
-          transform: [{ rotate: `${tilt}deg` }, { scale }],
-        }}
-      >
-        {/* 3 images superposées */}
-        <Image
+            <View style={{ height, justifyContent: "center", alignItems: "center" }}>
+        {/* Face */}
+        <Animated.Image
           source={{ uri: frontUri }}
           resizeMode="contain"
           style={{
@@ -108,9 +101,17 @@ export default function Body3DViewer({
             width: "92%",
             height: "92%",
             opacity: frontOpacity,
+            transform: [
+              { perspective: 900 },
+              { translateX: (0.5 - tLocal) * -18 },   // parallax
+              { rotateY: `${(0.5 - tLocal) * 6}deg` }, // effet 3D
+              { scale: 1.02 },
+            ],
           }}
         />
-        <Image
+
+        {/* 3/4 */}
+        <Animated.Image
           source={{ uri: threeQuarterUri }}
           resizeMode="contain"
           style={{
@@ -118,9 +119,17 @@ export default function Body3DViewer({
             width: "92%",
             height: "92%",
             opacity: threeOpacity,
+            transform: [
+              { perspective: 900 },
+              { translateX: (0.5 - tLocal) * -8 },
+              { rotateY: `${(0.5 - tLocal) * 3}deg` },
+              { scale: 1.02 },
+            ],
           }}
         />
-        <Image
+
+        {/* Profil */}
+        <Animated.Image
           source={{ uri: sideUri }}
           resizeMode="contain"
           style={{
@@ -128,9 +137,15 @@ export default function Body3DViewer({
             width: "92%",
             height: "92%",
             opacity: sideOpacity,
+            transform: [
+              { perspective: 900 },
+              { translateX: (0.5 - tLocal) * 18 },
+              { rotateY: `${(0.5 - tLocal) * 6}deg` },
+              { scale: 1.02 },
+            ],
           }}
         />
-      </Animated.View>
+      </View>
 
       {/* UI “vendable” */}
       <View

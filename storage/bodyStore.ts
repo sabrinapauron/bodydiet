@@ -221,18 +221,49 @@ export type DaySummary = {
   effort?: any | null;
 };
 
-export async function loadHistory(): Promise<DaySummary[]> {
+
+
+export type BodyScan = {
+  day: string; // YYYY-MM-DD
+  frontUri: string;
+  threeUri: string;
+  sideUri: string;
+  createdAt: number;
+};
+
+const KEY_BODY_SCANS = "BODY_SCANS_V1";
+
+export async function loadBodyScans(): Promise<BodyScan[]> {
   try {
-    const raw = await AsyncStorage.getItem(HISTORY_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
+    const raw = await AsyncStorage.getItem(KEY_BODY_SCANS);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const arr: BodyScan[] = Array.isArray(parsed) ? parsed : [];
+    // tri récent -> ancien
+    return arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   } catch {
     return [];
   }
 }
 
+export async function upsertBodyScan(scan: BodyScan): Promise<BodyScan[]> {
+  const scans = await loadBodyScans();
+  const next: BodyScan[] = [scan, ...scans.filter((s) => s.day !== scan.day)];
+  await AsyncStorage.setItem(KEY_BODY_SCANS, JSON.stringify(next));
+  return next;
+}
+
 export async function saveHistory(history: DaySummary[]) {
   await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+export async function loadHistory(): Promise<DaySummary[]> {
+  try {
+    const raw = await AsyncStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function upsertDaySummary(summary: DaySummary, keepDays = 60) {
