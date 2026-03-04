@@ -992,35 +992,39 @@ elevation: 4,
   </View>
 </View>
 
-
-    {/* SCAN */}
-        <TouchableOpacity
-          onPress={scanMeal}
-          disabled={busy}
-         style={{
-  marginTop: 18,
-  paddingVertical: 18,
-  borderRadius: 14,
-
-  backgroundColor: busy ? "#1f2937" : "#ffffff",
-
-  // ✅ halo
-  shadowColor: busy ? "#000" : "#ffffff",
-  shadowOpacity: busy ? 0 : 0.28,
-  shadowRadius: 18,
-  shadowOffset: { width: 0, height: 10 },
-  elevation: busy ? 0 : 10,
-
-  // ✅ petit contour premium (léger)
-  borderWidth: 1,
-  borderColor: busy ? "rgba(255,255,255,0.06)" : "rgba(15,23,42,0.08)",
-}}
-        >
-          <Text style={{ textAlign: "center", fontSize: 16, fontWeight: "800", color: "#0b1220" }}>
-            {busy ? "ANALYSE…" : " SCAN REPAS"}
-            letterSpacing: 0.8,
-          </Text>
-        </TouchableOpacity>
+{/* SCAN */}
+<View
+  style={{
+    marginTop: 18,
+    borderRadius: 18,
+    padding: 3,
+    backgroundColor: busy ? "transparent" : "rgba(255,255,255,0.15)", // halo
+  }}
+>
+  <TouchableOpacity
+    onPress={scanMeal}
+    disabled={busy}
+    style={{
+      paddingVertical: 18,
+      borderRadius: 14,
+      backgroundColor: busy ? "#1f2937" : "#ffffff",
+      alignItems: "center",
+    }}
+  >
+    <Text
+      style={{
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#0b1220",
+        letterSpacing: 0.6,
+      }}
+    >
+      {busy ? "ANALYSE…" : "SCAN REPAS"}
+    </Text>
+  </TouchableOpacity>
+</View>
+   
+       
 <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
   <Text style={{ color: "#fff", opacity: 0.7, fontSize: 12 }}>
     Album repas : {savePhotos ? "ON" : "OFF"}
