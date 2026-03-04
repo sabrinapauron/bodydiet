@@ -17,6 +17,7 @@ import EffortModal from "../../components/EffortModal";
 import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore";
 import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
 import { useFocusEffect } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -993,35 +994,72 @@ elevation: 4,
 </View>
 
 {/* SCAN */}
-<View
-  style={{
-    marginTop: 18,
-    borderRadius: 18,
-    padding: 3,
-    backgroundColor: busy ? "transparent" : "rgba(255,255,255,0.15)", // halo
-  }}
->
+<View style={{ marginTop: 18 }}>
+
+  {/* HALO */}
+  {!busy && (
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        left: -10,
+        right: -10,
+        top: -10,
+        bottom: -10,
+        borderRadius: 28,
+        backgroundColor: "rgba(34,211,238,0.18)",
+        shadowColor: "#22d3ee",
+        shadowOpacity: 1,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 15,
+      }}
+    />
+  )}
+
   <TouchableOpacity
     onPress={scanMeal}
     disabled={busy}
+    activeOpacity={0.5}
     style={{
-      paddingVertical: 18,
-      borderRadius: 14,
-      backgroundColor: busy ? "#1f2937" : "#ffffff",
-      alignItems: "center",
+      borderRadius: 9,
+      padding: 3,
+      shadowColor: "#90b7e6",
+      shadowOpacity: busy ? 0 : 1,
+      shadowRadius: 5,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: busy ? 0 : 50,
     }}
   >
-    <Text
-      style={{
-        fontSize: 16,
-        fontWeight: "800",
-        color: "#0b1220",
-        letterSpacing: 0.6,
-      }}
+
+    <LinearGradient
+      colors={
+        busy
+          ? ["#111827", "#111827"]
+          : ["rgba(96,165,250,0.1)", "rgba(34,211,238,0.80)", "rgba(96,165,250,0.90)"]
+      }
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ borderRadius: 10, padding: 1 }}
     >
-      {busy ? "ANALYSE…" : "SCAN REPAS"}
-    </Text>
+
+      <View
+        style={{
+          paddingVertical: 18,
+          borderRadius: 10,
+          backgroundColor: busy ? "#1f2937" : "#ffffff",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ fontSize: 16, fontWeight: "900", color: "#0b1220", letterSpacing: 0.8 }}>
+          {busy ? "ANALYSE…" : "SCAN REPAS"}
+        </Text>
+      </View>
+
+    </LinearGradient>
+
   </TouchableOpacity>
+
 </View>
    
        
