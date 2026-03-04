@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Image, Animated, PanResponder } from "react-native";
 
 type Props = {
@@ -21,11 +21,10 @@ export default function Body3DViewer({
   const [tLocal, setTLocal] = useState(0);
 
   // on écoute t pour calculer opacités & tilt
-  useMemo(() => {
-    const id = t.addListener(({ value }) => setTLocal(value));
-    return () => t.removeListener(id);
-  }, [t]);
-
+useEffect(() => {
+  const id = t.addListener(({ value }) => setTLocal(value));
+  return () => t.removeListener(id);
+}, [t]);
   const startT = useRef(0);
 
   const pan = useMemo(
