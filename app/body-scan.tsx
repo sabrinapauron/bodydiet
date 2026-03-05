@@ -16,15 +16,7 @@ import Body3DViewer from "../components/Body3DView";
 import { loadBodyScans, type BodyScan } from "../storage/bodyStore";
 
 
-function BeforeAfterSwipe({
-  beforeUri,
-  afterUri,
-  height = 420,
-}: {
-  beforeUri: string;
-  afterUri: string;
-  height?: number;
-}) {
+
   const [w, setW] = useState(0);
   const x = useRef(new Animated.Value(0.5)).current; // 0..1
 
@@ -63,9 +55,74 @@ function BeforeAfterSwipe({
     outputRange: [0, w],
   });
 
+  type BeforeAfterProps = {
+  beforeUri: string;
+  afterUri: string;
+  height?: number;
+};
+
+const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
+
+function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProps) {
+  const [w, setW] = React.useState(0);
+
+  const x = React.useRef(new Animated.Value(0)).current;
+  const startX = React.useRef(0);
+
+  const safeBefore = typeof beforeUri === "string" ? beforeUri : "";
+  const safeAfter = typeof afterUri === "string" ? afterUri : "";
+
+  // ✅ anti écran vide
+  if (!safeBefore || !safeAfter) {
+    return (
+      <View
+        style={{
+          height,
+          borderRadius: 16,
+          backgroundColor: "#111827",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.10)",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 16,
+        }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "900" }}>Comparaison indisponible</Text>
+        <Text style={{ color: "#94a3b8", marginTop: 6, textAlign: "center" }}>
+          Photo manquante (avant ou après) pour cet angle.
+        </Text>
+      </View>
+    );
+  }
+
+  const pan = React.useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          startX.current = (x as any).__getValue?.() ?? 0;
+        },
+        onPanResponderMove: (_, g) => {
+          if (!w) return;
+          const next = clamp(startX.current + g.dx, 0, w);
+          x.setValue(next);
+        },
+        onPanResponderRelease: () => {},
+      }),
+    [w, x]
+  );
+
+  const clipW = w ? x : 0;
+  const handleLeft = w ? x : 0;
+
   return (
     <View
-      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      onLayout={(e) => {
+        const width = e.nativeEvent.layout.width;
+        setW(width);
+        x.setValue(width / 2);
+      }}
       style={{
         height,
         borderRadius: 16,
@@ -76,23 +133,21 @@ function BeforeAfterSwipe({
       }}
       {...pan.panHandlers}
     >
-      {/* BEFORE (fond) */}
+      {/* BEFORE */}
       <Image
-        source={{ uri: beforeUri }}
+        source={{ uri: safeBefore }}
         resizeMode="contain"
         style={{ position: "absolute", width: "100%", height: "100%" }}
       />
 
-      {/* AFTER (dessus, clip) */}
-      <Animated.View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: clipW, overflow: "hidden" }}>
-        <Image
-          source={{ uri: afterUri }}
-          resizeMode="contain"
-          style={{ width: "100%", height: "100%" }}
-        />
+      {/* AFTER (clip) */}
+      <Animated.View
+        style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: clipW, overflow: "hidden" }}
+      >
+        <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
       </Animated.View>
 
-      {/* séparateur + poignée */}
+      {/* handle */}
       <Animated.View
         style={{
           position: "absolute",
@@ -133,7 +188,6 @@ function BeforeAfterSwipe({
     </View>
   );
 }
-
 export default function BodyScanScreen() {
   const router = useRouter();
 const [scans, setScans] = useState<BodyScan[]>([]);
@@ -165,10 +219,11 @@ useEffect(() => {
 }, []);
 
   
-const getUri = (s: BodyScan, a: "front" | "three" | "side") => {
-  if (a === "front") return s.frontUri;
-  if (a === "three") return s.threeUri;
-  return s.sideUri;
+const getUri = (scan: any, a: "front" | "three" | "side") => {
+  if (!scan) return "";
+  if (a === "front") return scan.frontUri ?? "";
+  if (a === "three") return scan.threeUri ?? "";   // <- IMPORTANT : threeUri chez toi
+  return scan.sideUri ?? "";
 };
 
   return (

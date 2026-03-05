@@ -59,6 +59,7 @@ useEffect(() => {
   const scale = 1.02;
 
   return (
+
     <View
       style={{
         backgroundColor: "#111827",
