@@ -1248,57 +1248,89 @@ elevation: 4,
 </View>
 
         <View style={{ flexDirection: "row", marginTop: 10 }}>
-          <View style={{ flex: 1, marginRight: 10 }}>
-            <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Ton Poids (kg)</Text>
-            <TextInput
-              value={weightKg}
-              onChangeText={async (v) => {
-                setWeightKg(v);
-                await persist({ weightKg: v });
-              }}
-              keyboardType="numeric"
-              style={{
-                marginTop: 6,
-                padding: 12,
-                borderRadius: 12,
-                backgroundColor: "#111827",
-                color: "#fff",
-                fontSize: 16,
-                fontWeight: "700",
-              }}
-            />
-          </View>
 
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Objectif</Text>
-            <View style={{ flexDirection: "row", marginTop: 6 }}>
-              <MiniBtn
-                active={goal === "gain"}
-                label="Masse"
-                onPress={async () => {
-                  setGoal("gain");
-                  await persist({ goal: "gain" });
-                }}
-              />
-              <MiniBtn
-                active={goal === "cut"}
-                label="Sèche"
-                onPress={async () => {
-                  setGoal("cut");
-                  await persist({ goal: "cut" });
-                }}
-              />
-              <MiniBtn
-                active={goal === "maintain"}
-                label="Maintien"
-                onPress={async () => {
-                  setGoal("maintain");
-                  await persist({ goal: "maintain" });
-                }}
-              />
-            </View>
-          </View>
-        </View>
+  {/* POIDS */}
+  <View style={{ flex: 1, marginRight: 10 }}>
+    <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+      Ton Poids (kg)
+    </Text>
+    <TextInput
+      value={weightKg}
+      onChangeText={async (v) => {
+        setWeightKg(v);
+        await persist({ weightKg: v });
+      }}
+      keyboardType="numeric"
+      style={{
+        marginTop: 6,
+        padding: 12,
+        borderRadius: 12,
+        backgroundColor: "#111827",
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "700",
+      }}
+    />
+  </View>
+
+  {/* TAILLE */}
+  <View style={{ flex: 1 }}>
+    <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+      Ta Taille (cm)
+    </Text>
+    <TextInput
+      value={heightCm}
+      onChangeText={async (v) => {
+        setHeightCm(v);
+        await persist({});
+      }}
+      keyboardType="numeric"
+      style={{
+        marginTop: 6,
+        padding: 12,
+        borderRadius: 12,
+        backgroundColor: "#111827",
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "700",
+      }}
+    />
+  </View>
+
+</View>
+
+{/* OBJECTIF */}
+<View style={{ marginTop: 14 }}>
+  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Objectif</Text>
+
+  <View style={{ flexDirection: "row", marginTop: 6 }}>
+    <MiniBtn
+      active={goal === "gain"}
+      label="Masse"
+      onPress={async () => {
+        setGoal("gain");
+        await persist({ goal: "gain" });
+      }}
+    />
+    <MiniBtn
+      active={goal === "cut"}
+      label="Sèche"
+      onPress={async () => {
+        setGoal("cut");
+        await persist({ goal: "cut" });
+      }}
+    />
+    <MiniBtn
+      active={goal === "maintain"}
+      label="Maintien"
+      onPress={async () => {
+        setGoal("maintain");
+        await persist({ goal: "maintain" });
+      }}
+    />
+  </View>
+</View>
+        
 
         {/* PERFECT DAY */}
         {perfectDay && (
