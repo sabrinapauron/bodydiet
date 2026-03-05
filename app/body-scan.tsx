@@ -15,47 +15,11 @@ import { useRouter } from "expo-router";
 import Body3DViewer from "../components/Body3DView";
 import { loadBodyScans, type BodyScan } from "../storage/bodyStore";
 
+/* ------------------------------
+   BEFORE / AFTER SWIPE (anti écran vide)
+------------------------------ */
 
-
-  const [w, setW] = useState(0);
-  const x = useRef(new Animated.Value(0.5)).current; // 0..1
-
-  const xLocal = useRef(0.5);
-  useMemo(() => {
-    const id = x.addListener(({ value }) => (xLocal.current = value));
-    return () => x.removeListener(id);
-  }, [x]);
-
-  const startX = useRef(0.5);
-
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          startX.current = xLocal.current;
-        },
-        onPanResponderMove: (_, g) => {
-          if (!w) return;
-          const next = Math.max(0, Math.min(1, startX.current + g.dx / w));
-          x.setValue(next);
-        },
-      }),
-    [w, x]
-  );
-
-  const clipW = x.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, w],
-  });
-
-  const handleLeft = x.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, w],
-  });
-
-  type BeforeAfterProps = {
+type BeforeAfterProps = {
   beforeUri: string;
   afterUri: string;
   height?: number;
@@ -64,15 +28,14 @@ import { loadBodyScans, type BodyScan } from "../storage/bodyStore";
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 
 function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProps) {
-  const [w, setW] = React.useState(0);
-
-  const x = React.useRef(new Animated.Value(0)).current;
-  const startX = React.useRef(0);
+  const [w, setW] = useState(0);
+  const x = useRef(new Animated.Value(0)).current;
+  const startX = useRef(0);
 
   const safeBefore = typeof beforeUri === "string" ? beforeUri : "";
   const safeAfter = typeof afterUri === "string" ? afterUri : "";
 
-  // ✅ anti écran vide
+  // ✅ Anti écran vide : si une photo manque, on affiche un bloc clair
   if (!safeBefore || !safeAfter) {
     return (
       <View
@@ -95,7 +58,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
     );
   }
 
-  const pan = React.useMemo(
+  const pan = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
@@ -121,7 +84,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
       onLayout={(e) => {
         const width = e.nativeEvent.layout.width;
         setW(width);
-        x.setValue(width / 2);
+        x.setValue(width / 2); // centre au départ
       }}
       style={{
         height,
@@ -142,7 +105,14 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
 
       {/* AFTER (clip) */}
       <Animated.View
-        style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: clipW, overflow: "hidden" }}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: clipW,
+          overflow: "hidden",
+        }}
       >
         <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
       </Animated.View>
@@ -188,43 +158,50 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
     </View>
   );
 }
+
+/* ------------------------------
+   SCREEN
+------------------------------ */
+
 export default function BodyScanScreen() {
   const router = useRouter();
-const [scans, setScans] = useState<BodyScan[]>([]);
-const [angle, setAngle] = useState<"front" | "three" | "side">("front");
 
-const [compareOpen, setCompareOpen] = useState(false);
-const [compareId, setCompareId] = useState<string | null>(null);
+  const [scans, setScans] = useState<BodyScan[]>([]);
+  const [angle, setAngle] = useState<"front" | "three" | "side">("front");
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [compareId, setCompareId] = useState<string | null>(null);
 
-const after = scans[0] || null;
+  useEffect(() => {
+    (async () => {
+      const list = await loadBodyScans();
+      setScans(list);
+    })();
+  }, []);
 
-const before = useMemo(() => {
-  if (!after) return null;
+  const after = scans[0] || null;
 
-  if (compareId) {
-    const found = scans.find((s) => s.day === compareId);
-    return found && found.day !== after.day ? found : null;
-  }
+  const getUri = (scan: any, a: "front" | "three" | "side") => {
+    if (!scan) return "";
+    if (a === "front") return scan.frontUri ?? "";
+    if (a === "three") return scan.threeUri ?? "";
+    return scan.sideUri ?? "";
+  };
 
-  const prev = scans[1] || null;
-  return prev && prev.day !== after.day ? prev : null;
-}, [scans, after, compareId]);
+  const before = useMemo(() => {
+    if (!after) return null;
 
+    if (compareId) {
+      const found = scans.find((s) => s.day === compareId);
+      return found && found.day !== after.day ? found : null;
+    }
 
-useEffect(() => {
-  (async () => {
-    const list = await loadBodyScans();
-    setScans(list);
-  })();
-}, []);
+    const prev = scans[1] || null;
+    return prev && prev.day !== after.day ? prev : null;
+  }, [scans, after, compareId]);
 
-  
-const getUri = (scan: any, a: "front" | "three" | "side") => {
-  if (!scan) return "";
-  if (a === "front") return scan.frontUri ?? "";
-  if (a === "three") return scan.threeUri ?? "";   // <- IMPORTANT : threeUri chez toi
-  return scan.sideUri ?? "";
-};
+  const beforeUri = before ? getUri(before, angle) : "";
+  const afterUri = after ? getUri(after, angle) : "";
+  const canCompare = !!before && !!beforeUri && !!afterUri;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
@@ -240,188 +217,198 @@ const getUri = (scan: any, a: "front" | "three" | "side") => {
         </View>
 
         <Text style={{ color: "#94a3b8", marginTop: 10 }}>
-          Glisse à gauche/droite pour “tourner” (effet 3D premium).
+          Choisis l’angle. Si tu as 2 scans, tu peux comparer avec le swipe.
         </Text>
 
         {!after ? (
-  // ... ton bloc "Aucun scan body" + bouton capture (tu l’as déjà)
-  <View />
-) : (
-  <View style={{ marginTop: 14 }}>
-    {/* Boutons angle (évite conflit de swipe) */}
-    <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-      {[
-        { k: "front", label: "FACE" },
-        { k: "three", label: "3/4" },
-        { k: "side", label: "PROFIL" },
-      ].map((b: any) => (
-        <TouchableOpacity
-          key={b.k}
-          onPress={() => setAngle(b.k)}
-          style={{
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 999,
-            backgroundColor: angle === b.k ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
-            borderWidth: 1,
-            borderColor: angle === b.k ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12, opacity: angle === b.k ? 1 : 0.7 }}>
-            {b.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+          <View style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: "#111827" }}>
+            <Text style={{ color: "#fff", fontWeight: "900" }}>Aucun scan</Text>
+            <Text style={{ color: "#94a3b8", marginTop: 6 }}>
+              Fais ton premier scan (Face / 3-4 / Profil).
+            </Text>
 
-    {before ? (
-      <BeforeAfterSwipe
-        beforeUri={getUri(before, angle)}
-        afterUri={getUri(after, angle)}
-      />
-    ) : (
-      // Si tu n'as qu'un seul scan, on affiche ton viewer normal
-      <Body3DViewer
-        frontUri={after.frontUri}
-        threeQuarterUri={after.threeUri}
-        sideUri={after.sideUri}
-      />
-    )}
-<TouchableOpacity
-  onPress={() => setCompareOpen(true)}
-  style={{
-    marginTop: 12,
-    paddingVertical: 12,
-    borderRadius: 14,
-    backgroundColor: "#111827",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    alignItems: "center",
-  }}
->
-  <Text style={{ color: "#fff", fontWeight: "900" }}>
-    🔁 Comparer avec…
-  </Text>
-  <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
-    {before ? `Avant : ${before.day}` : "Choisir un scan précédent"}
-  </Text>
-</TouchableOpacity>
-    <TouchableOpacity
-      onPress={() => router.push("/body-scan-capture")}
-      style={{
-        marginTop: 12,
-        paddingVertical: 12,
-        borderRadius: 14,
-        backgroundColor: "#111827",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Nouveau scan</Text>
-    </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/body-scan-capture")}
+              style={{
+                marginTop: 12,
+                paddingVertical: 12,
+                borderRadius: 14,
+                backgroundColor: "#0b1220",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.10)",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Nouveau scan</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={{ marginTop: 14 }}>
+            {/* Boutons angle */}
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+              {[
+                { k: "front", label: "FACE" },
+                { k: "three", label: "3/4" },
+                { k: "side", label: "PROFIL" },
+              ].map((b: any) => (
+                <TouchableOpacity
+                  key={b.k}
+                  onPress={() => setAngle(b.k)}
+                  style={{
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 999,
+                    backgroundColor: angle === b.k ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+                    borderWidth: 1,
+                    borderColor: angle === b.k ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12, opacity: angle === b.k ? 1 : 0.7 }}>
+                    {b.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-    {!before && (
-      <Text style={{ color: "#94a3b8", marginTop: 8, fontSize: 12 }}>
-        Fais un 2ᵉ scan (un autre jour) pour activer le swipe Avant/Aujourd’hui.
-      </Text>
-    )}
-  </View>
-)}
-        <Text style={{ color: "#94a3b8", marginTop: 12, fontSize: 12, opacity: 0.9 }}>
-          Prochaine étape : on remplace les 3 URLs par tes vraies photos (Face / 3-4 / Profil) prises dans l’app.
-        </Text>
+            {/* ✅ Compare uniquement si les 2 URIs existent */}
+            {canCompare ? (
+              <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
+            ) : (
+              <Body3DViewer frontUri={after.frontUri} threeQuarterUri={after.threeUri} sideUri={after.sideUri} />
+            )}
 
+            <TouchableOpacity
+              onPress={() => setCompareOpen(true)}
+              style={{
+                marginTop: 12,
+                paddingVertical: 12,
+                borderRadius: 14,
+                backgroundColor: "#111827",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.10)",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>🔁 Comparer avec…</Text>
+              <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
+                {before ? `Avant : ${before.day}` : "Choisir un scan précédent"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/body-scan-capture")}
+              style={{
+                marginTop: 12,
+                paddingVertical: 12,
+                borderRadius: 14,
+                backgroundColor: "#111827",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.10)",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Nouveau scan</Text>
+            </TouchableOpacity>
+
+            {!before && (
+              <Text style={{ color: "#94a3b8", marginTop: 8, fontSize: 12 }}>
+                Fais un 2ᵉ scan (un autre jour) pour activer le swipe Avant/Aujourd’hui.
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* MODAL compare */}
         <Modal visible={compareOpen} transparent animationType="fade" onRequestClose={() => setCompareOpen(false)}>
-  <Pressable
-    onPress={() => setCompareOpen(false)}
-    style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", padding: 16, justifyContent: "center" }}
-  >
-    <Pressable
-      onPress={() => {}}
-      style={{
-        backgroundColor: "#111827",
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
-        padding: 14,
-        maxHeight: "80%",
-      }}
-    >
-      <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Comparer avec…</Text>
-      <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>
-        Choisis un scan “avant” (l’actuel reste le plus récent).
-      </Text>
+          <Pressable
+            onPress={() => setCompareOpen(false)}
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", padding: 16, justifyContent: "center" }}
+          >
+            <Pressable
+              onPress={() => {}}
+              style={{
+                backgroundColor: "#111827",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.10)",
+                padding: 14,
+                maxHeight: "80%",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Comparer avec…</Text>
+              <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>
+                Choisis un scan “avant” (l’actuel reste le plus récent).
+              </Text>
 
-      <View style={{ marginTop: 12 }}>
-        {scans
-          .filter((s) => !after || s.day !== after.day) // pas le même jour que le "after"
-          .map((s) => {
-            const selected = compareId === s.day;
-            return (
-              <TouchableOpacity
-                key={s.day}
-                onPress={() => {
-                  setCompareId(s.day);
-                  setCompareOpen(false);
-                }}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 12,
-                  borderRadius: 14,
-                  backgroundColor: selected ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
-                  borderWidth: 1,
-                  borderColor: selected ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
-                  marginBottom: 10,
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "900" }}>{s.day}</Text>
-                <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
-                  {selected ? "Sélectionné" : "Tap pour comparer"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-      </View>
+              <View style={{ marginTop: 12 }}>
+                {scans
+                  .filter((s) => !after || s.day !== after.day)
+                  .map((s) => {
+                    const selected = compareId === s.day;
+                    return (
+                      <TouchableOpacity
+                        key={s.day}
+                        onPress={() => {
+                          setCompareId(s.day);
+                          setCompareOpen(false);
+                        }}
+                        style={{
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 14,
+                          backgroundColor: selected ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+                          borderWidth: 1,
+                          borderColor: selected ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontWeight: "900" }}>{s.day}</Text>
+                        <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
+                          {selected ? "Sélectionné" : "Tap pour comparer"}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </View>
 
-      <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
-        <TouchableOpacity
-          onPress={() => {
-            setCompareId(null); // revient à "scan précédent"
-            setCompareOpen(false);
-          }}
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            borderRadius: 14,
-            backgroundColor: "rgba(148,163,184,0.10)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#e5e7eb", fontWeight: "900" }}>Par défaut</Text>
-          <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>Scan précédent</Text>
-        </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setCompareId(null);
+                    setCompareOpen(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(148,163,184,0.10)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.08)",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#e5e7eb", fontWeight: "900" }}>Par défaut</Text>
+                  <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>Scan précédent</Text>
+                </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setCompareOpen(false)}
-          style={{
-            flex: 1,
-            paddingVertical: 12,
-            borderRadius: 14,
-            backgroundColor: "#0b1220",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.10)",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "900" }}>Fermer</Text>
-        </TouchableOpacity>
-      </View>
-    </Pressable>
-  </Pressable>
-</Modal>
+                <TouchableOpacity
+                  onPress={() => setCompareOpen(false)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    backgroundColor: "#0b1220",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.10)",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "900" }}>Fermer</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
