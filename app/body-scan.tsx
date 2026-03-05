@@ -10,11 +10,17 @@ import {
   PanResponder,
   Modal,
   Pressable,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import Body3DViewer from "../components/Body3DView";
-import { loadBodyScans, type BodyScan } from "../storage/bodyStore";
-
+import {
+  loadBodyScans,
+  type BodyScan,
+  getBodyScanCommentary,
+  saveBodyScanCommentary,
+  loadBodyProfile,
+} from "../storage/bodyStore";
 /* ------------------------------
    BEFORE / AFTER SWIPE (anti écran vide)
 ------------------------------ */
@@ -162,8 +168,18 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
 /* ------------------------------
    SCREEN
 ------------------------------ */
-
 type AngleKey = "front" | "three" | "side";
+const ANGLES: AngleKey[] = ["front", "three", "side"];
+
+// (si tu n'as pas exporté BodyScanCommentary depuis bodyStore.ts)
+type BodyScanCommentary = {
+  title: string;
+  summary: string;
+  wins: string[];
+  work: string[];
+  focus7: string[];
+  closing: string;
+};
 
 export default function BodyScanScreen() {
   const router = useRouter();
@@ -172,37 +188,45 @@ export default function BodyScanScreen() {
   const [angle, setAngle] = useState<AngleKey>("front");
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
-type AngleKey = "front" | "three" | "side";
-const ANGLES: AngleKey[] = ["front", "three", "side"];
 
-const swipe = useMemo(() => {
-  let startIndex = 0;
+  // ✅ V1 : on laisse faux (pas d'erreur). Plus tard tu branches RevenueCat ici.
+  const isPremium = true;
 
-  return PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dy) < 24,
+  const [heightCm, setHeightCm] = useState<number | null>(null);
 
-    onPanResponderGrant: () => {
-      startIndex = ANGLES.indexOf(angle);
-    },
+  // ✅ Mets EXACTEMENT ton URL Render si différente
+  const SERVER_URL = "https://monaserver-dev.onrender.com";
 
-    onPanResponderRelease: (_, g) => {
-      if (g.dx > 35) {
-        // swipe droite = angle précédent
-        const next = Math.max(0, startIndex - 1);
-        setAngle(ANGLES[next]);
-      } else if (g.dx < -35) {
-        // swipe gauche = angle suivant
-        const next = Math.min(ANGLES.length - 1, startIndex + 1);
-        setAngle(ANGLES[next]);
-      }
-    },
-  });
-}, [angle]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiComment, setAiComment] = useState<BodyScanCommentary | null>(null);
+
+  const swipe = useMemo(() => {
+    let startIndex = 0;
+
+    return PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dy) < 24,
+      onPanResponderGrant: () => {
+        startIndex = ANGLES.indexOf(angle);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > 35) {
+          const next = Math.max(0, startIndex - 1);
+          setAngle(ANGLES[next]);
+        } else if (g.dx < -35) {
+          const next = Math.min(ANGLES.length - 1, startIndex + 1);
+          setAngle(ANGLES[next]);
+        }
+      },
+    });
+  }, [angle]);
 
   useEffect(() => {
     (async () => {
       const list = await loadBodyScans();
       setScans(list);
+
+      const profile = await loadBodyProfile();
+      setHeightCm(profile?.heightCm ?? null);
     })();
   }, []);
 
@@ -227,9 +251,60 @@ const swipe = useMemo(() => {
     return prev && prev.day !== after.day ? prev : null;
   }, [scans, after, compareId]);
 
+  const runCoach = async () => {
+    if (!after) return;
+
+    if (!heightCm) {
+      Alert.alert("Profil", "Renseigne ta taille pour activer l’analyse coach.");
+      return;
+    }
+
+    if (!isPremium) {
+      Alert.alert("Premium", "Analyse Coach disponible en Premium.");
+      return;
+    }
+
+    const mode: "single" | "compare" = before ? "compare" : "single";
+
+    const cached = await getBodyScanCommentary(mode, after.day, before?.day ?? null);
+    if (cached) {
+      setAiComment(cached as BodyScanCommentary);
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          heightCm,
+          mode,
+          afterDay: after.day,
+          beforeDay: before?.day ?? null,
+        }),
+      });
+
+      const json = await r.json();
+      if (!json?.ok) throw new Error(json?.error || "Erreur IA");
+
+      const data = json.data as BodyScanCommentary;
+      setAiComment(data);
+
+      await saveBodyScanCommentary(mode, after.day, before?.day ?? null, data);
+    } catch (e) {
+      Alert.alert("Erreur", "Impossible de générer l’analyse pour le moment.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const beforeUri = before ? getUri(before, angle) : "";
   const afterUri = after ? getUri(after, angle) : "";
   const canCompare = !!before && !!beforeUri && !!afterUri;
+
+  // ... tu continues avec ton return JSX
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
@@ -271,47 +346,82 @@ const swipe = useMemo(() => {
           </View>
         ) : (
           <View style={{ marginTop: 14 }}>
-            {/* Boutons angle */}
-          {/*}  <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-              {([
-                { k: "front", label: "FACE" },
-                { k: "three", label: "3/4" },
-                { k: "side", label: "PROFIL" },
-              ] as { k: AngleKey; label: string }[]).map((b) => (
-                <TouchableOpacity
-                  key={b.k}
-                  onPress={() => setAngle(b.k)}
-                  style={{
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 999,
-                    backgroundColor: angle === b.k ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
-                    borderWidth: 1,
-                    borderColor: angle === b.k ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
-                  }}
-                >
-                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12, opacity: angle === b.k ? 1 : 0.7 }}>
-                    {b.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            {/* Viewer + swipe angles */}
+            <View {...swipe.panHandlers}>
+              {canCompare ? (
+                <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
+              ) : (
+                <Body3DViewer
+                  frontUri={after.frontUri}
+                  threeQuarterUri={after.threeUri}
+                  sideUri={after.sideUri}
+                  angle={angle}
+                />
+              )}
             </View>
 
-           {/* Compare uniquement si 2 scans + URIs ok */}
-<View {...swipe.panHandlers}>
-  {canCompare ? (
-    <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
-  ) : (
-    <Body3DViewer
-      frontUri={after.frontUri}
-      threeQuarterUri={after.threeUri}
-      sideUri={after.sideUri}
-      angle={angle}
-    />
-  )}
-</View>
-            
+            {/* Premium Coach */}
+            <View style={{ marginTop: 14 }}>
+              <TouchableOpacity
+                onPress={runCoach}
+                disabled={aiLoading}
+                style={{
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.12)",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "900" }}>
+                  {aiLoading ? "Analyse en cours..." : "🧠 Analyse Coach (Premium)"}
+                </Text>
+              </TouchableOpacity>
 
+              {aiComment && (
+                <View
+                  style={{
+                    marginTop: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(0,0,0,0.25)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.10)",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>{aiComment.title}</Text>
+                  <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6 }}>{aiComment.summary}</Text>
+
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>✅ Points forts</Text>
+                  {aiComment.wins?.map((t, i) => (
+                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
+                      • {t}
+                    </Text>
+                  ))}
+
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>🎯 À travailler</Text>
+                  {aiComment.work?.map((t, i) => (
+                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
+                      • {t}
+                    </Text>
+                  ))}
+
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>🔥 Focus 7 jours</Text>
+                  {aiComment.focus7?.map((t, i) => (
+                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
+                      • {t}
+                    </Text>
+                  ))}
+
+                  <Text style={{ color: "rgba(255,255,255,0.9)", marginTop: 10, fontWeight: "800" }}>
+                    {aiComment.closing}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Compare selector */}
             <TouchableOpacity
               onPress={() => setCompareOpen(true)}
               style={{
@@ -423,7 +533,9 @@ const swipe = useMemo(() => {
                   }}
                 >
                   <Text style={{ color: "#e5e7eb", fontWeight: "900" }}>Par défaut</Text>
-                  <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>Scan précédent</Text>
+                  <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
+                    Scan précédent
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

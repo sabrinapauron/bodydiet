@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const STORE_KEY = "FITSCAN_V1";
-
+const BODY_PROFILE_KEY = "body_profile_v1";
 /* =========================
    TYPES
 ========================= */
@@ -37,6 +37,12 @@ export type LogEntry = {
   c: number;
   photo?: string;
   title?: string;
+};
+
+export type BodyProfile = {
+  heightCm: number;           // obligatoire pour analyse scan
+  weightKg?: number | null;   // optionnel
+  goal?: "gain" | "cut" | "maintain"; // optionnel
 };
 
 export type StoredState = {
@@ -196,6 +202,20 @@ export async function renameMeal(t: number, title: string) {
       : [],
   }));
 }
+export async function loadBodyProfile(): Promise<BodyProfile | null> {
+  const raw = await AsyncStorage.getItem(BODY_PROFILE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export async function saveBodyProfile(profile: BodyProfile): Promise<void> {
+  await AsyncStorage.setItem(BODY_PROFILE_KEY, JSON.stringify(profile));
+}
+
+export async function getHeightCmOrNull(): Promise<number | null> {
+  const p = await loadBodyProfile();
+  const h = p?.heightCm;
+  return typeof h === "number" && h > 0 ? h : null;
+}
 
 // ==============================
 // ✅ HISTORIQUE (progression)
@@ -232,6 +252,7 @@ export type BodyScan = {
 };
 
 const KEY_BODY_SCANS = "BODY_SCANS_V1";
+const BODY_SCAN_COMMENTS_KEY = "body_scan_comments_v1";
 
 export async function loadBodyScans(): Promise<BodyScan[]> {
   try {
@@ -282,4 +303,45 @@ export async function upsertDaySummary(summary: DaySummary, keepDays = 60) {
 export async function getLastDays(n = 7): Promise<DaySummary[]> {
   const history = await loadHistory();
   return history.slice(0, n);
+}
+export type BodyScanCommentary = {
+  title: string;
+  summary: string;
+  wins: string[];
+  work: string[];
+  focus7: string[];
+  closing: string;
+};
+
+type CommentaryMap = Record<string, BodyScanCommentary>; 
+// clé: "single:YYYY-MM-DD" ou "compare:after|before"
+
+const keySingle = (day: string) => `single:${day}`;
+const keyCompare = (after: string, before: string) => `compare:${after}|${before}`;
+
+export async function loadBodyScanCommentaryMap(): Promise<CommentaryMap> {
+  const raw = await AsyncStorage.getItem(BODY_SCAN_COMMENTS_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+export async function saveBodyScanCommentary(
+  mode: "single" | "compare",
+  afterDay: string,
+  beforeDay: string | null,
+  data: BodyScanCommentary
+) {
+  const map = await loadBodyScanCommentaryMap();
+  const k = mode === "single" ? keySingle(afterDay) : keyCompare(afterDay, beforeDay || "");
+  map[k] = data;
+  await AsyncStorage.setItem(BODY_SCAN_COMMENTS_KEY, JSON.stringify(map));
+}
+
+export async function getBodyScanCommentary(
+  mode: "single" | "compare",
+  afterDay: string,
+  beforeDay: string | null
+): Promise<BodyScanCommentary | null> {
+  const map = await loadBodyScanCommentaryMap();
+  const k = mode === "single" ? keySingle(afterDay) : keyCompare(afterDay, beforeDay || "");
+  return map[k] || null;
 }

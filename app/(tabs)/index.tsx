@@ -18,6 +18,7 @@ import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore
 import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
 import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { saveBodyProfile } from "../../storage/bodyStore";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -80,6 +81,7 @@ const [effort, setEffortState] = useState<EffortEntry | null>(null);
 
   // Profil
   const [weightKg, setWeightKg] = useState("75");
+  const [heightCm, setHeightCm] = useState("175");
   const [goal, setGoal] = useState<Goal>("gain");
 
   // Journée
@@ -138,7 +140,15 @@ const [effort, setEffortState] = useState<EffortEntry | null>(null);
     };
 
     await saveState(payload);
+await saveBodyProfile({
+  heightCm: Number(heightCm) || 175,
+  weightKg: Number(weightKg) || null,
+  goal,
+});
+
   };
+
+  
 
   // Objectifs macros complets
 
