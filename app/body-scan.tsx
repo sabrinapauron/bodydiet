@@ -272,7 +272,7 @@ const swipe = useMemo(() => {
         ) : (
           <View style={{ marginTop: 14 }}>
             {/* Boutons angle */}
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+          {/*}  <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
               {([
                 { k: "front", label: "FACE" },
                 { k: "three", label: "3/4" },
