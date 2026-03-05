@@ -35,7 +35,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const safeBefore = typeof beforeUri === "string" ? beforeUri : "";
   const safeAfter = typeof afterUri === "string" ? afterUri : "";
 
-  // ✅ Anti écran vide : si une photo manque, on affiche un bloc clair
+  // ✅ Anti écran vide
   if (!safeBefore || !safeAfter) {
     return (
       <View
@@ -79,8 +79,6 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const clipW = w ? x : 0;
   const handleLeft = w ? x : 0;
 
-const imageUri = safeBefore;
-
   return (
     <View
       onLayout={(e) => {
@@ -106,23 +104,19 @@ const imageUri = safeBefore;
       />
 
       {/* AFTER (clip) */}
-     <Animated.View
-  style={{
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: clipW,
-    overflow: "hidden",
-  }}
->
- <Image
-  source={{ uri: imageUri }}
-  resizeMode="contain"
-  style={{ width: "100%", height: "100%" }}
-/>
-  
-</Animated.View>
+      <Animated.View
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: clipW,
+          overflow: "hidden",
+        }}
+      >
+        <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
+      </Animated.View>
+
       {/* handle */}
       <Animated.View
         style={{
@@ -169,11 +163,13 @@ const imageUri = safeBefore;
    SCREEN
 ------------------------------ */
 
+type AngleKey = "front" | "three" | "side";
+
 export default function BodyScanScreen() {
   const router = useRouter();
 
   const [scans, setScans] = useState<BodyScan[]>([]);
-  const [angle, setAngle] = useState<"front" | "three" | "side">("front");
+  const [angle, setAngle] = useState<AngleKey>("front");
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
 
@@ -186,7 +182,7 @@ export default function BodyScanScreen() {
 
   const after = scans[0] || null;
 
-  const getUri = (scan: any, a: "front" | "three" | "side") => {
+  const getUri = (scan: BodyScan | null, a: AngleKey) => {
     if (!scan) return "";
     if (a === "front") return scan.frontUri ?? "";
     if (a === "three") return scan.threeUri ?? "";
@@ -212,6 +208,7 @@ export default function BodyScanScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 18, paddingBottom: 40 }}>
+        {/* HEADER */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Scan Body</Text>
           <TouchableOpacity
@@ -229,9 +226,7 @@ export default function BodyScanScreen() {
         {!after ? (
           <View style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: "#111827" }}>
             <Text style={{ color: "#fff", fontWeight: "900" }}>Aucun scan</Text>
-            <Text style={{ color: "#94a3b8", marginTop: 6 }}>
-              Fais ton premier scan (Face / 3-4 / Profil).
-            </Text>
+            <Text style={{ color: "#94a3b8", marginTop: 6 }}>Fais ton premier scan (Face / 3-4 / Profil).</Text>
 
             <TouchableOpacity
               onPress={() => router.push("/body-scan-capture")}
@@ -252,11 +247,11 @@ export default function BodyScanScreen() {
           <View style={{ marginTop: 14 }}>
             {/* Boutons angle */}
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-              {[
+              {([
                 { k: "front", label: "FACE" },
                 { k: "three", label: "3/4" },
                 { k: "side", label: "PROFIL" },
-              ].map((b: any) => (
+              ] as { k: AngleKey; label: string }[]).map((b) => (
                 <TouchableOpacity
                   key={b.k}
                   onPress={() => setAngle(b.k)}
@@ -276,16 +271,16 @@ export default function BodyScanScreen() {
               ))}
             </View>
 
-            {/* ✅ Compare uniquement si les 2 URIs existent */}
+            {/* Compare uniquement si 2 scans + URIs ok */}
             {canCompare ? (
               <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
             ) : (
-             <Body3DViewer
-  frontUri={after.frontUri}
-  threeQuarterUri={after.threeUri}
-  sideUri={after.sideUri}
-  angle={angle}
-/>
+              <Body3DViewer
+                frontUri={after.frontUri}
+                threeQuarterUri={after.threeUri}
+                sideUri={after.sideUri}
+                angle={angle}
+              />
             )}
 
             <TouchableOpacity

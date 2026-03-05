@@ -66,6 +66,8 @@ export default function BodyScanCapture() {
     step === "side" ? "Tourne de profil complet (90°)." :
     "Tu peux enregistrer.";
 
+  
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220", padding: 16, paddingTop: 18 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
