@@ -8,6 +8,7 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export default function BodyScanCapture() {
   const router = useRouter();
+
   const [frontUri, setFrontUri] = useState<string | null>(null);
   const [threeUri, setThreeUri] = useState<string | null>(null);
   const [sideUri, setSideUri] = useState<string | null>(null);
@@ -66,8 +67,6 @@ export default function BodyScanCapture() {
     step === "side" ? "Tourne de profil complet (90°)." :
     "Tu peux enregistrer.";
 
-  
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220", padding: 16, paddingTop: 18 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -80,7 +79,9 @@ export default function BodyScanCapture() {
         </TouchableOpacity>
       </View>
 
-      <Text style={{ color: "#94a3b8", marginTop: 10 }}>{title} — {hint}</Text>
+      <Text style={{ color: "#94a3b8", marginTop: 10 }}>
+        {title} — {hint}
+      </Text>
 
       <View style={{ marginTop: 14, flexDirection: "row", gap: 10 }}>
         {[frontUri, threeUri, sideUri].map((u, i) => (

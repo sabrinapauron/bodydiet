@@ -172,6 +172,32 @@ export default function BodyScanScreen() {
   const [angle, setAngle] = useState<AngleKey>("front");
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
+type AngleKey = "front" | "three" | "side";
+const ANGLES: AngleKey[] = ["front", "three", "side"];
+
+const swipe = useMemo(() => {
+  let startIndex = 0;
+
+  return PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dy) < 24,
+
+    onPanResponderGrant: () => {
+      startIndex = ANGLES.indexOf(angle);
+    },
+
+    onPanResponderRelease: (_, g) => {
+      if (g.dx > 35) {
+        // swipe droite = angle précédent
+        const next = Math.max(0, startIndex - 1);
+        setAngle(ANGLES[next]);
+      } else if (g.dx < -35) {
+        // swipe gauche = angle suivant
+        const next = Math.min(ANGLES.length - 1, startIndex + 1);
+        setAngle(ANGLES[next]);
+      }
+    },
+  });
+}, [angle]);
 
   useEffect(() => {
     (async () => {
@@ -271,17 +297,20 @@ export default function BodyScanScreen() {
               ))}
             </View>
 
-            {/* Compare uniquement si 2 scans + URIs ok */}
-            {canCompare ? (
-              <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
-            ) : (
-              <Body3DViewer
-                frontUri={after.frontUri}
-                threeQuarterUri={after.threeUri}
-                sideUri={after.sideUri}
-                angle={angle}
-              />
-            )}
+           {/* Compare uniquement si 2 scans + URIs ok */}
+<View {...swipe.panHandlers}>
+  {canCompare ? (
+    <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
+  ) : (
+    <Body3DViewer
+      frontUri={after.frontUri}
+      threeQuarterUri={after.threeUri}
+      sideUri={after.sideUri}
+      angle={angle}
+    />
+  )}
+</View>
+            
 
             <TouchableOpacity
               onPress={() => setCompareOpen(true)}
