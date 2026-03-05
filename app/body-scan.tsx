@@ -195,7 +195,7 @@ export default function BodyScanScreen() {
   const [heightCm, setHeightCm] = useState<number | null>(null);
 
   // ✅ Mets EXACTEMENT ton URL Render si différente
-  const SERVER_URL = "https://monaserver-dev.onrender.com";
+  const SERVER_URL = "http://192.168.1.45:4000";
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiComment, setAiComment] = useState<BodyScanCommentary | null>(null);
