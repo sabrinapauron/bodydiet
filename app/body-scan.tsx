@@ -79,6 +79,8 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const clipW = w ? x : 0;
   const handleLeft = w ? x : 0;
 
+const imageUri = safeBefore;
+
   return (
     <View
       onLayout={(e) => {
@@ -104,19 +106,23 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
       />
 
       {/* AFTER (clip) */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: clipW,
-          overflow: "hidden",
-        }}
-      >
-        <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
-      </Animated.View>
-
+     <Animated.View
+  style={{
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: clipW,
+    overflow: "hidden",
+  }}
+>
+ <Image
+  source={{ uri: imageUri }}
+  resizeMode="contain"
+  style={{ width: "100%", height: "100%" }}
+/>
+  
+</Animated.View>
       {/* handle */}
       <Animated.View
         style={{
@@ -274,7 +280,12 @@ export default function BodyScanScreen() {
             {canCompare ? (
               <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
             ) : (
-              <Body3DViewer frontUri={after.frontUri} threeQuarterUri={after.threeUri} sideUri={after.sideUri} />
+             <Body3DViewer
+  frontUri={after.frontUri}
+  threeQuarterUri={after.threeUri}
+  sideUri={after.sideUri}
+  angle={angle}
+/>
             )}
 
             <TouchableOpacity

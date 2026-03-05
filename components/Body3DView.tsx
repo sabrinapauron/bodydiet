@@ -6,6 +6,7 @@ type Props = {
   threeQuarterUri: string;
   sideUri: string;
   height?: number;
+  angle?: "front" | "three" | "side"; // ← AJOUTE CETTE LIGNE
 };
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -15,6 +16,7 @@ export default function Body3DViewer({
   threeQuarterUri,
   sideUri,
   height = 420,
+  angle,
 }: Props) {
   // t = 0 (face) -> 0.5 (3/4) -> 1 (profil)
   const t = useRef(new Animated.Value(0)).current;
@@ -25,6 +27,22 @@ useEffect(() => {
   const id = t.addListener(({ value }) => setTLocal(value));
   return () => t.removeListener(id);
 }, [t]);
+useEffect(() => {
+  if (!angle) return;
+
+  const target =
+    angle === "front"
+      ? 0
+      : angle === "three"
+      ? 0.5
+      : 1;
+
+  Animated.spring(t, {
+    toValue: target,
+    useNativeDriver: false,
+  }).start();
+}, [angle]);
+
   const startT = useRef(0);
 
   const pan = useMemo(
