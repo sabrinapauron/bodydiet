@@ -18,7 +18,7 @@ import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore
 import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
 import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { saveBodyProfile } from "../../storage/bodyStore";
+import { saveBodyProfile, loadCoachWeeklyMission, } from "../../storage/bodyStore";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -78,7 +78,7 @@ export default function HomeScreen() {
 
 const [effortOpen, setEffortOpen] = useState(false);
 const [effort, setEffortState] = useState<EffortEntry | null>(null);
-
+const [coachWeeklyMission, setCoachWeeklyMission] = useState<string | null>(null);
   // Profil
   const [weightKg, setWeightKg] = useState("75");
   const [heightCm, setHeightCm] = useState("175");
@@ -282,8 +282,10 @@ useFocusEffect(
       try {
         const s = await loadState();
         const tk = todayKey();
-
+const mission = await loadCoachWeeklyMission();
+setCoachWeeklyMission(mission?.text ?? null);
         if (!s) {
+          
           setDay(tk);
           setLoaded(true);
           return;
@@ -296,6 +298,8 @@ useFocusEffect(
         setGraceUsed(Boolean(s.graceUsed));
         setPoints(Number(s.points) || 0);
         setSavePhotos(typeof s.savePhotos === "boolean" ? s.savePhotos : true);
+
+
 
         // reset journalier
         if (s.day !== tk) {

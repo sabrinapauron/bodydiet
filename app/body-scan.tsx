@@ -17,10 +17,13 @@ import Body3DViewer from "../components/Body3DView";
 import {
   loadBodyScans,
   type BodyScan,
+  type BodyScanCommentary,
   getBodyScanCommentary,
   saveBodyScanCommentary,
   loadBodyProfile,
+  saveCoachWeeklyMission,
 } from "../storage/bodyStore";
+import * as FileSystem from "expo-file-system/legacy";
 /* ------------------------------
    BEFORE / AFTER SWIPE (anti écran vide)
 ------------------------------ */
@@ -45,6 +48,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   if (!safeBefore || !safeAfter) {
     return (
       <View
+    
         style={{
           height,
           borderRadius: 16,
@@ -86,7 +90,9 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const handleLeft = w ? x : 0;
 
   return (
+
     <View
+  
       onLayout={(e) => {
         const width = e.nativeEvent.layout.width;
         setW(width);
@@ -102,6 +108,31 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
       }}
       {...pan.panHandlers}
     >
+   <View
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: 8,
+    alignSelf: "center",
+    backgroundColor: "rgba(2,6,23,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    zIndex: 5,
+  }}
+>
+  <Text
+    style={{
+      color: "rgba(255,255,255,0.82)",
+      fontSize: 12,
+      fontWeight: "700",
+    }}
+  >
+    Comparaison visuelle de la posture et de la silhouette
+  </Text>
+</View>
       {/* BEFORE */}
       <Image
         source={{ uri: safeBefore }}
@@ -122,6 +153,70 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
       >
         <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
       </Animated.View>
+      
+{/* Repères visuels */}
+<View
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: height * 0.32,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.22)",
+  }}
+/>
+
+<View
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: height * 0.55,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.22)",
+  }}
+/>
+
+<Text
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: height * 0.32 - 12,
+    left: 8,
+    fontSize: 10,
+    color: "rgba(255,255,255,0.45)",
+    fontWeight: "700",
+  }}
+>
+  épaules
+</Text>
+
+<Text
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: height * 0.55 - 12,
+    left: 8,
+    fontSize: 10,
+    color: "rgba(255,255,255,0.45)",
+    fontWeight: "700",
+  }}
+>
+  taille
+</Text>
+<View
+  pointerEvents="none"
+  style={{
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: "50%",
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  }}
+/>
 
       {/* handle */}
       <Animated.View
@@ -168,19 +263,18 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
 /* ------------------------------
    SCREEN
 ------------------------------ */
+
 type AngleKey = "front" | "three" | "side";
 const ANGLES: AngleKey[] = ["front", "three", "side"];
+const toBase64 = async (uri: string) => {
+  if (!uri) return "";
 
-// (si tu n'as pas exporté BodyScanCommentary depuis bodyStore.ts)
-type BodyScanCommentary = {
-  title: string;
-  summary: string;
-  wins: string[];
-  work: string[];
-  focus7: string[];
-  closing: string;
+  return await FileSystem.readAsStringAsync(uri, {
+    encoding: "base64",
+  });
 };
 
+  
 export default function BodyScanScreen() {
   const router = useRouter();
 
@@ -189,12 +283,12 @@ export default function BodyScanScreen() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
 
-  // ✅ V1 : on laisse faux (pas d'erreur). Plus tard tu branches RevenueCat ici.
+  // ✅ V1 : on laisse vrai (pas d'erreur). Plus tard tu branches RevenueCat ici.
   const isPremium = true;
 
   const [heightCm, setHeightCm] = useState<number | null>(null);
 
-  // ✅ Mets EXACTEMENT ton URL Render si différente
+  // ✅ Mets EXACTEMENT ton URL si différente
   const SERVER_URL = "http://192.168.1.45:4000";
 
   const [aiLoading, setAiLoading] = useState(false);
@@ -268,43 +362,88 @@ export default function BodyScanScreen() {
 
     const cached = await getBodyScanCommentary(mode, after.day, before?.day ?? null);
     if (cached) {
-      setAiComment(cached as BodyScanCommentary);
+      setAiComment(cached);
       return;
     }
 
-    setAiLoading(true);
-    try {
-      const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          heightCm,
-          mode,
-          afterDay: after.day,
-          beforeDay: before?.day ?? null,
-        }),
-      });
+   setAiLoading(true);
+try {
+  console.log("CoachVision start", {
+    mode,
+    afterDay: after.day,
+    beforeDay: before?.day ?? null,
+  });
 
-      const json = await r.json();
-      if (!json?.ok) throw new Error(json?.error || "Erreur IA");
+  const frontB64 = await toBase64(after.frontUri ?? "");
+  const threeB64 = await toBase64(after.threeUri ?? "");
+  const sideB64 = await toBase64(after.sideUri ?? "");
 
-      const data = json.data as BodyScanCommentary;
-      setAiComment(data);
+  if (!frontB64 || !threeB64 || !sideB64) {
+    Alert.alert("Scan incomplet", "Il faut les 3 photos (Face / 3-4 / Profil) pour l’analyse.");
+    setAiLoading(false);
+    return;
+  }
 
-      await saveBodyScanCommentary(mode, after.day, before?.day ?? null, data);
-    } catch (e) {
-      Alert.alert("Erreur", "Impossible de générer l’analyse pour le moment.");
-    } finally {
-      setAiLoading(false);
-    }
+  const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      heightCm,
+      mode,
+      afterDay: after.day,
+      beforeDay: before?.day ?? null,
+      images: {
+        front: frontB64,
+        three: threeB64,
+        side: sideB64,
+        mime: "image/jpeg",
+      },
+    }),
+  });
+
+  const rawText = await r.text();
+  let json: any = null;
+
+  try {
+    json = JSON.parse(rawText);
+  } catch {}
+
+  if (!r.ok) {
+    throw new Error(`HTTP ${r.status} — ${rawText.slice(0, 300)}`);
+  }
+
+  if (!json?.ok || !json?.data) {
+    throw new Error(json?.error || "Réponse serveur invalide");
+  }
+
+  const data = json.data;
+  const normalized = {
+    ...data,
+    wins: data.wins ?? [],
+    work: data.work ?? [],
+    focus7: data.focus7 ?? [],
+    closing: data.closing ?? "",
+    mainLever: data.mainLever ?? "",
+    missionToday: data.missionToday ?? "",
+    intentScore: typeof data.intentScore === "number" ? data.intentScore : 75,
+  } as BodyScanCommentary;
+
+  await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
+  await saveCoachWeeklyMission(normalized.focus7?.[0] ?? null);
+  setAiComment(normalized);
+} catch (e: any) {
+  const msg = e?.message ? String(e.message) : String(e);
+  Alert.alert("Erreur", msg.slice(0, 900));
+} finally {
+  setAiLoading(false);
+}
   };
+
+
 
   const beforeUri = before ? getUri(before, angle) : "";
   const afterUri = after ? getUri(after, angle) : "";
   const canCompare = !!before && !!beforeUri && !!afterUri;
-
-  // ... tu continues avec ton return JSX
-
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
@@ -393,6 +532,47 @@ export default function BodyScanScreen() {
                   <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>{aiComment.title}</Text>
                   <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6 }}>{aiComment.summary}</Text>
 
+                  {/* Levier principal */}
+                  {aiComment.mainLever ? (
+                    <View
+                      style={{
+                        marginTop: 10,
+                        padding: 10,
+                        borderRadius: 12,
+                        backgroundColor: "rgba(255,255,255,0.05)",
+                        borderWidth: 1,
+                        borderColor: "rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <Text style={{ color: "#fff", fontWeight: "800" }}>🎯 Le levier n°1</Text>
+                      <Text style={{ color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{aiComment.mainLever}</Text>
+                    </View>
+                  ) : null}
+
+                  {/* Mission du jour */}
+                  {aiComment.missionToday ? (
+                    <View
+                      style={{
+                        marginTop: 10,
+                        padding: 10,
+                        borderRadius: 12,
+                        backgroundColor: "rgba(34,197,94,0.10)",
+                        borderWidth: 1,
+                        borderColor: "rgba(34,197,94,0.25)",
+                      }}
+                    >
+                      <Text style={{ color: "#22c55e", fontWeight: "900" }}>✅ Mission du jour</Text>
+                      <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 4 }}>{aiComment.missionToday}</Text>
+
+                      {typeof aiComment.intentScore === "number" ? (
+                        <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>
+                          Clarté du plan :{" "}
+                          <Text style={{ color: "#fff", fontWeight: "900" }}>{Math.round(aiComment.intentScore)}/100</Text>
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+
                   <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>✅ Points forts</Text>
                   {aiComment.wins?.map((t, i) => (
                     <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
@@ -408,9 +588,9 @@ export default function BodyScanScreen() {
                   ))}
 
                   <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>🔥 Focus 7 jours</Text>
-                  {aiComment.focus7?.map((t, i) => (
+                  {(aiComment as any).focus7?.map((t: any, i: number) => (
                     <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
-                      • {t}
+                      • {typeof t === "string" ? t : t?.label ?? ""}
                     </Text>
                   ))}
 

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const STORE_KEY = "FITSCAN_V1";
 const BODY_PROFILE_KEY = "body_profile_v1";
+const COACH_WEEKLY_MISSION_KEY = "body_coach_weekly_mission_v1";
 /* =========================
    TYPES
 ========================= */
@@ -307,9 +308,15 @@ export async function getLastDays(n = 7): Promise<DaySummary[]> {
 export type BodyScanCommentary = {
   title: string;
   summary: string;
+
+  mainLever?: string;
+  missionToday?: string;
+  intentScore?: number;
+
   wins: string[];
   work: string[];
   focus7: string[];
+
   closing: string;
 };
 
@@ -344,4 +351,29 @@ export async function getBodyScanCommentary(
   const map = await loadBodyScanCommentaryMap();
   const k = mode === "single" ? keySingle(afterDay) : keyCompare(afterDay, beforeDay || "");
   return map[k] || null;
+}
+export async function saveCoachWeeklyMission(text: string | null) {
+  if (!text) {
+    await AsyncStorage.removeItem(COACH_WEEKLY_MISSION_KEY);
+    return;
+  }
+
+  await AsyncStorage.setItem(
+    COACH_WEEKLY_MISSION_KEY,
+    JSON.stringify({
+      text,
+      savedAt: Date.now(),
+    })
+  );
+}
+
+export async function loadCoachWeeklyMission(): Promise<{ text: string; savedAt: number } | null> {
+  const raw = await AsyncStorage.getItem(COACH_WEEKLY_MISSION_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }

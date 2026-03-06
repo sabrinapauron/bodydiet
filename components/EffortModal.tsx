@@ -1,6 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, Text, TouchableOpacity, View, TextInput } from "react-native";
-import type { EffortEntry, EffortIntensity, EffortLinearType } from "../storage/bodyStore";
+import {
+  type EffortEntry,
+  type EffortIntensity,
+  type EffortLinearType,
+  loadCoachWeeklyMission,
+} from "../storage/bodyStore";
 
 type Props = {
   visible: boolean;
@@ -38,9 +43,19 @@ export default function EffortModal({ visible, initial, onClose, onSave }: Props
   );
   const [km, setKm] = useState<string>(initial?.kind === "linear" ? String(initial.km) : "");
   const [minutes, setMinutes] = useState<string>(initial?.kind === "gym" ? String(initial.minutes) : "");
+  const [coachMission, setCoachMission] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadMission = async () => {
+      const m = await loadCoachWeeklyMission();
+      setCoachMission(m?.text ?? null);
+    };
+
+    loadMission();
+  }, []);
 
   // reset quand on ouvre sur un initial différent
-  React.useEffect(() => {
+  useEffect(() => {
     setKind(initial?.kind ?? "linear");
     setIntensity(initial?.intensity ?? "moderate");
     setLinearType(initial?.kind === "linear" ? initial.type : "run");
@@ -96,6 +111,24 @@ export default function EffortModal({ visible, initial, onClose, onSave }: Props
           <Text style={{ color: "#94a3b8", marginTop: 6 }}>
             Ajuste tes macros automatiquement (prudence 70%).
           </Text>
+
+          {coachMission && (
+            <View
+              style={{
+                marginTop: 14,
+                marginBottom: 4,
+                padding: 12,
+                borderRadius: 12,
+                backgroundColor: "#111827",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.10)",
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "900" }}>Mission Coach BodyDiet</Text>
+
+              <Text style={{ color: "#94a3b8", marginTop: 4 }}>{coachMission}</Text>
+            </View>
+          )}
 
           {/* Choix type */}
           <View style={{ flexDirection: "row", marginTop: 14 }}>
