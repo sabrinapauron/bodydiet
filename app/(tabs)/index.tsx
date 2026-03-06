@@ -18,7 +18,9 @@ import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore
 import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
 import { useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { saveBodyProfile, loadCoachWeeklyMission, } from "../../storage/bodyStore";
+import { saveBodyProfile, loadCoachWeeklyMission,loadCoachWeeklyChallenge,
+setCoachWeeklyChallengeDone,
+type CoachWeeklyChallenge,  } from "../../storage/bodyStore";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -113,9 +115,29 @@ const [coachWeeklyMission, setCoachWeeklyMission] = useState<string | null>(null
   const [points, setPoints] = useState(0);
   const [savePhotos, setSavePhotos] = useState(true);
   const [lastGoalRewardDay, setLastGoalRewardDay] = useState<string | null>(null);
-
+const [coachChallenge, setCoachChallenge] = useState<CoachWeeklyChallenge | null>(null);
+const [showCoachBravo, setShowCoachBravo] = useState(false);
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
+
+  const toggleCoachChallenge = async () => {
+  if (!coachChallenge) return;
+
+  const nextDone = !coachChallenge.done;
+  await setCoachWeeklyChallengeDone(nextDone);
+
+  const next = {
+    ...coachChallenge,
+    done: nextDone,
+  };
+
+  setCoachChallenge(next);
+
+  if (nextDone) {
+    setShowCoachBravo(true);
+    setTimeout(() => setShowCoachBravo(false), 1800);
+  }
+};
 
   const persist = async (next: Partial<StoredState>) => {
     const payload: StoredState = {
@@ -269,14 +291,18 @@ useFocusEffect(
     (async () => {
       const day = todayKey();
       const e = await loadEffort(day);
-      if (alive) setEffortState(e);
+      const challenge = await loadCoachWeeklyChallenge();
+
+      if (alive) {
+        setEffortState(e);
+        setCoachChallenge(challenge);
+      }
     })();
     return () => {
       alive = false;
     };
   }, [])
 );
-
   useEffect(() => {
     (async () => {
       try {
@@ -298,6 +324,7 @@ setCoachWeeklyMission(mission?.text ?? null);
         setGraceUsed(Boolean(s.graceUsed));
         setPoints(Number(s.points) || 0);
         setSavePhotos(typeof s.savePhotos === "boolean" ? s.savePhotos : true);
+
 
 
 
@@ -1059,6 +1086,66 @@ elevation: 4,
 )}
 
         </View>
+
+{coachChallenge && (
+  <View
+    style={{
+      marginTop: 12,
+      marginBottom: 10,
+      padding: 12,
+      borderRadius: 14,
+      backgroundColor: coachChallenge.done ? "rgba(34,197,94,0.08)" : "#111827",
+      borderWidth: 1,
+      borderColor: coachChallenge.done ? "rgba(34,197,94,0.45)" : "rgba(255,255,255,0.12)",
+    }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "900" }}>
+      Challenge forme Coach BodyDiet • Cette semaine
+      d'après ton dernier scan body
+    </Text>
+
+    <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+      {coachChallenge.text}
+    </Text>
+
+    <TouchableOpacity
+      onPress={toggleCoachChallenge}
+      style={{
+        marginTop: 10,
+        flexDirection: "row",
+        alignItems: "center",
+      }}
+    >
+      <View
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          borderWidth: 1,
+          borderColor: coachChallenge.done ? "#22c55e" : "rgba(255,255,255,0.35)",
+          backgroundColor: coachChallenge.done ? "#22c55e" : "transparent",
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: 10,
+        }}
+      >
+        {coachChallenge.done ? (
+          <Text style={{ color: "#0b1220", fontWeight: "900" }}>✓</Text>
+        ) : null}
+      </View>
+
+      <Text style={{ color: "#fff", fontWeight: "800" }}>
+        {coachChallenge.done ? "Challenge validé" : "Cocher quand c’est fait"}
+      </Text>
+    </TouchableOpacity>
+
+    {showCoachBravo && (
+      <Text style={{ color: "#22c55e", marginTop: 10, fontWeight: "900" }}>
+        🎉 Bravo, challenge validé !
+      </Text>
+    )}
+  </View>
+)}
 
 {/* EFFORTS PHYSIQUES */}
 <View

@@ -45,14 +45,16 @@ export default function EffortModal({ visible, initial, onClose, onSave }: Props
   const [minutes, setMinutes] = useState<string>(initial?.kind === "gym" ? String(initial.minutes) : "");
   const [coachMission, setCoachMission] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadMission = async () => {
-      const m = await loadCoachWeeklyMission();
-      setCoachMission(m?.text ?? null);
-    };
+ useEffect(() => {
+  if (!visible) return;
 
-    loadMission();
-  }, []);
+  const loadMission = async () => {
+    const m = await loadCoachWeeklyMission();
+    setCoachMission(m?.text ?? null);
+  };
+
+  loadMission();
+}, [visible]);
 
   // reset quand on ouvre sur un initial différent
   useEffect(() => {

@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export const STORE_KEY = "FITSCAN_V1";
 const BODY_PROFILE_KEY = "body_profile_v1";
 const COACH_WEEKLY_MISSION_KEY = "body_coach_weekly_mission_v1";
+const COACH_WEEKLY_CHALLENGE_KEY = "body_coach_weekly_challenge_v1";
 /* =========================
    TYPES
 ========================= */
@@ -376,4 +377,53 @@ export async function loadCoachWeeklyMission(): Promise<{ text: string; savedAt:
   } catch {
     return null;
   }
+}
+export type CoachWeeklyChallenge = {
+  text: string;
+  done: boolean;
+  savedAt: number;
+};
+
+export async function saveCoachWeeklyChallenge(text: string | null) {
+  if (!text) {
+    await AsyncStorage.removeItem(COACH_WEEKLY_CHALLENGE_KEY);
+    return;
+  }
+
+  const payload: CoachWeeklyChallenge = {
+    text,
+    done: false,
+    savedAt: Date.now(),
+  };
+
+  await AsyncStorage.setItem(
+    COACH_WEEKLY_CHALLENGE_KEY,
+    JSON.stringify(payload)
+  );
+}
+
+export async function loadCoachWeeklyChallenge(): Promise<CoachWeeklyChallenge | null> {
+  const raw = await AsyncStorage.getItem(COACH_WEEKLY_CHALLENGE_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function setCoachWeeklyChallengeDone(done: boolean) {
+  const current = await loadCoachWeeklyChallenge();
+  if (!current) return;
+
+  const next: CoachWeeklyChallenge = {
+    ...current,
+    done,
+  };
+
+  await AsyncStorage.setItem(
+    COACH_WEEKLY_CHALLENGE_KEY,
+    JSON.stringify(next)
+  );
 }

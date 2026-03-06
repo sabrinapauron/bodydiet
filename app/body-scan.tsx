@@ -429,7 +429,7 @@ try {
   } as BodyScanCommentary;
 
   await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
-  await saveCoachWeeklyMission(normalized.focus7?.[0] ?? null);
+ 
   setAiComment(normalized);
 } catch (e: any) {
   const msg = e?.message ? String(e.message) : String(e);
