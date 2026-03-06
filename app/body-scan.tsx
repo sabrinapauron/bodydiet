@@ -22,6 +22,7 @@ import {
   saveBodyScanCommentary,
   loadBodyProfile,
   saveCoachWeeklyMission,
+  saveCoachWeeklyChallenge,
 } from "../storage/bodyStore";
 import * as FileSystem from "expo-file-system/legacy";
 /* ------------------------------
@@ -359,13 +360,14 @@ export default function BodyScanScreen() {
     }
 
     const mode: "single" | "compare" = before ? "compare" : "single";
-
-    const cached = await getBodyScanCommentary(mode, after.day, before?.day ?? null);
-    if (cached) {
-      setAiComment(cached);
-      return;
-    }
-
+const cached = await getBodyScanCommentary(mode, after.day, before?.day ?? null);
+if (cached) {
+  await saveCoachWeeklyMission(cached.missionToday ?? cached.focus7?.[0] ?? null);
+  await saveCoachWeeklyChallenge(cached.missionToday ?? cached.focus7?.[0] ?? null);
+  setAiComment(cached);
+  return;
+}
+   
    setAiLoading(true);
 try {
   console.log("CoachVision start", {
@@ -429,7 +431,8 @@ try {
   } as BodyScanCommentary;
 
   await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
- 
+  await saveCoachWeeklyMission(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
+ await saveCoachWeeklyChallenge(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
   setAiComment(normalized);
 } catch (e: any) {
   const msg = e?.message ? String(e.message) : String(e);
