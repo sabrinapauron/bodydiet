@@ -67,6 +67,13 @@ export type StoredState = {
     shareFrame?: boolean; // ✅ cadre baroque sur les partages
   shareFilter?: boolean; // ✅ overlay premium sur les partages
 };
+export type BodyFocus =
+  | "balanced"
+  | "midsection"
+  | "lower_body"
+  | "upper_body"
+  | "slim_legs"
+  | "toning";
 
 /* =========================
    LOAD / SAVE GLOBAL STATE
@@ -251,6 +258,8 @@ export type BodyScan = {
   threeUri: string;
   sideUri: string;
   createdAt: number;
+  bodyFocus?: BodyFocus;
+bodyComment?: string;
 };
 
 const KEY_BODY_SCANS = "BODY_SCANS_V1";
@@ -319,6 +328,8 @@ export type BodyScanCommentary = {
   focus7: string[];
 
   closing: string;
+  bodyFocus?: BodyFocus;
+bodyComment?: string;
 };
 
 type CommentaryMap = Record<string, BodyScanCommentary>; 

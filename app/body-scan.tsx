@@ -264,7 +264,26 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
 /* ------------------------------
    SCREEN
 ------------------------------ */
+type BodyFocus =
+  | "balanced"
+  | "midsection"
+  | "lower_body"
+  | "upper_body"
+  | "slim_legs"
+  | "toning";
 
+function normalizeBodyFocus(v: any): BodyFocus {
+  const allowed: BodyFocus[] = [
+    "balanced",
+    "midsection",
+    "lower_body",
+    "upper_body",
+    "slim_legs",
+    "toning",
+  ];
+
+  return allowed.includes(v) ? v : "balanced";
+}
 type AngleKey = "front" | "three" | "side";
 const ANGLES: AngleKey[] = ["front", "three", "side"];
 const toBase64 = async (uri: string) => {
@@ -386,54 +405,62 @@ try {
     return;
   }
 
-  const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      heightCm,
-      mode,
-      afterDay: after.day,
-      beforeDay: before?.day ?? null,
-      images: {
-        front: frontB64,
-        three: threeB64,
-        side: sideB64,
-        mime: "image/jpeg",
-      },
-    }),
-  });
+const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    heightCm,
+    mode,
+    afterDay: after.day,
+    beforeDay: before?.day ?? null,
+    images: {
+      front: frontB64,
+      three: threeB64,
+      side: sideB64,
+      mime: "image/jpeg",
+    },
+  }),
+});
 
-  const rawText = await r.text();
-  let json: any = null;
+const json = await r.json();
 
-  try {
-    json = JSON.parse(rawText);
-  } catch {}
+if (!r.ok) {
+  throw new Error(json?.error || `HTTP ${r.status}`);
+}
 
-  if (!r.ok) {
-    throw new Error(`HTTP ${r.status} — ${rawText.slice(0, 300)}`);
-  }
+if (!json?.ok || !json?.data) {
+  throw new Error(json?.error || "Réponse serveur invalide");
+}
 
-  if (!json?.ok || !json?.data) {
-    throw new Error(json?.error || "Réponse serveur invalide");
-  }
+const data = json.data;
 
-  const data = json.data;
-  const normalized = {
-    ...data,
-    wins: data.wins ?? [],
-    work: data.work ?? [],
-    focus7: data.focus7 ?? [],
-    closing: data.closing ?? "",
-    mainLever: data.mainLever ?? "",
-    missionToday: data.missionToday ?? "",
-    intentScore: typeof data.intentScore === "number" ? data.intentScore : 75,
-  } as BodyScanCommentary;
+const bodyFocus = normalizeBodyFocus(data?.bodyFocus);
+const bodyComment =
+  typeof data?.bodyComment === "string" && data.bodyComment.trim()
+    ? data.bodyComment.trim()
+    : "Travail général conseillé pour accompagner ta progression.";
 
-  await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
-  await saveCoachWeeklyMission(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
- await saveCoachWeeklyChallenge(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
-  setAiComment(normalized);
+const normalized = {
+  ...data,
+  wins: data.wins ?? [],
+  work: data.work ?? [],
+  focus7: data.focus7 ?? [],
+  closing: data.closing ?? "",
+  mainLever: data.mainLever ?? "",
+  missionToday: data.missionToday ?? "",
+  intentScore: typeof data.intentScore === "number" ? data.intentScore : 75,
+  bodyFocus,
+  bodyComment,
+} as BodyScanCommentary;
+
+await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
+await saveCoachWeeklyMission(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
+await saveCoachWeeklyChallenge(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
+
+setAiComment(normalized);
+
+
+
 } catch (e: any) {
   const msg = e?.message ? String(e.message) : String(e);
   Alert.alert("Erreur", msg.slice(0, 900));

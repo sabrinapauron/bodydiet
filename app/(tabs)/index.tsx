@@ -21,6 +21,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import { saveBodyProfile, loadCoachWeeklyMission,loadCoachWeeklyChallenge,
 setCoachWeeklyChallengeDone,
 type CoachWeeklyChallenge,  } from "../../storage/bodyStore";
+import {
+  loadBodyScans,
+  getBodyScanCommentary,
+  type BodyScan,
+  type BodyScanCommentary,
+} from "../../storage/bodyStore";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -74,6 +80,109 @@ type StoredState = {
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const roundInt = (n: unknown) => Math.round(Number(n) || 0);
 
+type BodyFocus =
+  | "balanced"
+  | "midsection"
+  | "lower_body"
+  | "upper_body"
+  | "slim_legs"
+  | "toning";
+
+function normalizeBodyFocus(v: any): BodyFocus {
+  const allowed: BodyFocus[] = [
+    "balanced",
+    "midsection",
+    "lower_body",
+    "upper_body",
+    "slim_legs",
+    "toning",
+  ];
+  return allowed.includes(v) ? v : "balanced";
+}
+
+const coachLibrary: Record<BodyFocus, string[]> = {
+  balanced: [
+    "20 min marche • gainage",
+    "25 min marche • abdos",
+    "20 min cardio doux",
+    "Repos actif • marche 20 min",
+    "Gainage • squats",
+    "25 min marche rapide",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+
+  midsection: [
+    "Marche 25 min • gainage",
+    "Crunch • gainage • marche",
+    "Cardio doux 30 min",
+    "Repos actif • marche",
+    "Gainage latéral • crunch",
+    "Abdos • cardio",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+
+  lower_body: [
+    "Squats • marche 20 min",
+    "Fentes • pont fessier",
+    "Montées de genoux • marche",
+    "Repos actif • marche",
+    "Squats tempo • gainage",
+    "Fentes • cardio doux",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+
+  upper_body: [
+    "Pompes • gainage",
+    "Pompes inclinées • marche",
+    "Gainage • bras",
+    "Repos actif • marche",
+    "Pompes • gainage",
+    "Cardio doux • bras",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+
+  slim_legs: [
+    "Squats • marche",
+    "Fentes • pont fessier",
+    "Squats tempo",
+    "Repos actif",
+    "Fentes • gainage",
+    "Squats • marche rapide",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+
+  toning: [
+    "20 min marche • gainage",
+    "Cardio doux 25 min",
+    "Abdos • marche",
+    "Repos actif",
+    "Gainage • squats",
+    "Marche rapide 30 min",
+    "Pense à refaire un scan pour suivre ta progression",
+  ],
+};
+
+function getCoachMission(profile: BodyFocus, dayIndex: number) {
+  const safeIndex = Math.max(0, Math.min(dayIndex, 6));
+  return coachLibrary[profile]?.[safeIndex] || coachLibrary.balanced[safeIndex];
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+
+function parseDayKey(day?: string | null) {
+  if (!day) return null;
+  const d = new Date(day + "T00:00:00");
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function diffDaysFrom(startDay?: string | null, endDay?: string | null) {
+  const a = parseDayKey(startDay);
+  const b = parseDayKey(endDay || todayKey());
+  if (!a || !b) return null;
+  return Math.floor((b.getTime() - a.getTime()) / DAY_MS);
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
@@ -117,8 +226,39 @@ const [coachWeeklyMission, setCoachWeeklyMission] = useState<string | null>(null
   const [lastGoalRewardDay, setLastGoalRewardDay] = useState<string | null>(null);
 const [coachChallenge, setCoachChallenge] = useState<CoachWeeklyChallenge | null>(null);
 const [showCoachBravo, setShowCoachBravo] = useState(false);
+const [bodyScans, setBodyScans] = useState<BodyScan[]>([]);
+const [latestBodyCommentary, setLatestBodyCommentary] = useState<BodyScanCommentary | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
+
+
+const latestBodyScan = bodyScans[0] || null;
+
+const challengeStartDay = latestBodyScan?.day || null;
+
+const daysSinceChallengeStart = diffDaysFrom(
+  challengeStartDay,
+  todayKey()
+);
+
+const challengeActive =
+  daysSinceChallengeStart !== null &&
+  daysSinceChallengeStart >= 0 &&
+  daysSinceChallengeStart <= 6;
+
+const challengeDayIndex =
+  challengeActive && daysSinceChallengeStart !== null
+    ? daysSinceChallengeStart
+    : 0;
+
+const coachMissionText =
+  latestBodyCommentary?.bodyFocus
+    ? getCoachMission(
+        normalizeBodyFocus(latestBodyCommentary.bodyFocus),
+        challengeDayIndex
+      )
+    : coachWeeklyMission ||
+      "Fais un scan body pour lancer ta semaine Coach BodyDiet.";
 
   const toggleCoachChallenge = async () => {
   if (!coachChallenge) return;
@@ -308,6 +448,20 @@ useFocusEffect(
       try {
         const s = await loadState();
         const tk = todayKey();
+        const scans = await loadBodyScans();
+setBodyScans(scans);
+
+const latest = scans?.[0] || null;
+
+if (!latest) {
+  setLatestBodyCommentary(null);
+} else {
+  const commentary =
+    (await getBodyScanCommentary("compare", latest.day, scans?.[1]?.day ?? null)) ||
+    (await getBodyScanCommentary("single", latest.day, null));
+
+  setLatestBodyCommentary(commentary || null);
+}
 const mission = await loadCoachWeeklyMission();
 setCoachWeeklyMission(mission?.text ?? null);
         if (!s) {
@@ -435,10 +589,23 @@ await upsertDaySummary({
           const today = todayKey();
           setGraceUsed(true);
           setLastPerfectDay(today);
+          const latestBodyScan = bodyScans[0] || null;
 
+const activeBodyFocus: BodyFocus = normalizeBodyFocus(
+  latestBodyCommentary?.bodyFocus
+);
+
+
+const activeBodyComment =
+  typeof latestBodyCommentary?.bodyComment === "string" &&
+  latestBodyCommentary.bodyComment.trim()
+    ? latestBodyCommentary.bodyComment.trim()
+    : "Ton dernier scan permet d’adapter légèrement ton challenge de la semaine.";
           await persist({
             graceUsed: true,
             lastPerfectDay: today,
+
+
           });
         },
       },
@@ -1099,14 +1266,26 @@ elevation: 4,
       borderColor: coachChallenge.done ? "rgba(34,197,94,0.45)" : "rgba(255,255,255,0.12)",
     }}
   >
-    <Text style={{ color: "#fff", fontWeight: "900" }}>
-      Challenge forme Coach BodyDiet • Cette semaine
-      d'après ton dernier scan body
-    </Text>
+ <Text style={{ color: "#fff", fontWeight: "900" }}>
+  Challenge forme Coach BodyDiet • Cette semaine
+</Text>
 
-    <Text style={{ color: "#94a3b8", marginTop: 4 }}>
-      {coachChallenge.text}
-    </Text>
+<Text
+  style={{
+    color: "#cbd5e1",
+    fontSize: 14,
+    marginTop: 10,
+    lineHeight: 20,
+  }}
+>
+  Mission du jour : {coachMissionText}
+</Text>
+
+{latestBodyCommentary?.bodyComment && (
+  <Text style={{ color: "#94a3b8", marginTop: 6 }}>
+    {latestBodyCommentary.bodyComment}
+  </Text>
+)}
 
     <TouchableOpacity
       onPress={toggleCoachChallenge}
