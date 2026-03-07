@@ -162,11 +162,24 @@ const coachLibrary: Record<BodyFocus, string[]> = {
   ],
 };
 
-function getCoachMission(profile: BodyFocus, dayIndex: number) {
+function getCoachMission(
+  profile: BodyFocus,
+  dayIndex: number,
+  progress: "stable" | "improving" | "strong_progress" = "stable"
+) {
   const safeIndex = Math.max(0, Math.min(dayIndex, 6));
-  return coachLibrary[profile]?.[safeIndex] || coachLibrary.balanced[safeIndex];
-}
+  const base = coachLibrary[profile]?.[safeIndex] || coachLibrary.balanced[safeIndex];
 
+  if (progress === "strong_progress") {
+    return base + " • +1 série";
+  }
+
+  if (progress === "improving") {
+    return base + " • tempo contrôlé";
+  }
+
+  return base;
+}
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 
@@ -255,10 +268,10 @@ const coachMissionText =
   latestBodyCommentary?.bodyFocus
     ? getCoachMission(
         normalizeBodyFocus(latestBodyCommentary.bodyFocus),
-        challengeDayIndex
+        challengeDayIndex,
+        latestBodyCommentary?.progressLevel ?? "stable"
       )
-    : coachWeeklyMission ||
-      "Fais un scan body pour lancer ta semaine Coach BodyDiet.";
+    : "Fais un scan body pour lancer ta semaine Coach BodyDiet.";
 
   const toggleCoachChallenge = async () => {
   if (!coachChallenge) return;
@@ -460,6 +473,7 @@ if (!latest) {
     (await getBodyScanCommentary("compare", latest.day, scans?.[1]?.day ?? null)) ||
     (await getBodyScanCommentary("single", latest.day, null));
 
+  
   setLatestBodyCommentary(commentary || null);
 }
 const mission = await loadCoachWeeklyMission();

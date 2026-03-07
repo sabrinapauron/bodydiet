@@ -330,6 +330,7 @@ export type BodyScanCommentary = {
   closing: string;
   bodyFocus?: BodyFocus;
 bodyComment?: string;
+progressLevel?: "stable" | "improving" | "strong_progress";
 };
 
 type CommentaryMap = Record<string, BodyScanCommentary>; 
