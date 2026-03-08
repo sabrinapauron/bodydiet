@@ -224,6 +224,7 @@ function daysBetween(fromDay: string, toDay: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 export default function HomeScreen() {
+  const ENABLE_BODY_CHALLENGE = false;
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
 
@@ -1394,7 +1395,7 @@ elevation: 4,
 
         </View>
 
-
+{ENABLE_BODY_CHALLENGE && (
 <View
   style={{
     marginTop: 18,
@@ -1456,6 +1457,7 @@ elevation: 4,
     </View>
   )}
 </View>
+)}
 
 {/* EFFORTS PHYSIQUES */}
 <View
