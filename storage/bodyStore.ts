@@ -42,9 +42,10 @@ export type LogEntry = {
 };
 
 export type BodyProfile = {
-  heightCm: number;           // obligatoire pour analyse scan
-  weightKg?: number | null;   // optionnel
-  goal?: "gain" | "cut" | "maintain"; // optionnel
+  heightCm: number;
+  weightKg?: number | null;
+  goal?: "gain" | "cut" | "maintain";
+  completed?: boolean;
 };
 
 export type StoredState = {
@@ -412,6 +413,46 @@ export async function saveCoachWeeklyChallenge(text: string | null) {
     COACH_WEEKLY_CHALLENGE_KEY,
     JSON.stringify(payload)
   );
+}
+
+// =========================
+// COACH BODY CHALLENGE
+// =========================
+
+const COACH_CHALLENGE_PROGRESS_KEY = "coach_challenge_progress_v1";
+
+export type CoachChallengeProgress = {
+  scanDay: string;            // jour du scan qui a lancé le challenge
+  validatedDays: string[];    // ex: ["2026-03-07", "2026-03-08"]
+};
+
+export async function loadCoachChallengeProgress(): Promise<CoachChallengeProgress | null> {
+  try {
+    const raw = await AsyncStorage.getItem(COACH_CHALLENGE_PROGRESS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCoachChallengeProgress(data: CoachChallengeProgress): Promise<void> {
+  await AsyncStorage.setItem(COACH_CHALLENGE_PROGRESS_KEY, JSON.stringify(data));
+}
+
+export async function clearCoachChallengeProgress(): Promise<void> {
+  await AsyncStorage.removeItem(COACH_CHALLENGE_PROGRESS_KEY);
+}
+
+export async function markCoachChallengeDayValidated(day: string): Promise<void> {
+  const current = await loadCoachChallengeProgress();
+  if (!current) return;
+
+  const already = current.validatedDays.includes(day);
+  if (already) return;
+
+  current.validatedDays.push(day);
+  await saveCoachChallengeProgress(current);
 }
 
 export async function loadCoachWeeklyChallenge(): Promise<CoachWeeklyChallenge | null> {

@@ -24,6 +24,10 @@ type CoachWeeklyChallenge,  } from "../../storage/bodyStore";
 import {
   loadBodyScans,
   getBodyScanCommentary,
+  loadCoachChallengeProgress,
+saveCoachChallengeProgress,
+markCoachChallengeDayValidated,
+type CoachChallengeProgress,
   type BodyScan,
   type BodyScanCommentary,
 } from "../../storage/bodyStore";
@@ -196,6 +200,29 @@ function diffDaysFrom(startDay?: string | null, endDay?: string | null) {
   return Math.floor((b.getTime() - a.getTime()) / DAY_MS);
 }
 
+function parseFocus7Days(text: string | null | undefined): string[] {
+  if (!text) return [];
+
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const dayLines = lines.filter((l) => /^[-•]?\s*Jour\s*[1-7]\s*:/i.test(l));
+
+  return dayLines.map((l) =>
+    l
+      .replace(/^[-•]?\s*Jour\s*[1-7]\s*:\s*/i, "")
+      .trim()
+  );
+}
+
+function daysBetween(fromDay: string, toDay: string): number {
+  const a = new Date(fromDay + "T00:00:00");
+  const b = new Date(toDay + "T00:00:00");
+  const diff = b.getTime() - a.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
 export default function HomeScreen() {
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
@@ -203,11 +230,16 @@ export default function HomeScreen() {
 const [effortOpen, setEffortOpen] = useState(false);
 const [effort, setEffortState] = useState<EffortEntry | null>(null);
 const [coachWeeklyMission, setCoachWeeklyMission] = useState<string | null>(null);
-  // Profil
+ const [coachChallengeProgress, setCoachChallengeProgress] = useState<CoachChallengeProgress | null>(null);
+const [coachChallengeDayNumber, setCoachChallengeDayNumber] = useState<number>(0);
+const [coachChallengeTodayText, setCoachChallengeTodayText] = useState<string | null>(null);
+const [coachChallengeTodayDone, setCoachChallengeTodayDone] = useState(false); 
+// Profil
   const [weightKg, setWeightKg] = useState("75");
   const [heightCm, setHeightCm] = useState("175");
   const [goal, setGoal] = useState<Goal>("gain");
-
+const profileIncomplete =
+  (!heightCm || heightCm === "175") && !weightKg;
   // Journée
   const [day, setDay] = useState(todayKey());
   const [protein, setProtein] = useState(0);
@@ -319,6 +351,7 @@ await saveBodyProfile({
   heightCm: Number(heightCm) || 175,
   weightKg: Number(weightKg) || null,
   goal,
+  completed: true,
 });
 
   };
@@ -372,6 +405,19 @@ await saveBodyProfile({
   const remainingG = Math.max(0, adjustedTargets.carbs - carbs);
   const remainingL = Math.max(0, adjustedTargets.fat - fat);
 
+const handleValidateCoachChallengeDay = async () => {
+  if (!coachChallengeProgress) return;
+  if (coachTodayValidated) return;
+
+  await markCoachChallengeDayValidated(today);
+
+  const updated = await loadCoachChallengeProgress();
+  setCoachChallengeProgress(updated);
+
+  // ici tu pourras remettre ton confetti si tu veux
+  // ex: triggerConfetti?.();
+};
+
   const proteinProgress = Math.min(1, protein / Math.max(1,adjustedTargets .protein));
   const carbProgress = Math.min(1, carbs / Math.max(1,adjustedTargets .carbs));
   const fatProgress = Math.min(1, fat / Math.max(1, adjustedTargets.fat));
@@ -379,7 +425,49 @@ const dayScore = Math.round(
   ((proteinProgress + carbProgress + fatProgress) / 3) * 100
 );
   const perfectDay = proteinProgress >= 1 && carbProgress >= 1 && fatProgress >= 1;
+const today = todayKey();
 
+const coachFocusDays = useMemo(() => {
+  return latestBodyCommentary?.focus7 ?? [];
+}, [latestBodyCommentary]);
+
+const challengeUnlocked = !!coachChallengeProgress?.scanDay;
+
+const challengeDayNumber = useMemo(() => {
+  if (!coachChallengeProgress?.scanDay) return 0;
+
+  
+  const diff = daysBetween(coachChallengeProgress.scanDay, today);
+  const dayNum = diff + 1;
+
+  if (dayNum < 1) return 1;
+  if (dayNum > 7) return 7;
+  return dayNum;
+}, [coachChallengeProgress, today]);
+
+const coachTodayMission = useMemo(() => {
+  if (!challengeUnlocked) return null;
+
+  if (!coachFocusDays || coachFocusDays.length === 0) {
+    return "Programme en préparation.";
+  }
+
+  const index = challengeDayNumber - 1;
+
+ if (index >= 0 && index < coachFocusDays.length)  {
+    return coachFocusDays[index];
+  }
+
+  // si le programme est plus court que 7 jours
+  return coachFocusDays[coachFocusDays.length - 1];
+}, [challengeUnlocked, coachFocusDays, challengeDayNumber]);
+
+const coachTodayValidated = useMemo(() => {
+  if (!coachChallengeProgress) return false;
+  return coachChallengeProgress.validatedDays.includes(today);
+}, [coachChallengeProgress, today]);
+
+const challengeFinished = challengeUnlocked && challengeDayNumber >= 7;
 
 
   // Objectif de série progressif (1 / 3 / 7 / 14)
@@ -478,6 +566,8 @@ if (!latest) {
 }
 const mission = await loadCoachWeeklyMission();
 setCoachWeeklyMission(mission?.text ?? null);
+const challengeProgress = await loadCoachChallengeProgress();
+setCoachChallengeProgress(challengeProgress);
         if (!s) {
           
           setDay(tk);
@@ -492,7 +582,29 @@ setCoachWeeklyMission(mission?.text ?? null);
         setGraceUsed(Boolean(s.graceUsed));
         setPoints(Number(s.points) || 0);
         setSavePhotos(typeof s.savePhotos === "boolean" ? s.savePhotos : true);
+if (latest) {
+  const existingProgress = await loadCoachChallengeProgress();
 
+  // si aucun challenge en cours, on démarre celui du dernier scan
+  if (!existingProgress) {
+    const newProgress: CoachChallengeProgress = {
+      scanDay: latest.day,
+      validatedDays: [],
+    };
+    await saveCoachChallengeProgress(newProgress);
+    setCoachChallengeProgress(newProgress);
+  } else {
+    // si un nouveau scan plus récent a été fait, on relance un nouveau challenge
+    if (existingProgress.scanDay !== latest.day) {
+      const restartedProgress: CoachChallengeProgress = {
+        scanDay: latest.day,
+        validatedDays: [],
+      };
+      await saveCoachChallengeProgress(restartedProgress);
+      setCoachChallengeProgress(restartedProgress);
+    }
+  }
+}
 
 
 
@@ -1095,6 +1207,20 @@ elevation: 4,
     Cumule des points grace a ta regularite et convertis-les en bons.
   </Text>
 
+
+{profileIncomplete && (
+  <Text
+    style={{
+      marginTop: 10,
+      color: "#fbbf24",
+      fontSize: 13,
+      textAlign: "center",
+    }}
+  >
+    Complète ton profil (taille et poids) pour améliorer l’analyse BodyDiet.
+  </Text>
+)}
+
   {graceUsed && (
     <>
       <View
@@ -1268,77 +1394,68 @@ elevation: 4,
 
         </View>
 
-{coachChallenge && (
-  <View
-    style={{
-      marginTop: 12,
-      marginBottom: 10,
-      padding: 12,
-      borderRadius: 14,
-      backgroundColor: coachChallenge.done ? "rgba(34,197,94,0.08)" : "#111827",
-      borderWidth: 1,
-      borderColor: coachChallenge.done ? "rgba(34,197,94,0.45)" : "rgba(255,255,255,0.12)",
-    }}
-  >
- <Text style={{ color: "#fff", fontWeight: "900" }}>
-  Challenge forme Coach BodyDiet • Cette semaine
-</Text>
 
-<Text
+<View
   style={{
-    color: "#cbd5e1",
-    fontSize: 14,
-    marginTop: 10,
-    lineHeight: 20,
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: "rgba(8, 47, 73, 0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.45)",
   }}
 >
-  Mission du jour : {coachMissionText}
-</Text>
-
-{latestBodyCommentary?.bodyComment && (
-  <Text style={{ color: "#94a3b8", marginTop: 6 }}>
-    {latestBodyCommentary.bodyComment}
+  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>
+    Challenge forme Coach BodyDiet • Cette semaine
   </Text>
-)}
 
-    <TouchableOpacity
-      onPress={toggleCoachChallenge}
-      style={{
-        marginTop: 10,
-        flexDirection: "row",
-        alignItems: "center",
-      }}
-    >
-      <View
+  {!challengeUnlocked ? (
+    <Text style={{ color: "#cbd5e1", fontSize: 14, marginTop: 10, lineHeight: 20 }}>
+      Mission de départ : fais un scan body pour débloquer ton programme 7 jours.
+    </Text>
+  ) : (
+    <View>
+      <Text style={{ color: "#86efac", fontSize: 13, marginTop: 10, fontWeight: "800" }}>
+        Jour {challengeDayNumber}/7
+      </Text>
+
+      <Text style={{ color: "#e2e8f0", fontSize: 14, marginTop: 8, lineHeight: 21 }}>
+        Mission du jour : {coachTodayMission || "Programme en attente."}
+      </Text>
+
+      {challengeFinished ? (
+        <Text style={{ color: "#facc15", fontSize: 13, marginTop: 10, lineHeight: 19 }}>
+          Jour 7 atteint. Un nouveau body scan est conseillé pour suivre ta progression et débloquer un nouveau plan.
+        </Text>
+      ) : null}
+
+      <TouchableOpacity
+        onPress={handleValidateCoachChallengeDay}
+        disabled={coachTodayValidated}
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 6,
+          marginTop: 14,
+          alignSelf: "flex-start",
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          borderRadius: 14,
+          backgroundColor: coachTodayValidated ? "rgba(34,197,94,0.20)" : "#22c55e",
           borderWidth: 1,
-          borderColor: coachChallenge.done ? "#22c55e" : "rgba(255,255,255,0.35)",
-          backgroundColor: coachChallenge.done ? "#22c55e" : "transparent",
-          alignItems: "center",
-          justifyContent: "center",
-          marginRight: 10,
+          borderColor: coachTodayValidated ? "rgba(34,197,94,0.35)" : "#22c55e",
         }}
       >
-        {coachChallenge.done ? (
-          <Text style={{ color: "#0b1220", fontWeight: "900" }}>✓</Text>
-        ) : null}
-      </View>
-
-      <Text style={{ color: "#fff", fontWeight: "800" }}>
-        {coachChallenge.done ? "Challenge validé" : "Cocher quand c’est fait"}
-      </Text>
-    </TouchableOpacity>
-
-    {showCoachBravo && (
-      <Text style={{ color: "#22c55e", marginTop: 10, fontWeight: "900" }}>
-        🎉 Bravo, challenge validé !
-      </Text>
-    )}
-  </View>
-)}
+        <Text
+          style={{
+            color: coachTodayValidated ? "#86efac" : "#062814",
+            fontWeight: "900",
+            fontSize: 14,
+          }}
+        >
+          {coachTodayValidated ? "✅ Challenge validé aujourd’hui" : "Valider la mission du jour"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  )}
+</View>
 
 {/* EFFORTS PHYSIQUES */}
 <View
@@ -1533,53 +1650,57 @@ elevation: 4,
 
         <View style={{ flexDirection: "row", marginTop: 10 }}>
 
-  {/* POIDS */}
-  <View style={{ flex: 1, marginRight: 10 }}>
-    <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
-      Ton Poids (kg)
-    </Text>
-    <TextInput
-      value={weightKg}
-      onChangeText={async (v) => {
-        setWeightKg(v);
-        await persist({ weightKg: v });
-      }}
-      keyboardType="numeric"
-      style={{
-        marginTop: 6,
-        padding: 12,
-        borderRadius: 12,
-        backgroundColor: "#111827",
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "700",
-      }}
-    />
-  </View>
+ {/* POIDS */}
+<View style={{ flex: 1 }}>
+  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+    Ton Poids (kg)
+  </Text>
+  <TextInput
+    value={weightKg === "75" ? "" : weightKg}
+    onChangeText={async (v) => {
+      setWeightKg(v);
+      await persist({});
+    }}
+    placeholder="Ex : 75"
+    placeholderTextColor="#6b7280"
+    keyboardType="numeric"
+    style={{
+      marginTop: 6,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: "#111827",
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "700",
+    }}
+  />
+</View>
 
-  {/* TAILLE */}
-  <View style={{ flex: 1 }}>
-    <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
-      Ta Taille (cm)
-    </Text>
-    <TextInput
-      value={heightCm}
-      onChangeText={async (v) => {
-        setHeightCm(v);
-        await persist({});
-      }}
-      keyboardType="numeric"
-      style={{
-        marginTop: 6,
-        padding: 12,
-        borderRadius: 12,
-        backgroundColor: "#111827",
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "700",
-      }}
-    />
-  </View>
+ {/* TAILLE */}
+<View style={{ flex: 1 }}>
+  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+    Ta Taille (cm)
+  </Text>
+  <TextInput
+    value={heightCm === "175" ? "" : heightCm}
+    onChangeText={async (v) => {
+      setHeightCm(v);
+      await persist({});
+    }}
+    placeholder="Ex : 175"
+    placeholderTextColor="#6b7280"
+    keyboardType="numeric"
+    style={{
+      marginTop: 6,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: "#111827",
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "700",
+    }}
+  />
+</View>
 
 </View>
 
