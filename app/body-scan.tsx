@@ -302,7 +302,7 @@ export default function BodyScanScreen() {
   const [angle, setAngle] = useState<AngleKey>("front");
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
-
+const [isAnalyzing, setIsAnalyzing] = useState(false);
   // ✅ V1 : on laisse vrai (pas d'erreur). Plus tard tu branches RevenueCat ici.
   const isPremium = true;
 
@@ -475,6 +475,13 @@ setAiComment(normalized);
   const afterUri = after ? getUri(after, angle) : "";
   const canCompare = !!before && !!beforeUri && !!afterUri;
 
+  const runAnalysis = () => {
+  setIsAnalyzing(true);
+
+  setTimeout(() => {
+    setIsAnalyzing(false);
+  }, 2200);
+};
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 18, paddingBottom: 40 }}>
@@ -520,12 +527,13 @@ setAiComment(normalized);
               {canCompare ? (
                 <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
               ) : (
-                <Body3DViewer
-                  frontUri={after.frontUri}
-                  threeQuarterUri={after.threeUri}
-                  sideUri={after.sideUri}
-                  angle={angle}
-                />
+               <Body3DViewer
+  frontUri={after.frontUri}
+  threeQuarterUri={after.threeUri}
+  sideUri={after.sideUri}
+  angle={angle}
+  isAnalyzing={isAnalyzing}
+/>
               )}
             </View>
 

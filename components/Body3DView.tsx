@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, Image, Animated, PanResponder } from "react-native";
+import { View, Text, Animated, PanResponder } from "react-native";
 
 type Props = {
   frontUri: string;
   threeQuarterUri: string;
   sideUri: string;
   height?: number;
-  angle?: "front" | "three" | "side"; // ← AJOUTE CETTE LIGNE
+  angle?: "front" | "three" | "side";
+  isAnalyzing?: boolean;
 };
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -17,33 +18,65 @@ export default function Body3DViewer({
   sideUri,
   height = 420,
   angle,
+  isAnalyzing = false,
 }: Props) {
   // t = 0 (face) -> 0.5 (3/4) -> 1 (profil)
   const t = useRef(new Animated.Value(0)).current;
   const [tLocal, setTLocal] = useState(0);
-
-  // on écoute t pour calculer opacités & tilt
-useEffect(() => {
-  const id = t.addListener(({ value }) => setTLocal(value));
-  return () => t.removeListener(id);
-}, [t]);
-useEffect(() => {
-  if (!angle) return;
-
-  const target =
-    angle === "front"
-      ? 0
-      : angle === "three"
-      ? 0.5
-      : 1;
-
-  Animated.spring(t, {
-    toValue: target,
-    useNativeDriver: false,
-  }).start();
-}, [angle]);
-
+  const scanAnim = useRef(new Animated.Value(0)).current;
   const startT = useRef(0);
+
+  // écoute de t pour recalculer les opacités / effets
+  useEffect(() => {
+    const id = t.addListener(({ value }) => setTLocal(value));
+    return () => t.removeListener(id);
+  }, [t]);
+
+  // changement d’angle depuis le parent
+  useEffect(() => {
+    if (!angle) return;
+
+    const target =
+      angle === "front" ? 0 : angle === "three" ? 0.5 : 1;
+
+    Animated.spring(t, {
+      toValue: target,
+      useNativeDriver: false,
+    }).start();
+  }, [angle, t]);
+
+  // animation scanner
+  useEffect(() => {
+    if (!isAnalyzing) {
+      scanAnim.stopAnimation();
+      scanAnim.setValue(0);
+      return;
+    }
+
+    scanAnim.setValue(0);
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanAnim, {
+          toValue: 1,
+          duration: 1100,
+          useNativeDriver: false,
+        }),
+        Animated.timing(scanAnim, {
+          toValue: 0,
+          duration: 1100,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    loop.start();
+
+    return () => {
+      loop.stop();
+      scanAnim.setValue(0);
+    };
+  }, [isAnalyzing, scanAnim]);
 
   const pan = useMemo(
     () =>
@@ -54,30 +87,27 @@ useEffect(() => {
           startT.current = tLocal;
         },
         onPanResponderMove: (_, g) => {
-          // dx -> t (adapte la sensibilité ici)
           const next = clamp01(startT.current + g.dx / 280);
           t.setValue(next);
         },
         onPanResponderRelease: () => {
-          // snap en 3 positions : 0 / 0.5 / 1 (effet “propre”)
           const snap = tLocal < 0.25 ? 0 : tLocal < 0.75 ? 0.5 : 1;
-          Animated.spring(t, { toValue: snap, useNativeDriver: false }).start();
+          Animated.spring(t, {
+            toValue: snap,
+            useNativeDriver: false,
+          }).start();
         },
       }),
     [t, tLocal]
   );
 
   // opacités (crossfade)
-  const frontOpacity = clamp01(1 - tLocal * 2); // 1 -> 0 entre 0 et 0.5
-  const threeOpacity = tLocal <= 0.5 ? clamp01(tLocal * 2) : clamp01(2 - tLocal * 2); // 0->1->0
-  const sideOpacity = clamp01(tLocal * 2 - 1); // 0 -> 1 entre 0.5 et 1
-
-  // petit tilt “3D premium”
-  const tilt = (tLocal - 0.5) * 10; // -5deg à +5deg environ
-  const scale = 1.02;
+  const frontOpacity = clamp01(1 - tLocal * 2);
+  const threeOpacity =
+    tLocal <= 0.5 ? clamp01(tLocal * 2) : clamp01(2 - tLocal * 2);
+  const sideOpacity = clamp01(tLocal * 2 - 1);
 
   return (
-
     <View
       style={{
         backgroundColor: "#111827",
@@ -88,14 +118,18 @@ useEffect(() => {
       }}
       {...pan.panHandlers}
     >
-      {/* halo */}
+      {/* halo fond */}
       <View
         style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
           backgroundColor: "#0b1220",
         }}
       />
+
       <View
         style={{
           position: "absolute",
@@ -109,7 +143,59 @@ useEffect(() => {
         }}
       />
 
-            <View style={{ height, justifyContent: "center", alignItems: "center" }}>
+      {isAnalyzing && (
+        <>
+          {/* barre scanner */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 16,
+              right: 16,
+              top: scanAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [30, height - 30],
+              }),
+              height: 18,
+              borderRadius: 999,
+              backgroundColor: "rgba(34,197,94,0.10)",
+              zIndex: 20,
+            }}
+          >
+            <View
+              style={{
+                marginTop: 7,
+                height: 4,
+                borderRadius: 999,
+                backgroundColor: "rgba(34,197,94,0.75)",
+              }}
+            />
+          </Animated.View>
+
+          {/* texte analyse */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 14,
+              alignSelf: "center",
+              zIndex: 21,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 999,
+              backgroundColor: "rgba(2,6,23,0.68)",
+              borderWidth: 1,
+              borderColor: "rgba(34,197,94,0.28)",
+            }}
+          >
+            <Text style={{ color: "#86efac", fontWeight: "900", fontSize: 12 }}>
+              Analyse visuelle en cours...
+            </Text>
+          </View>
+        </>
+      )}
+
+      <View style={{ height, justifyContent: "center", alignItems: "center" }}>
         {/* Face */}
         <Animated.Image
           source={{ uri: frontUri }}
@@ -121,8 +207,8 @@ useEffect(() => {
             opacity: frontOpacity,
             transform: [
               { perspective: 900 },
-              { translateX: (0.5 - tLocal) * -18 },   // parallax
-              { rotateY: `${(0.5 - tLocal) * 6}deg` }, // effet 3D
+              { translateX: (0.5 - tLocal) * -18 },
+              { rotateY: `${(0.5 - tLocal) * 6}deg` },
               { scale: 1.02 },
             ],
           }}
@@ -165,7 +251,7 @@ useEffect(() => {
         />
       </View>
 
-      {/* UI “vendable” */}
+      {/* UI bas */}
       <View
         style={{
           position: "absolute",
@@ -177,7 +263,9 @@ useEffect(() => {
           alignItems: "center",
         }}
       >
-        <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "900" }}>← tourne</Text>
+        <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "900" }}>
+          ← tourne
+        </Text>
 
         <View
           style={{
@@ -194,7 +282,9 @@ useEffect(() => {
           </Text>
         </View>
 
-        <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "900" }}>tourne →</Text>
+        <Text style={{ color: "rgba(255,255,255,0.7)", fontWeight: "900" }}>
+          tourne →
+        </Text>
       </View>
     </View>
   );
