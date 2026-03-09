@@ -9,33 +9,65 @@ import {
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FOOD_DB, type FoodItem, type PriceMode } from "../../lib/foodDB";
-import { loadState } from "../../storage/bodyStore";
+import {
+  loadState,
+  loadEffort,
+  loadBodyProfile,
+  loadBodyScans,
+  getBodyScanCommentary,
+  type EffortEntry,
+  type BodyScanCommentary,
+} from "../../storage/bodyStore";
 import { applyEffortToTargets } from "../../lib/effort";
-import { loadEffort } from "../../storage/bodyStore";
+
 type Goal = "gain" | "cut" | "maintain";
 
-function getPrice(item: FoodItem, mode: PriceMode) {
+type MacroTarget = {
+  protein: number;
+  carbs: number;
+  fat: number;
+  calories: number;
+};
+
+type SuggestedMeal = {
+  title: string;
+  tag: string;
+  items: FoodItem[];
+  totals: {
+    protein: number;
+    carbs: number;
+    fat: number;
+    calories: number;
+    price: number;
+  };
+  score: number;
+  displayTitle: string;
+};
+
+type QuickNowItem = FoodItem & {
+  price: number;
+};
+
+function getPrice(item: FoodItem, mode: PriceMode): number {
   if (mode === "eco") return item.priceEco;
   if (mode === "bio") return item.priceBio;
   return item.priceStandard;
 }
 
-function roundPrice(n: number) {
+function roundPrice(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function macroDistance(
-  meal: { protein: number; carbs: number; fat: number },
-  target: { protein: number; carbs: number; fat: number }
-) {
-  return (
-    Math.abs(meal.protein - target.protein) +
-    Math.abs(meal.carbs - target.carbs) +
-    Math.abs(meal.fat - target.fat)
-  );
-}
-
-function sumMeal(items: FoodItem[], priceMode: PriceMode) {
+function sumMeal(
+  items: FoodItem[],
+  priceMode: PriceMode
+): {
+  protein: number;
+  carbs: number;
+  fat: number;
+  calories: number;
+  price: number;
+} {
   const totals = items.reduce(
     (acc, item) => {
       acc.protein += item.protein;
@@ -57,35 +89,268 @@ function sumMeal(items: FoodItem[], priceMode: PriceMode) {
   };
 }
 
+function mealScore(
+  totals: { protein: number; carbs: number; fat: number; calories: number },
+  target: { protein: number; carbs: number; fat: number; calories: number },
+  effort: EffortEntry | null
+): number {
+  const carbWeight =
+    effort?.kind === "linear"
+      ? effort.intensity === "intense"
+        ? 1.5
+        : effort.intensity === "moderate"
+        ? 1.25
+        : 1.1
+      : effort?.kind === "gym"
+      ? effort.intensity === "intense"
+        ? 1.35
+        : effort.intensity === "moderate"
+        ? 1.15
+        : 1
+      : 1;
+
+  const proteinWeight =
+    effort?.kind === "gym"
+      ? effort.intensity === "intense"
+        ? 1.35
+        : 1.2
+      : 1.1;
+
+  const fatWeight = 0.9;
+
+  const pDiff = Math.abs(totals.protein - target.protein) * proteinWeight;
+  const cDiff = Math.abs(totals.carbs - target.carbs) * carbWeight;
+  const fDiff = Math.abs(totals.fat - target.fat) * fatWeight;
+
+  return pDiff + cDiff + fDiff;
+}
+
+function pickBestByCategory(ids: string[]): FoodItem[] {
+  return FOOD_DB.filter((item) => ids.includes(item.id));
+}
+
+function buildDynamicMealCandidates(
+  priceMode: PriceMode
+): Array<{
+  title: string;
+  tag: string;
+  items: FoodItem[];
+  totals: ReturnType<typeof sumMeal>;
+}> {
+  const proteins = FOOD_DB.filter((i) =>
+    ["chicken", "eggs", "tuna", "skyr", "protein_yogurt"].includes(i.id)
+  );
+  const carbs = FOOD_DB.filter((i) =>
+    ["rice", "whole_pasta", "potatoes", "sweet_potato", "oats", "banana"].includes(i.id)
+  );
+  const vegs = FOOD_DB.filter((i) =>
+    ["spinach", "zucchini", "carrots", "parsnip"].includes(i.id)
+  );
+  const fats = FOOD_DB.filter((i) => ["olive_oil", "cream"].includes(i.id));
+
+  const quicks = [
+    pickBestByCategory(["protein_yogurt", "banana"]),
+    pickBestByCategory(["protein_bar", "banana"]),
+    pickBestByCategory(["skyr", "oats"]),
+    pickBestByCategory(["protein_yogurt", "protein_bar"]),
+  ];
+
+  const meals: Array<{
+    title: string;
+    tag: string;
+    items: FoodItem[];
+    totals: ReturnType<typeof sumMeal>;
+  }> = [];
+
+  for (const p of proteins) {
+    for (const c of carbs) {
+      for (const v of vegs) {
+        const fat = fats.find((f) => f.id === "olive_oil") || null;
+        const items = fat ? [p, c, v, fat] : [p, c, v];
+
+        meals.push({
+          title: `${p.name} • ${c.name} • ${v.name}`,
+          tag:
+            p.id === "tuna"
+              ? "Lean"
+              : p.id === "eggs"
+              ? "Simple"
+              : p.id === "chicken"
+              ? "Sport"
+              : "Équilibré",
+          items,
+          totals: sumMeal(items, priceMode),
+        });
+      }
+    }
+  }
+
+  for (const items of quicks) {
+    meals.push({
+      title: items.map((i) => i.name).join(" • "),
+      tag: "Rapide",
+      items,
+      totals: sumMeal(items, priceMode),
+    });
+  }
+
+  return meals;
+}
+
+function buildQuickNowSuggestions(
+  remaining: MacroTarget,
+  priceMode: PriceMode
+): QuickNowItem[] {
+  const quickItems = FOOD_DB.filter((item) =>
+    [
+      "protein_yogurt",
+      "protein_bar",
+      "skyr",
+      "banana",
+      "eggs",
+      "tuna",
+      "oats",
+      "olive_oil",
+    ].includes(item.id)
+  );
+
+  const biggest =
+    remaining.protein >= remaining.carbs && remaining.protein >= remaining.fat
+      ? "protein"
+      : remaining.carbs >= remaining.fat
+      ? "carbs"
+      : "fat";
+
+  const sorted = [...quickItems].sort((a, b) => {
+    const scoreA =
+      biggest === "protein"
+        ? Math.abs(a.protein - Math.min(remaining.protein, 25))
+        : biggest === "carbs"
+        ? Math.abs(a.carbs - Math.min(remaining.carbs, 30))
+        : Math.abs(a.fat - Math.min(remaining.fat, 10));
+
+    const scoreB =
+      biggest === "protein"
+        ? Math.abs(b.protein - Math.min(remaining.protein, 25))
+        : biggest === "carbs"
+        ? Math.abs(b.carbs - Math.min(remaining.carbs, 30))
+        : Math.abs(b.fat - Math.min(remaining.fat, 10));
+
+    return scoreA - scoreB;
+  });
+
+  return sorted.slice(0, 3).map((item) => ({
+    ...item,
+    price: getPrice(item, priceMode),
+  }));
+}
+
 export default function PremiumMealsScreen() {
   const router = useRouter();
+
   const [weightKg, setWeightKg] = useState(75);
-const [heightCm, setHeightCm] = useState(175);
-const [goal, setGoal] = useState<Goal>("gain");
+  const [heightCm, setHeightCm] = useState(175);
+  const [goal, setGoal] = useState<Goal>("gain");
 
-const [protein, setProtein] = useState(0);
-const [carbs, setCarbs] = useState(0);
-const [fat, setFat] = useState(0);
-const [calories, setCalories] = useState(0);
+  const [protein, setProtein] = useState(0);
+  const [carbs, setCarbs] = useState(0);
+  const [fat, setFat] = useState(0);
+  const [calories, setCalories] = useState(0);
 
-const [targets, setTargets] = useState({
-  protein: 150,
-  carbs: 250,
-  fat: 70,
-  calories: 2200,
-});
-
-  // provisoire : plus tard on branchera ça à ton vrai state
+  const [effort, setEffort] = useState<EffortEntry | null>(null);
   const [priceMode, setPriceMode] = useState<PriceMode>("standard");
 
- const remaining = {
-  protein: Math.max(0, targets.protein - protein),
-  carbs: Math.max(0, targets.carbs - carbs),
-  fat: Math.max(0, targets.fat - fat),
-  calories: Math.max(0, targets.calories - calories),
-};
+  const [targets, setTargets] = useState<MacroTarget>({
+    protein: 150,
+    carbs: 250,
+    fat: 70,
+    calories: 2200,
+  });
 
-  
+  const [lastBodyCommentary, setLastBodyCommentary] =
+    useState<BodyScanCommentary | null>(null);
+  const [lastBodyFocus, setLastBodyFocus] = useState<string | null>(null);
+
+  const daySeed = Number(new Date().toISOString().slice(8, 10)) || 1;
+
+  useEffect(() => {
+    (async () => {
+      const s = await loadState();
+      const profile = await loadBodyProfile();
+      const day = new Date().toISOString().slice(0, 10);
+      const e = await loadEffort(day);
+      const scans = await loadBodyScans();
+
+      setEffort(e);
+
+      if (profile?.heightCm) {
+        setHeightCm(Number(profile.heightCm) || 175);
+      }
+
+      if (scans?.length) {
+        const latest = scans[0];
+        const commentary =
+          (await getBodyScanCommentary("compare", latest.day, scans?.[1]?.day ?? null)) ||
+          (await getBodyScanCommentary("single", latest.day, null));
+
+        setLastBodyCommentary(commentary || null);
+        setLastBodyFocus(commentary?.bodyFocus ?? null);
+      }
+
+      if (!s) return;
+
+      const w = Number(s.weightKg) || 75;
+      const g = (s.goal || "gain") as Goal;
+
+      setWeightKg(w);
+      setGoal(g);
+
+      setProtein(Number(s.protein) || 0);
+      setCarbs(Number(s.carbs) || 0);
+      setFat(Number(s.fat) || 0);
+      setCalories(Number(s.calories) || 0);
+
+      if (g === "gain") {
+        setTargets({
+          protein: Math.round(w * 2),
+          carbs: Math.round(w * 4),
+          fat: Math.round(w * 1),
+          calories: Math.round(w * 35),
+        });
+      } else if (g === "cut") {
+        setTargets({
+          protein: Math.round(w * 2.2),
+          carbs: Math.round(w * 2.2),
+          fat: Math.round(w * 0.9),
+          calories: Math.round(w * 28),
+        });
+      } else {
+        setTargets({
+          protein: Math.round(w * 1.8),
+          carbs: Math.round(w * 3),
+          fat: Math.round(w * 1),
+          calories: Math.round(w * 32),
+        });
+      }
+    })();
+  }, []);
+
+  const adjustedTargets = useMemo(() => {
+    return applyEffortToTargets(targets, effort);
+  }, [targets, effort]);
+
+  const remaining = useMemo(() => {
+    return {
+      protein: Math.max(0, adjustedTargets.protein - protein),
+      carbs: Math.max(0, adjustedTargets.carbs - carbs),
+      fat: Math.max(0, adjustedTargets.fat - fat),
+      calories: Math.max(0, targets.calories - calories),
+    };
+  }, [adjustedTargets, targets, protein, carbs, fat, calories]);
+
+  const quickNow = useMemo(() => {
+    return buildQuickNowSuggestions(remaining, priceMode);
+  }, [remaining, priceMode]);
 
   const fridge7Days = useMemo(() => {
     const ids = [
@@ -128,114 +393,77 @@ const [targets, setTargets] = useState({
     }));
   }, []);
 
-  const totalFridgePrice: number = useMemo(() => {
-  return fridge7Days.reduce((acc, item) => {
-    return acc + getPrice(item, priceMode);
-  }, 0);
-}, [fridge7Days, priceMode]);
+  const totalFridgePrice = useMemo(() => {
+    return fridge7Days.reduce((acc, item) => {
+      return acc + getPrice(item, priceMode);
+    }, 0);
+  }, [fridge7Days, priceMode]);
 
- const suggestedMeals = useMemo(() => {
-  const getByIds = (ids: string[]) =>
-    FOOD_DB.filter((item) => ids.includes(item.id));
+  const suggestedMeals = useMemo<SuggestedMeal[]>(() => {
+    const candidates = buildDynamicMealCandidates(priceMode);
 
-  const templates = [
-    {
-      title: "Poulet • Riz • Courgettes",
-      ids: ["chicken", "rice", "zucchini", "olive_oil"],
-      tag: "Équilibré",
-    },
-    {
-      title: "Œufs • Pâtes complètes • Épinards",
-      ids: ["eggs", "whole_pasta", "spinach", "cream"],
-      tag: "Confort",
-    },
-    {
-      title: "Thon • Patate douce • Panais",
-      ids: ["tuna", "sweet_potato", "parsnip", "olive_oil"],
-      tag: "Sèche propre",
-    },
-    {
-      title: "Skyr • Avoine • Banane",
-      ids: ["skyr", "oats", "banana"],
-      tag: "Rapide",
-    },
-    {
-      title: "Yaourt protéiné • Barre • Banane",
-      ids: ["protein_yogurt", "protein_bar", "banana"],
-      tag: "Apport rapide",
-    },
-    {
-      title: "Poulet • Pommes de terre • Épinards",
-      ids: ["chicken", "potatoes", "spinach", "olive_oil"],
-      tag: "Classique",
-    },
-    {
-      title: "Thon • Riz • Courgettes",
-      ids: ["tuna", "rice", "zucchini", "olive_oil"],
-      tag: "Lean",
-    },
-    {
-      title: "Œufs • Patate douce • Épinards",
-      ids: ["eggs", "sweet_potato", "spinach"],
-      tag: "Simple",
-    },
-  ];
+    const built = candidates.map((meal) => ({
+      ...meal,
+      score: mealScore(
+        meal.totals,
+        {
+          protein: remaining.protein,
+          carbs: remaining.carbs,
+          fat: remaining.fat,
+          calories: remaining.calories,
+        },
+        effort
+      ),
+    }));
 
-  const built = templates.map((tpl) => {
-    const items = getByIds(tpl.ids);
-    const totals = sumMeal(items, priceMode);
-    const distance = macroDistance(totals, {
-      protein: remaining.protein,
-      carbs: remaining.carbs,
-      fat: remaining.fat,
-    });
+    const sorted = [...built].sort((a, b) => a.score - b.score);
 
-    return {
-      title: tpl.title,
-      tag: tpl.tag,
-      items,
-      totals,
-      distance,
-    };
-  });
+    const rotated = [...sorted];
+    if (rotated.length > 1) {
+      const shift = daySeed % rotated.length;
+      rotated.push(...rotated.splice(0, shift));
+    }
 
-  const sorted = built.sort((a, b) => a.distance - b.distance);
+    const topPool = rotated.slice(0, 8);
 
-  const bestBalanced = sorted[0];
+    const balanced = topPool[0] || sorted[0];
 
-  const bestProtein = [...built]
-    .sort((a, b) => {
-      const aScore =
-        Math.abs(a.totals.protein - remaining.protein) +
-        Math.abs(a.totals.carbs - Math.min(remaining.carbs, 35)) +
-        Math.abs(a.totals.fat - Math.min(remaining.fat, 12));
-      const bScore =
-        Math.abs(b.totals.protein - remaining.protein) +
-        Math.abs(b.totals.carbs - Math.min(remaining.carbs, 35)) +
-        Math.abs(b.totals.fat - Math.min(remaining.fat, 12));
-      return aScore - bScore;
-    })[0];
+    const proteinFirst =
+      [...topPool].sort((a, b) => {
+        const aDiff =
+          Math.abs(a.totals.protein - remaining.protein) +
+          Math.abs(a.totals.carbs - Math.min(remaining.carbs, 35));
+        const bDiff =
+          Math.abs(b.totals.protein - remaining.protein) +
+          Math.abs(b.totals.carbs - Math.min(remaining.carbs, 35));
+        return aDiff - bDiff;
+      })[0] || sorted[1];
 
-  const fastOption =
-    built.find((m) => m.tag === "Apport rapide") ||
-    built.find((m) => m.tag === "Rapide") ||
-    sorted[1];
+    const fastOption = topPool.find((m) => m.tag === "Rapide") || sorted[2];
 
-  const unique = [bestBalanced, bestProtein, fastOption].filter(
-    (meal, index, arr) =>
-      meal && arr.findIndex((x) => x.title === meal.title) === index
-  );
+    const unique = [balanced, proteinFirst, fastOption].filter(
+      (meal, index, arr) =>
+        !!meal && arr.findIndex((x) => x.title === meal.title) === index
+    );
 
-  return unique.map((meal, index) => ({
-    ...meal,
-    displayTitle:
-      index === 0
-        ? "Repas conseillé pour finir ta journée"
-        : index === 1
-        ? "Option ciblée protéines"
-        : "Option rapide",
-  }));
-}, [priceMode, remaining.protein, remaining.carbs, remaining.fat]);
+    return unique.map((meal, index) => ({
+      ...meal,
+      displayTitle:
+        index === 0
+          ? "Repas conseillé pour finir ta journée"
+          : index === 1
+          ? "Option ciblée protéines"
+          : "Option rapide",
+    }));
+  }, [
+    priceMode,
+    remaining.protein,
+    remaining.carbs,
+    remaining.fat,
+    remaining.calories,
+    effort,
+    daySeed,
+  ]);
 
   const titleByGoal =
     goal === "cut"
@@ -243,52 +471,6 @@ const [targets, setTargets] = useState({
       : goal === "maintain"
       ? "Organisation repas • Maintien"
       : "Organisation repas • Masse";
-
-    useEffect(() => {
-  (async () => {
-    const s = await loadState();
-    if (!s) return;
-
-    const w = Number(s.weightKg) || 75;
-    const g = s.goal || "gain";
-
-    setWeightKg(w);
-    setGoal(g);
-
-    setProtein(Number(s.protein) || 0);
-    setCarbs(Number(s.carbs) || 0);
-    setFat(Number(s.fat) || 0);
-    setCalories(Number(s.calories) || 0);
-
-    // recalcul des macros comme dans ton écran principal
-    if (g === "gain") {
-      setTargets({
-        protein: Math.round(w * 2),
-        carbs: Math.round(w * 4),
-        fat: Math.round(w * 1),
-        calories: Math.round(w * 35),
-      });
-    }
-
-    if (g === "cut") {
-      setTargets({
-        protein: Math.round(w * 2.2),
-        carbs: Math.round(w * 2.2),
-        fat: Math.round(w * 0.9),
-        calories: Math.round(w * 28),
-      });
-    }
-
-    if (g === "maintain") {
-      setTargets({
-        protein: Math.round(w * 1.8),
-        carbs: Math.round(w * 3),
-        fat: Math.round(w * 1),
-        calories: Math.round(w * 32),
-      });
-    }
-  })();
-}, []);  
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0a1235" }}>
@@ -435,69 +617,182 @@ const [targets, setTargets] = useState({
             marginBottom: 8,
           }}
         >
+          QUOI PRENDRE MAINTENANT
+        </Text>
+
+        <View
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            backgroundColor: "#020617",
+            borderWidth: 1,
+            borderColor: "#1f2937",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>
+            Apports rapides possibles
+          </Text>
+
+          <Text style={{ color: "#94a3b8", marginTop: 6 }}>
+            Suggestions simples selon ce qu’il te manque le plus.
+          </Text>
+
+          <View style={{ marginTop: 10 }}>
+            {quickNow.map((item) => (
+              <View
+                key={item.id}
+                style={{
+                  paddingVertical: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "rgba(255,255,255,0.06)",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  {item.name}
+                </Text>
+                <Text style={{ color: "#cbd5e1", marginTop: 4, fontSize: 12 }}>
+                  {item.portionLabel} • P {item.protein} • G {item.carbs} • L {item.fat}
+                </Text>
+                <Text style={{ color: "#86efac", marginTop: 4, fontSize: 12 }}>
+                  {item.price.toFixed(2)} €
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Text
+          style={{
+            color: "#94a3b8",
+            fontSize: 11,
+            fontWeight: "900",
+            letterSpacing: 1.4,
+            marginTop: 22,
+            marginBottom: 8,
+          }}
+        >
           IDÉES REPAS
         </Text>
 
-       {suggestedMeals.map((meal) => (
-  <View
-    key={meal.title}
-    style={{
-      marginTop: 10,
-      padding: 16,
-      borderRadius: 18,
-      backgroundColor: "#020617",
-      borderWidth: 1,
-      borderColor: "#1f2937",
-    }}
-  >
-    <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 13 }}>
-      {meal.displayTitle}
-    </Text>
+        {suggestedMeals.map((meal) => (
+          <View
+            key={meal.title}
+            style={{
+              marginTop: 10,
+              padding: 16,
+              borderRadius: 18,
+              backgroundColor: "#020617",
+              borderWidth: 1,
+              borderColor: "#1f2937",
+            }}
+          >
+            <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 13 }}>
+              {meal.displayTitle}
+            </Text>
 
-    <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16, marginTop: 6 }}>
-      {meal.title}
-    </Text>
+            <Text
+              style={{
+                color: "#fff",
+                fontWeight: "900",
+                fontSize: 16,
+                marginTop: 6,
+              }}
+            >
+              {meal.title}
+            </Text>
 
-    <View
-      style={{
-        alignSelf: "flex-start",
-        marginTop: 8,
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-        backgroundColor: "rgba(255,255,255,0.08)",
-      }}
-    >
-      <Text style={{ color: "#cbd5e1", fontSize: 11, fontWeight: "800" }}>
-        {meal.tag}
-      </Text>
-    </View>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                marginTop: 8,
+                paddingVertical: 4,
+                paddingHorizontal: 10,
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.08)",
+              }}
+            >
+              <Text style={{ color: "#cbd5e1", fontSize: 11, fontWeight: "800" }}>
+                {meal.tag}
+              </Text>
+            </View>
 
-    <View style={{ marginTop: 10 }}>
-      {meal.items.map((item) => (
-        <Text key={item.id} style={{ color: "#cbd5e1", marginTop: 4 }}>
-          • {item.name} ({item.portionLabel})
+            <View style={{ marginTop: 10 }}>
+              {meal.items.map((item) => (
+                <Text key={item.id} style={{ color: "#cbd5e1", marginTop: 4 }}>
+                  • {item.name} ({item.portionLabel})
+                </Text>
+              ))}
+            </View>
+
+            <View
+              style={{
+                marginTop: 12,
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: "#1f2937",
+              }}
+            >
+              <Text style={{ color: "#fff" }}>
+                P {meal.totals.protein} • G {meal.totals.carbs} • L {meal.totals.fat}
+              </Text>
+              <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+                {meal.totals.calories} kcal • {meal.totals.price.toFixed(2)} € / portion
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        <Text
+          style={{
+            color: "#94a3b8",
+            fontSize: 11,
+            fontWeight: "900",
+            letterSpacing: 1.4,
+            marginTop: 22,
+            marginBottom: 8,
+          }}
+        >
+          LIEN AVEC TON SCAN BODY
         </Text>
-      ))}
-    </View>
 
-    <View
-      style={{
-        marginTop: 12,
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: "#1f2937",
-      }}
-    >
-      <Text style={{ color: "#fff" }}>
-        P {meal.totals.protein} • G {meal.totals.carbs} • L {meal.totals.fat}
-      </Text>
-      <Text style={{ color: "#94a3b8", marginTop: 4 }}>
-        {meal.totals.calories} kcal • {meal.totals.price.toFixed(2)} € / portion
-      </Text>
-    </View>
-  </View>
-))}
+        <View
+          style={{
+            padding: 16,
+            borderRadius: 18,
+            backgroundColor: "#020617",
+            borderWidth: 1,
+            borderColor: "#1f2937",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>
+            Ajustement BodyDiet Premium
+          </Text>
+
+          <Text style={{ color: "#cbd5e1", marginTop: 10 }}>
+            Focus détecté : {lastBodyFocus || "équilibré"}
+          </Text>
+
+          <Text style={{ color: "#94a3b8", marginTop: 6, lineHeight: 20 }}>
+            {lastBodyCommentary?.summary ||
+              "Le dernier scan body permet d’affiner la logique repas et les apports proposés."}
+          </Text>
+
+          <TouchableOpacity
+            onPress={() => router.push("/body-scan" as any)}
+            style={{
+              marginTop: 12,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: "#111827",
+              borderWidth: 1,
+              borderColor: "#36404e",
+            }}
+          >
+            <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
+              Voir mon scan body
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <Text
           style={{
@@ -526,7 +821,7 @@ const [targets, setTargets] = useState({
           </Text>
 
           <Text style={{ color: "#94a3b8", marginTop: 6 }}>
-            Budget estimé base 7 jours : {(totalFridgePrice ?? 0).toFixed(2)} €
+            Budget estimé base 7 jours : {totalFridgePrice.toFixed(2)} €
           </Text>
 
           <View style={{ marginTop: 12 }}>
@@ -557,40 +852,6 @@ const [targets, setTargets] = useState({
               </View>
             ))}
           </View>
-        </View>
-
-        <View
-          style={{
-            marginTop: 22,
-            padding: 16,
-            borderRadius: 18,
-            backgroundColor: "rgba(28,47,226,0.14)",
-            borderWidth: 1,
-            borderColor: "rgba(28,47,226,0.4)",
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <MaterialCommunityIcons
-              name="lightning-bolt"
-              size={18}
-              color="#93c5fd"
-            />
-            <Text
-              style={{
-                color: "#fff",
-                fontWeight: "900",
-                fontSize: 15,
-                marginLeft: 8,
-              }}
-            >
-              Étape suivante
-            </Text>
-          </View>
-
-          <Text style={{ color: "#dbeafe", marginTop: 10, lineHeight: 20 }}>
-            Ensuite on branchera cette page à ton vrai profil, à tes vraies macros restantes
-            et à ton effort du jour pour que tout s’ajuste automatiquement.
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
