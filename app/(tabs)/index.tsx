@@ -227,6 +227,8 @@ function daysBetween(fromDay: string, toDay: string): number {
 export default function HomeScreen() {
   const ENABLE_BODY_CHALLENGE = false;
   const router = useRouter();
+ const isPremium = true;
+
   const [loaded, setLoaded] = useState(false);
 
 const [effortOpen, setEffortOpen] = useState(false);
@@ -1766,6 +1768,36 @@ elevation: 4,
 </View>
 
 <Text style={[sectionTitleStyle, { marginTop: 22 }]}>OUTILS</Text>
+
+{/* REPAS BODY DIET (Premium) */}
+{isPremium && (
+  <TouchableOpacity
+    onPress={() => router.push("/premium-meals" as any)}
+    style={{
+      marginTop: 12,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: "#ffffff",
+      borderWidth: 1,
+      borderColor: "#1c2fe2",
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <MaterialCommunityIcons name="food-apple" size={20} color="#0b1220" />
+
+      <Text style={{ color: "#0b1220", fontWeight: "900", marginLeft: 8 }}>
+        REPAS BODY DIET
+      </Text>
+    </View>
+  </TouchableOpacity>
+)}
+
 
 <TouchableOpacity
   onPress={() => router.push("/album-meals")}
