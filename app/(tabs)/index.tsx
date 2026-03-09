@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { saveState, loadState, upsertDaySummary } from "../../storage/bodyStore";
+import { saveState, loadState, upsertDaySummary,  } from "../../storage/bodyStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { Animated } from "react-native";
@@ -26,11 +26,12 @@ import {
   getBodyScanCommentary,
   loadCoachChallengeProgress,
 saveCoachChallengeProgress,
-markCoachChallengeDayValidated,
+markCoachChallengeDayValidated, 
 type CoachChallengeProgress,
   type BodyScan,
   type BodyScanCommentary,
 } from "../../storage/bodyStore";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -276,7 +277,7 @@ const [bodyScans, setBodyScans] = useState<BodyScan[]>([]);
 const [latestBodyCommentary, setLatestBodyCommentary] = useState<BodyScanCommentary | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
-
+ const scanPulse = useRef(new Animated.Value(1)).current;
 
 const latestBodyScan = bodyScans[0] || null;
 
@@ -742,7 +743,7 @@ const activeBodyComment =
 
 
 const jokerLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-
+const scanLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 useEffect(() => {
   // stop loop précédente
   if (jokerLoopRef.current) {
@@ -757,7 +758,7 @@ useEffect(() => {
   if (shouldPulse) {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(jokerPulse, { toValue: 1.08, duration: 900, useNativeDriver: true }),
+        Animated.timing(jokerPulse, { toValue: 1.09, duration: 900, useNativeDriver: true }),
         Animated.timing(jokerPulse, { toValue: 1, duration: 900, useNativeDriver: true }),
       ])
     );
@@ -773,6 +774,40 @@ useEffect(() => {
     }
   };
 }, [perfectDay, graceUsed, jokerPulse]);
+
+useEffect(() => {
+  if (scanLoopRef.current) {
+    scanLoopRef.current.stop();
+    scanLoopRef.current = null;
+  }
+
+  scanPulse.setValue(1);
+
+  const loop = Animated.loop(
+    Animated.sequence([
+      Animated.timing(scanPulse, {
+        toValue: 1.05,
+        duration: 1100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scanPulse, {
+        toValue: 1,
+        duration: 1100,
+        useNativeDriver: true,
+      }),
+    ])
+  );
+
+  scanLoopRef.current = loop;
+  loop.start();
+
+  return () => {
+    if (scanLoopRef.current) {
+      scanLoopRef.current.stop();
+      scanLoopRef.current = null;
+    }
+  };
+}, [scanPulse]);
 
   // Validation “perfect day” -> streak + points (et bonus 1/3/7/14)
   useEffect(() => {
@@ -881,6 +916,45 @@ upsertDaySummary({
     log: nextLog,
   });
 };
+
+const handleDeleteLogEntry = async (entryTime: number) => {
+  Alert.alert(
+    "Supprimer cet ajout ?",
+    "Cet apport sera retiré de ta journée.",
+    [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          const nextLog = log.filter((item) => item.t !== entryTime);
+          setLog(nextLog);
+
+          const state = await loadState();
+if (!state) return;
+await saveState({ ...state, log: nextLog });
+
+          const totals = nextLog.reduce(
+            (acc, item) => {
+              acc.protein += Number(item.p || 0);
+              acc.carbs += Number(item.carb || 0);
+              acc.fat += Number(item.f || 0);
+              acc.calories += Number(item.c || 0);
+              return acc;
+            },
+            { protein: 0, carbs: 0, fat: 0, calories: 0 }
+          );
+
+          setProtein(totals.protein);
+          setCarbs(totals.carbs);
+          setFat(totals.fat);
+          setCalories(totals.calories);
+        },
+      },
+    ]
+  );
+};
+
   const resetDay = async () => {
     const tk = todayKey();
 
@@ -1059,9 +1133,15 @@ await addEntry({
       </View>
     );
   };
-
+const sectionTitleStyle = {
+  color: "#94a3b8" as const,
+  fontSize: 11,
+  fontWeight: "900" as const,
+  letterSpacing: 1.4,
+  marginBottom: 8,
+};
 return (
-  <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0F1F" }}>
+  <SafeAreaView style={{ flex: 1, backgroundColor: "#0a1235" }}>
     <ScrollView
       ref={scrollRef}
       contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
@@ -1074,11 +1154,11 @@ return (
     borderRadius: 16,
     backgroundColor: "#020617",
     borderWidth: 1,
-    borderColor: "#111827",
+    borderColor: "#f2f7f3",
 
     shadowColor: "#000",
-shadowOpacity: 0.25,
-shadowRadius: 12,
+shadowOpacity: 0.10,
+shadowRadius: 16,
 shadowOffset: { width: 0, height: 6 },
 elevation: 4,
   }}
@@ -1313,79 +1393,169 @@ elevation: 4,
 
       {/* ... ensuite tu reprends ton bloc MACROS ici ... */}
 
-        {/* MACROS */}
-        <View style={{ marginTop: 14 }}>
-          <Text style={{ color: "#fff", fontSize: 54, fontWeight: "800", letterSpacing: 1 }}>
-            {protein}
-            <Text style={{ fontSize: 18, opacity: 0.7 }}> / {adjustedTargets.protein}g</Text>
-          </Text>
+    
+   {/* MACROS */}
+<View
+  style={{
+  marginTop: 18,
+  padding: 20,
+  borderRadius: 22,
+  borderWidth: 1,
+  borderColor: "#1f2937",
+  backgroundColor: "#020617",
+}}
+>
+  <Text
+    style={{
+  color: "#fbfcfb",
+  fontSize: 17,
+  fontWeight: "900",
+  letterSpacing: 2,
+  marginBottom: 10,
+  opacity: 0.9,
+}}
+  >
+    MACROS DU JOUR
+  </Text>
 
-          {/* JAUGE PROT */}
-          <View
-            style={{
-              marginTop: 12,
-              height: 12,
-              backgroundColor: "#111827",
-              borderRadius: 999,
-              overflow: "hidden",
-            }}
-          >
-            <View
-              style={{
-                height: "100%",
-                width: `${proteinProgress * 100}%`,
-                backgroundColor:
-                  proteinProgress >= 1 ? "#16A34A" : proteinProgress > 0.6 ? "#EA580C" : "#1C2FE2",
-              }}
-            />
-          </View>
+  <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+    <Text
+      style={{
+        color: "#fff",
+        fontSize: 64,
+        fontWeight: "900",
+        letterSpacing: 2,
+      }}
+    >
+      {protein}
+    </Text>
 
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: 6,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 14, opacity: 0.75 }}>
-              PROTÉINES • {status}
-            </Text>
+    <Text
+      style={{
+        color: "#d1d5db",
+        fontSize: 22,
+        marginLeft: 6,
+        marginBottom: 8,
+        fontWeight: "700",
+      }}
+    >
+      / {adjustedTargets.protein}g
+    </Text>
+  </View>
 
-            <Text style={{ color: "#fff", fontWeight: "800" }}>
-              {remainingP === 0 ? "✅ OK" : `Encore ${remainingP}g`}
-            </Text>
-          </View>
+  {/* JAUGE PROT */}
+  <View
+    style={{
+      marginTop: 12,
+      height: 12,
+      backgroundColor: "#33363d",
+      borderRadius: 999,
+      overflow: "hidden",
+    }}
+  >
+    <View
+      style={{
+        height: "100%",
+        width: `${proteinProgress * 100}%`,
+        backgroundColor:
+          proteinProgress >= 1
+            ? "#16A34A"
+            : proteinProgress > 0.6
+            ? "#EA580C"
+            : "#1C2FE2",
+      }}
+    />
+  </View>
 
-          <MacroBar
-            label="Glucides"
-            value={carbs}
-            target={adjustedTargets.carbs}
-            progress={carbProgress}
-            color="#38BDF8"
-          />
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 12,
+    }}
+  >
+    <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>
+      PROTÉINES
+    </Text>
+    <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+      Encore {Math.max(0, adjustedTargets.protein - protein)}g
+    </Text>
+  </View>
 
-          <MacroBar
-            label="Lipides"
-            value={fat}
-            target={adjustedTargets.fat}
-            progress={fatProgress}
-            color="#5dea0c"
-          />
+  <View
+    style={{
+      height: 1,
+      backgroundColor: "rgba(255,255,255,0.08)",
+      marginVertical: 14,
+    }}
+  />
 
-          <Text
-            style={{
-              color: "#fff",
-              fontSize: 15,
-              fontWeight: "700",
-              textAlign: "center",
-              marginTop: 14,
-              opacity: 0.85,
-            }}
-          >
-            🔥 {calories} kcal aujourd’hui
-          </Text>
+  <Text style={{ color: "#cbd5e1", fontSize: 15, marginBottom: 8 }}>
+    Glucides {carbs}g / {adjustedTargets.carbs}g
+  </Text>
 
+  <View
+    style={{
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: "#111827",
+      overflow: "hidden",
+      marginBottom: 14,
+    }}
+  >
+    <View
+      style={{
+        height: "100%",
+        width: `${carbProgress * 100}%`,
+        backgroundColor:
+          carbProgress >= 1
+            ? "#16A34A"
+            : carbProgress > 0.6
+            ? "#EA580C"
+            : "#1C2FE2",
+      }}
+    />
+  </View>
+
+  <Text style={{ color: "#cbd5e1", fontSize: 15, marginBottom: 8 }}>
+    Lipides {fat}g / {adjustedTargets.fat}g
+  </Text>
+
+  <View
+    style={{
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: "#111827",
+      overflow: "hidden",
+    }}
+  >
+    <View
+      style={{
+        height: "100%",
+        width: `${fatProgress * 100}%`,
+        backgroundColor:
+          fatProgress >= 1
+            ? "#16A34A"
+            : fatProgress > 0.6
+            ? "#EA580C"
+            : "#1C2FE2",
+      }}
+    />
+  </View>
+
+  <Text
+    style={{
+      textAlign: "center",
+      color: "#fff",
+      fontWeight: "900",
+      fontSize: 18,
+      marginTop: 18,
+    }}
+  >
+    🔥 {calories} kcal aujourd’hui
+  </Text>
+</View>     
           
 {adjustedTargets.appliedKcal > 0 && (
   <Text style={{ color: "#94a3b8", marginTop: 6 }}>
@@ -1393,7 +1563,7 @@ elevation: 4,
   </Text>
 )}
 
-        </View>
+        
 
 {ENABLE_BODY_CHALLENGE && (
 <View
@@ -1460,21 +1630,29 @@ elevation: 4,
 )}
 
 {/* EFFORTS PHYSIQUES */}
+<Text style={[sectionTitleStyle, { marginTop: 22 }]}>EFFORT</Text>
+
 <View
   style={{
-    marginTop: 12,
-    marginBottom: 10,
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: "#111827",
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: "#020617",
     borderWidth: 1,
-    borderColor: "rgba(248, 243, 243, 0.97)",
+    borderColor: "rgba(255,255,255,0.14)",
   }}
 >
-  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}
+  >
     <View style={{ flex: 1, paddingRight: 10 }}>
-      <Text style={{ color: "#fff", fontWeight: "900" }}>Effort du jour</Text>
-      <Text style={{ color: "#94a3b8", marginTop: 2 }} numberOfLines={1}>
+      <Text style={{ color: "#fff", fontSize: 16, fontWeight: "900" }}>
+        🏃 Effort du jour
+      </Text>
+      <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 13 }}>
         {formatEffortLabel(effort)}
       </Text>
     </View>
@@ -1482,15 +1660,17 @@ elevation: 4,
     <TouchableOpacity
       onPress={() => setEffortOpen(true)}
       style={{
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        backgroundColor: "rgba(255,255,255,0.10)",
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 16,
+        backgroundColor: "rgba(255,255,255,0.08)",
         borderWidth: 1,
-        borderColor: "rgba(207, 203, 203, 0.72)",
+        borderColor: "rgba(255,255,255,0.18)",
       }}
     >
-      <Text style={{ color: "#fff", fontWeight: "900" }}>{effort ? "Modifier" : "Ajouter"}</Text>
+      <Text style={{ color: "#fff", fontWeight: "900", fontSize: 14 }}>
+        Ajouter
+      </Text>
     </TouchableOpacity>
   </View>
 </View>
@@ -1508,108 +1688,214 @@ elevation: 4,
     elevation: busy ? 0 : 50,
   }}
 >
-  <TouchableOpacity
-    onPress={scanMeal}
-    disabled={busy}
-    activeOpacity={0.9}
-    style={{
-      paddingVertical: 18,
-      borderRadius: 14,
-      backgroundColor: busy ? "#1f2937" : "#ffffff",
-      alignItems: "center",
-    }}
-  >
-    <Text
+  <Text style={[sectionTitleStyle, { marginTop: 22 }]}>SCAN TES REPAS</Text>
+
+  <Animated.View style={{ transform: [{ scale: scanPulse }] }}>
+    <TouchableOpacity
+      onPress={scanMeal}
+      disabled={busy}
+      activeOpacity={0.9}
       style={{
-        textAlign: "center",
-        fontSize: 16,
-        fontWeight: "900",
-        color: "#0b1220",
-        letterSpacing: 0.8,
+        paddingVertical: 18,
+        borderRadius: 14,
+        backgroundColor: busy ? "#1f2937" : "#ffffff",
+        alignItems: "center",
       }}
     >
-      {busy ? "ANALYSE…" : "SCAN REPAS"}
-    </Text>
-  </TouchableOpacity>
-</View>
-   
-       
-<View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-  <Text style={{ color: "#fff", opacity: 0.7, fontSize: 12 }}>
-    Album repas : {savePhotos ? "ON" : "OFF"}
-  </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <MaterialCommunityIcons
+          name="barcode-scan"
+          size={20}
+          color="#0b1220"
+          style={{ marginRight: 8 }}
+        />
 
-  <TouchableOpacity
-    onPress={async () => {
-      const next = !savePhotos;
-      setSavePhotos(next);
-      await persist({ savePhotos: next });
-    }}
+        <Text
+          style={{
+            textAlign: "center",
+            fontSize: 16,
+            fontWeight: "900",
+            color: "#0b1220",
+            letterSpacing: 0.8,
+          }}
+        >
+          {busy ? "ANALYSE…" : "SCAN REPAS"}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  </Animated.View>
+
+  <View
     style={{
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: 999,
-      backgroundColor: "#111827",
-      borderWidth: 1,
-      borderColor: savePhotos ? "#1c2fe2" : "#334155",
+      marginTop: 10,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
     }}
   >
-    <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
-      {savePhotos ? " ON" : " OFF"}
+    <Text style={{ color: "#fff", opacity: 0.7, fontSize: 12 }}>
+      Album repas : {savePhotos ? "ON" : "OFF"}
     </Text>
-  </TouchableOpacity>
+
+    <TouchableOpacity
+      onPress={async () => {
+        const next = !savePhotos;
+        setSavePhotos(next);
+        await persist({ savePhotos: next });
+      }}
+      style={{
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 999,
+        backgroundColor: "#020617",
+        borderWidth: 1,
+        borderColor: savePhotos ? "#1c2fe2" : "#334155",
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
+        {savePhotos ? " ON" : " OFF"}
+      </Text>
+    </TouchableOpacity>
+  </View>
 </View>
 
-        <TouchableOpacity
+<Text style={[sectionTitleStyle, { marginTop: 22 }]}>OUTILS</Text>
+
+<TouchableOpacity
   onPress={() => router.push("/album-meals")}
   style={{
     marginTop: 12,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#111827",
+    backgroundColor: "#020617",
+    borderWidth: 1,
+    borderColor: "rgba(128, 120, 120, 0.34)",
   }}
 >
-  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
-    📚 ALBUM REPAS
-  </Text>
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <MaterialCommunityIcons name="nutrition" size={20} color="#fff" />
+    <Text style={{ color: "#fff", fontWeight: "900", marginLeft: 8 }}>
+      ALBUM REPAS
+    </Text>
+  </View>
 </TouchableOpacity>
 
 <TouchableOpacity
   onPress={() => router.push("/body-scan")}
   style={{
     marginTop: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: "#111827",
+    backgroundColor: "#020617",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    alignItems: "center",
+    borderColor: "rgba(128, 120, 120, 0.34)",
   }}
 >
-  <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Scan Body (3D)</Text>
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <MaterialCommunityIcons name="account-search" size={20} color="#fff" />
+    <Text style={{ color: "#fff", fontWeight: "900", marginLeft: 8 }}>
+      SCAN BODY
+    </Text>
+  </View>
 </TouchableOpacity>
 
-        {/* AJOUT RAPIDE */}
-        <Text style={{ color: "#fff", marginTop: 22, fontSize: 12, opacity: 0.7 }}>
-          AJOUT RAPIDE (COMPLÉMENTS)
-        </Text>
+    {/* AJOUT RAPIDE */}
+<Text style={[sectionTitleStyle, { marginTop: 22 }]}>AJOUT RAPIDE</Text>
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}>
-          <Pill label="Shake protéiné" onPress={() => quickSupp("Shake protéiné", 25, 3, 2, 130)} />
-          <Pill label="Shake x2" onPress={() => quickSupp("Shake protéiné x2", 50, 6, 4, 260)} />
-          <Pill label="Yaourt protéiné" onPress={() => quickSupp("Yaourt protéiné", 20, 12, 2, 150)} />
-          <Pill label="Barre protéinée" onPress={() => quickSupp("Barre protéinée", 15, 20, 7, 200)} />
-          <Pill label="Gainer" onPress={() => quickSupp("Gainer (portion)", 20, 60, 5, 350)} />
-          <Pill
-            label="Ajout perso"
-            onPress={() => {
-              setManualOpen(true);
-              setTimeout(() => {
-                scrollRef.current?.scrollToEnd({ animated: true });
-              }, 120);
-            }}
-          />
-        </View>
+<View
+  style={{
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 10,
+  }}
+>
+
+ {[
+  { label: "Shake prot", action: () => quickSupp("Shake prot", 25, 3, 2, 130) },
+  { label: "Shake x2", action: () => quickSupp("Shake prot x2", 50, 6, 4, 260) },
+  { label: "Yaourt prot", action: () => quickSupp("Yaourt prot", 20, 12, 2, 150) },
+  { label: "Barre prot", action: () => quickSupp("Barre prot", 15, 20, 7, 200) },
+  { label: "Gainer", action: () => quickSupp("Gainer (portion)", 20, 60, 5, 350) },
+].map((item, i) => (
+  <TouchableOpacity
+    key={i}
+    onPress={item.action}
+    style={{
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "#020617",
+      minWidth: 110,
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <Text
+      style={{
+        color: "#e5e7eb",
+        fontSize: 13,
+        fontStyle: "italic",
+        fontWeight: "700",
+        textAlign: "center",
+      }}
+    >
+      {item.label}
+    </Text>
+  </TouchableOpacity>
+))}
+
+  <TouchableOpacity
+    onPress={() => {
+      setManualOpen(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 120);
+    }}
+    style={{
+      paddingVertical: 8,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.18)",
+      backgroundColor: "#0f172a",
+    }}
+  >
+    <Text
+      style={{
+        color: "#e5e7eb",
+        fontSize: 13,
+        fontStyle: "italic",
+        fontWeight: "700",
+      }}
+    >
+      Ajout perso
+    </Text>
+  </TouchableOpacity>
+
+</View>   
+
+<Text style={[sectionTitleStyle, { marginTop: 22 }]}>SUIVI</Text>
 
 <TouchableOpacity
   onPress={() => router.push("/progress")}
@@ -1619,7 +1905,7 @@ elevation: 4,
     borderRadius: 14,
     backgroundColor: "#111827",
     borderWidth: 1,
-    borderColor: "#1f2937",
+    borderColor: "#36404e",
   }}
 >
   <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
@@ -1627,118 +1913,142 @@ elevation: 4,
   </Text>
 </TouchableOpacity>
 
-        {/* PROFIL */}
-        <Text style={{ color: "#fff", marginTop: 26, fontSize: 12, opacity: 0.7 }}>
-          PROFIL
-        </Text>
+    {/* PROFIL + OBJECTIF */}
+<View
+  style={{
+    marginTop: 26,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  }}
+>
+  <Text style={sectionTitleStyle}>PROFIL</Text>
 
-        <View style={{ marginTop: 14 }}>
-  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Effort du jour</Text>
-
-  <TouchableOpacity
-    onPress={() => setEffortOpen(true)}
+  <Text
     style={{
-      marginTop: 10,
-      padding: 12,
-      borderRadius: 14,
-      backgroundColor: "#111827",
-      borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.10)",
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: "900",
+      letterSpacing: 0.3,
     }}
   >
-    <Text style={{ color: "#94a3b8" }}>{formatEffortLabel(effort)}</Text>
-  </TouchableOpacity>
-</View>
-
-        <View style={{ flexDirection: "row", marginTop: 10 }}>
-
- {/* POIDS */}
-<View style={{ flex: 1 }}>
-  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
-    Ton Poids (kg)
+    👤 Profil
   </Text>
-  <TextInput
-    value={weightKg === "75" ? "" : weightKg}
-    onChangeText={async (v) => {
-      setWeightKg(v);
-      await persist({});
-    }}
-    placeholder="Ex : 75"
-    placeholderTextColor="#6b7280"
-    keyboardType="numeric"
-    style={{
-      marginTop: 6,
-      padding: 12,
-      borderRadius: 12,
-      backgroundColor: "#111827",
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "700",
-    }}
-  />
-</View>
 
- {/* TAILLE */}
-<View style={{ flex: 1 }}>
-  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
-    Ta Taille (cm)
+  <Text
+    style={{
+      color: "#94a3b8",
+      fontSize: 12,
+      marginTop: 6,
+      lineHeight: 18,
+    }}
+  >
+    Renseigne ton profil pour affiner les repères body et les analyses.
   </Text>
-  <TextInput
-    value={heightCm === "175" ? "" : heightCm}
-    onChangeText={async (v) => {
-      setHeightCm(v);
-      await persist({});
-    }}
-    placeholder="Ex : 175"
-    placeholderTextColor="#6b7280"
-    keyboardType="numeric"
-    style={{
-      marginTop: 6,
-      padding: 12,
-      borderRadius: 12,
-      backgroundColor: "#111827",
-      color: "#fff",
-      fontSize: 16,
-      fontWeight: "700",
-    }}
-  />
-</View>
 
-</View>
+  <View style={{ flexDirection: "row", marginTop: 14, gap: 10 }}>
+    {/* POIDS */}
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+        Ton Poids (kg)
+      </Text>
+      <TextInput
+        value={weightKg === "75" ? "" : weightKg}
+        onChangeText={async (v) => {
+          setWeightKg(v);
+          await persist({});
+        }}
+        placeholder="Ex : 75"
+        placeholderTextColor="#6b7280"
+        keyboardType="numeric"
+        style={{
+          marginTop: 6,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: "#111827",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.10)",
+          color: "#fff",
+          fontSize: 16,
+          fontWeight: "700",
+        }}
+      />
+    </View>
 
-{/* OBJECTIF */}
-<View style={{ marginTop: 14 }}>
-  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Objectif</Text>
+    {/* TAILLE */}
+    <View style={{ flex: 1 }}>
+      <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+        Ta Taille (cm)
+      </Text>
+      <TextInput
+        value={heightCm === "175" ? "" : heightCm}
+        onChangeText={async (v) => {
+          setHeightCm(v);
+          await persist({});
+        }}
+        placeholder="Ex : 175"
+        placeholderTextColor="#6b7280"
+        keyboardType="numeric"
+        style={{
+          marginTop: 6,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: "#111827",
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.10)",
+          color: "#fff",
+          fontSize: 16,
+          fontWeight: "700",
+        }}
+      />
+    </View>
+  </View>
 
-  <View style={{ flexDirection: "row", marginTop: 6 }}>
-    <MiniBtn
-      active={goal === "gain"}
-      label="Masse"
-      onPress={async () => {
-        setGoal("gain");
-        await persist({ goal: "gain" });
+  {/* OBJECTIF */}
+  <View style={{ marginTop: 18 }}>
+    <Text style={sectionTitleStyle}>OBJECTIF</Text>
+
+    <Text
+      style={{
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "900",
+        letterSpacing: 0.3,
       }}
-    />
-    <MiniBtn
-      active={goal === "cut"}
-      label="Sèche"
-      onPress={async () => {
-        setGoal("cut");
-        await persist({ goal: "cut" });
-      }}
-    />
-    <MiniBtn
-      active={goal === "maintain"}
-      label="Maintien"
-      onPress={async () => {
-        setGoal("maintain");
-        await persist({ goal: "maintain" });
-      }}
-    />
+    >
+      🏁 Objectif
+    </Text>
+
+    <View style={{ flexDirection: "row", marginTop: 8 }}>
+      <MiniBtn
+        active={goal === "gain"}
+        label="Masse"
+        onPress={async () => {
+          setGoal("gain");
+          await persist({ goal: "gain" });
+        }}
+      />
+      <MiniBtn
+        active={goal === "cut"}
+        label="Sèche"
+        onPress={async () => {
+          setGoal("cut");
+          await persist({ goal: "cut" });
+        }}
+      />
+      <MiniBtn
+        active={goal === "maintain"}
+        label="Maintien"
+        onPress={async () => {
+          setGoal("maintain");
+          await persist({ goal: "maintain" });
+        }}
+      />
+    </View>
   </View>
 </View>
-        
-
         {/* PERFECT DAY */}
         {perfectDay && (
           <View
@@ -1770,7 +2080,7 @@ elevation: 4,
             marginTop: 26,
             padding: 14,
             borderRadius: 14,
-            backgroundColor: "#0f172a",
+            backgroundColor: "#020617",
             borderWidth: 1,
             borderColor: "#1f2937",
           }}
@@ -1917,42 +2227,63 @@ elevation: 4,
           </View>
         </View>
 
-        {/* LOG */}
-        <View style={{ marginTop: 26 }}>
-          <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>DERNIERS AJOUTS</Text>
+  {/* LOG */}
+<View style={{ marginTop: 26 }}>
+  <Text style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>
+    DERNIERS AJOUTS
+  </Text>
 
-          {log.length === 0 ? (
-            <Text style={{ color: "#fff", opacity: 0.6, marginTop: 10 }}>
-              Rien pour l’instant.
-            </Text>
-          ) : (
-            log.slice(0, 8).map((e) => (
-              <View
-                key={String(e.t)}
-                style={{
-                  marginTop: 10,
-                  padding: 12,
-                  borderRadius: 12,
-                  backgroundColor: "#111827",
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "800" }}>
-                  +{e.p}P • +{e.carb}G • +{e.f}L
-                  <Text style={{ opacity: 0.7, fontWeight: "600" }}> • {e.c} kcal</Text>
-                </Text>
-                <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4 }}>
-                  {(e.foods || []).join(" • ") || "Repas"}
-                </Text>
-              </View>
-            ))
-          )}
+  {log.length === 0 ? (
+    <Text style={{ color: "#fff", opacity: 0.6, marginTop: 10 }}>
+      Rien pour l’instant.
+    </Text>
+  ) : (
+    log.slice(0, 8).map((e) => (
+      <View
+        key={String(e.t)}
+        style={{
+          marginTop: 10,
+          padding: 12,
+          borderRadius: 12,
+          backgroundColor: "#111827",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            +{e.p}P • +{e.carb}G • +{e.f}L
+            <Text style={{ opacity: 0.7, fontWeight: "600" }}> • {e.c} kcal</Text>
+          </Text>
+
+          <Text style={{ color: "#fff", opacity: 0.65, marginTop: 4 }}>
+            {(e.foods || []).join(" • ") || "Repas"}
+          </Text>
         </View>
 
-        <TouchableOpacity onPress={resetDay} style={{ marginTop: 18, paddingVertical: 14 }}>
-          <Text style={{ color: "#fff", opacity: 0.6, textAlign: "center" }}>
-            Reset journée
-          </Text>
+        <TouchableOpacity
+          onPress={() => handleDeleteLogEntry(e.t)}
+          style={{
+            padding: 6,
+            opacity: 0.55,
+          }}
+        >
+          <Text style={{ color: "#9ca3af", fontSize: 18 }}>🗑</Text>
         </TouchableOpacity>
+      </View>
+    ))
+  )}
+</View>
+
+<TouchableOpacity
+  onPress={resetDay}
+  style={{ marginTop: 18, paddingVertical: 14 }}
+>
+  <Text style={{ color: "#fff", opacity: 0.6, textAlign: "center" }}>
+    Reset journée
+  </Text>
+</TouchableOpacity>
 
         {/* AJOUT PERSO */}
         {manualOpen && (

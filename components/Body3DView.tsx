@@ -20,24 +20,20 @@ export default function Body3DViewer({
   angle,
   isAnalyzing = false,
 }: Props) {
-  // t = 0 (face) -> 0.5 (3/4) -> 1 (profil)
   const t = useRef(new Animated.Value(0)).current;
   const [tLocal, setTLocal] = useState(0);
   const scanAnim = useRef(new Animated.Value(0)).current;
   const startT = useRef(0);
 
-  // écoute de t pour recalculer les opacités / effets
   useEffect(() => {
     const id = t.addListener(({ value }) => setTLocal(value));
     return () => t.removeListener(id);
   }, [t]);
 
-  // changement d’angle depuis le parent
   useEffect(() => {
     if (!angle) return;
 
-    const target =
-      angle === "front" ? 0 : angle === "three" ? 0.5 : 1;
+    const target = angle === "front" ? 0 : angle === "three" ? 0.5 : 1;
 
     Animated.spring(t, {
       toValue: target,
@@ -45,7 +41,6 @@ export default function Body3DViewer({
     }).start();
   }, [angle, t]);
 
-  // animation scanner
   useEffect(() => {
     if (!isAnalyzing) {
       scanAnim.stopAnimation();
@@ -101,7 +96,6 @@ export default function Body3DViewer({
     [t, tLocal]
   );
 
-  // opacités (crossfade)
   const frontOpacity = clamp01(1 - tLocal * 2);
   const threeOpacity =
     tLocal <= 0.5 ? clamp01(tLocal * 2) : clamp01(2 - tLocal * 2);
@@ -142,58 +136,6 @@ export default function Body3DViewer({
           backgroundColor: "rgba(255,255,255,0.06)",
         }}
       />
-
-      {isAnalyzing && (
-        <>
-          {/* barre scanner */}
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: 16,
-              right: 16,
-              top: scanAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [30, height - 30],
-              }),
-              height: 18,
-              borderRadius: 999,
-              backgroundColor: "rgba(34,197,94,0.10)",
-              zIndex: 20,
-            }}
-          >
-            <View
-              style={{
-                marginTop: 7,
-                height: 4,
-                borderRadius: 999,
-                backgroundColor: "rgba(34,197,94,0.75)",
-              }}
-            />
-          </Animated.View>
-
-          {/* texte analyse */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 14,
-              alignSelf: "center",
-              zIndex: 21,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 999,
-              backgroundColor: "rgba(2,6,23,0.68)",
-              borderWidth: 1,
-              borderColor: "rgba(34,197,94,0.28)",
-            }}
-          >
-            <Text style={{ color: "#86efac", fontWeight: "900", fontSize: 12 }}>
-              Analyse visuelle en cours...
-            </Text>
-          </View>
-        </>
-      )}
 
       <View style={{ height, justifyContent: "center", alignItems: "center" }}>
         {/* Face */}
@@ -250,6 +192,62 @@ export default function Body3DViewer({
           }}
         />
       </View>
+
+      {/* OVERLAY ANALYSE AU-DESSUS DES IMAGES */}
+      {isAnalyzing && (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 16,
+              right: 16,
+              top: scanAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [30, height - 30],
+              }),
+              height: 24,
+              borderRadius: 999,
+              backgroundColor: "rgba(34,197,94,0.12)",
+              zIndex: 30,
+              justifyContent: "center",
+              shadowColor: "#22c55e",
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 8,
+            }}
+          >
+            <View
+              style={{
+                height: 4,
+                borderRadius: 999,
+                backgroundColor: "#22c55e",
+              }}
+            />
+          </Animated.View>
+
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 14,
+              alignSelf: "center",
+              zIndex: 31,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 999,
+              backgroundColor: "rgba(2,6,23,0.68)",
+              borderWidth: 1,
+              borderColor: "rgba(34,197,94,0.28)",
+            }}
+          >
+            <Text style={{ color: "#86efac", fontWeight: "900", fontSize: 12 }}>
+              Analyse visuelle en cours...
+            </Text>
+          </View>
+        </>
+      )}
 
       {/* UI bas */}
       <View

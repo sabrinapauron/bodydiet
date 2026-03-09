@@ -25,8 +25,9 @@ import {
   saveCoachWeeklyChallenge,
 } from "../storage/bodyStore";
 import * as FileSystem from "expo-file-system/legacy";
+
 /* ------------------------------
-   BEFORE / AFTER SWIPE (anti écran vide)
+   BEFORE / AFTER SWIPE
 ------------------------------ */
 
 type BeforeAfterProps = {
@@ -37,7 +38,11 @@ type BeforeAfterProps = {
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 
-function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProps) {
+function BeforeAfterSwipe({
+  beforeUri,
+  afterUri,
+  height = 420,
+}: BeforeAfterProps) {
   const [w, setW] = useState(0);
   const x = useRef(new Animated.Value(0)).current;
   const startX = useRef(0);
@@ -45,11 +50,9 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const safeBefore = typeof beforeUri === "string" ? beforeUri : "";
   const safeAfter = typeof afterUri === "string" ? afterUri : "";
 
-  // ✅ Anti écran vide
   if (!safeBefore || !safeAfter) {
     return (
       <View
-    
         style={{
           height,
           borderRadius: 16,
@@ -61,7 +64,9 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
           padding: 16,
         }}
       >
-        <Text style={{ color: "#fff", fontWeight: "900" }}>Comparaison indisponible</Text>
+        <Text style={{ color: "#fff", fontWeight: "900" }}>
+          Comparaison indisponible
+        </Text>
         <Text style={{ color: "#94a3b8", marginTop: 6, textAlign: "center" }}>
           Photo manquante (avant ou après) pour cet angle.
         </Text>
@@ -91,13 +96,11 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
   const handleLeft = w ? x : 0;
 
   return (
-
     <View
-  
       onLayout={(e) => {
         const width = e.nativeEvent.layout.width;
         setW(width);
-        x.setValue(width / 2); // centre au départ
+        x.setValue(width / 2);
       }}
       style={{
         height,
@@ -109,31 +112,32 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
       }}
       {...pan.panHandlers}
     >
-   <View
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: 8,
-    alignSelf: "center",
-    backgroundColor: "rgba(2,6,23,0.55)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
-    zIndex: 5,
-  }}
->
-  <Text
-    style={{
-      color: "rgba(255,255,255,0.82)",
-      fontSize: 12,
-      fontWeight: "700",
-    }}
-  >
-    Comparaison visuelle de la posture et de la silhouette
-  </Text>
-</View>
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 8,
+          alignSelf: "center",
+          backgroundColor: "rgba(2,6,23,0.55)",
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: "rgba(255,255,255,0.10)",
+          zIndex: 5,
+        }}
+      >
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.82)",
+            fontSize: 12,
+            fontWeight: "700",
+          }}
+        >
+          Comparaison visuelle de la posture et de la silhouette
+        </Text>
+      </View>
+
       {/* BEFORE */}
       <Image
         source={{ uri: safeBefore }}
@@ -141,7 +145,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
         style={{ position: "absolute", width: "100%", height: "100%" }}
       />
 
-      {/* AFTER (clip) */}
+      {/* AFTER clip */}
       <Animated.View
         style={{
           position: "absolute",
@@ -152,74 +156,77 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
           overflow: "hidden",
         }}
       >
-        <Image source={{ uri: safeAfter }} resizeMode="contain" style={{ width: "100%", height: "100%" }} />
+        <Image
+          source={{ uri: safeAfter }}
+          resizeMode="contain"
+          style={{ width: "100%", height: "100%" }}
+        />
       </Animated.View>
-      
-{/* Repères visuels */}
-<View
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: height * 0.32,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.22)",
-  }}
-/>
 
-<View
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: height * 0.55,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.22)",
-  }}
-/>
+      {/* Repères visuels */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: height * 0.32,
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: "rgba(255,255,255,0.22)",
+        }}
+      />
 
-<Text
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: height * 0.32 - 12,
-    left: 8,
-    fontSize: 10,
-    color: "rgba(255,255,255,0.45)",
-    fontWeight: "700",
-  }}
->
-  épaules
-</Text>
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: height * 0.55,
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: "rgba(255,255,255,0.22)",
+        }}
+      />
 
-<Text
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: height * 0.55 - 12,
-    left: 8,
-    fontSize: 10,
-    color: "rgba(255,255,255,0.45)",
-    fontWeight: "700",
-  }}
->
-  taille
-</Text>
-<View
-  pointerEvents="none"
-  style={{
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: "50%",
-    width: 1,
-    backgroundColor: "rgba(255,255,255,0.15)",
-  }}
-/>
+      <Text
+        style={{
+          position: "absolute",
+          top: height * 0.32 - 12,
+          left: 8,
+          fontSize: 10,
+          color: "rgba(255,255,255,0.45)",
+          fontWeight: "700",
+        }}
+      >
+        épaules
+      </Text>
 
-      {/* handle */}
+      <Text
+        style={{
+          position: "absolute",
+          top: height * 0.55 - 12,
+          left: 8,
+          fontSize: 10,
+          color: "rgba(255,255,255,0.45)",
+          fontWeight: "700",
+        }}
+      >
+        taille
+      </Text>
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: "50%",
+          width: 1,
+          backgroundColor: "rgba(255,255,255,0.15)",
+        }}
+      />
+
+      {/* Handle */}
       <Animated.View
         style={{
           position: "absolute",
@@ -230,6 +237,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
           backgroundColor: "rgba(255,255,255,0.35)",
         }}
       />
+
       <Animated.View
         style={{
           position: "absolute",
@@ -250,12 +258,17 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
         <Text style={{ color: "#fff", fontWeight: "900" }}>↔</Text>
       </Animated.View>
 
-      {/* labels */}
+      {/* Labels */}
       <View style={{ position: "absolute", left: 10, bottom: 10 }}>
-        <Text style={{ color: "rgba(255,255,255,0.75)", fontWeight: "900" }}>Avant</Text>
+        <Text style={{ color: "rgba(255,255,255,0.75)", fontWeight: "900" }}>
+          Avant
+        </Text>
       </View>
+
       <View style={{ position: "absolute", right: 10, bottom: 10 }}>
-        <Text style={{ color: "rgba(255,255,255,0.75)", fontWeight: "900" }}>Aujourd’hui</Text>
+        <Text style={{ color: "rgba(255,255,255,0.75)", fontWeight: "900" }}>
+          Aujourd’hui
+        </Text>
       </View>
     </View>
   );
@@ -264,6 +277,7 @@ function BeforeAfterSwipe({ beforeUri, afterUri, height = 420 }: BeforeAfterProp
 /* ------------------------------
    SCREEN
 ------------------------------ */
+
 type BodyFocus =
   | "balanced"
   | "midsection"
@@ -284,8 +298,10 @@ function normalizeBodyFocus(v: any): BodyFocus {
 
   return allowed.includes(v) ? v : "balanced";
 }
+
 type AngleKey = "front" | "three" | "side";
 const ANGLES: AngleKey[] = ["front", "three", "side"];
+
 const toBase64 = async (uri: string) => {
   if (!uri) return "";
 
@@ -294,7 +310,6 @@ const toBase64 = async (uri: string) => {
   });
 };
 
-  
 export default function BodyScanScreen() {
   const router = useRouter();
 
@@ -302,13 +317,12 @@ export default function BodyScanScreen() {
   const [angle, setAngle] = useState<AngleKey>("front");
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareId, setCompareId] = useState<string | null>(null);
-const [isAnalyzing, setIsAnalyzing] = useState(false);
-  // ✅ V1 : on laisse vrai (pas d'erreur). Plus tard tu branches RevenueCat ici.
-  const isPremium = true;
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [viewMode, setViewMode] = useState<"3d" | "compare">("3d");
 
+  const isPremium = true;
   const [heightCm, setHeightCm] = useState<number | null>(null);
 
-  // ✅ Mets EXACTEMENT ton URL si différente
   const SERVER_URL = "http://192.168.1.45:4000";
 
   const [aiLoading, setAiLoading] = useState(false);
@@ -318,7 +332,8 @@ const [isAnalyzing, setIsAnalyzing] = useState(false);
     let startIndex = 0;
 
     return PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dy) < 24,
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dy) < 24,
       onPanResponderGrant: () => {
         startIndex = ANGLES.indexOf(angle);
       },
@@ -365,6 +380,10 @@ const [isAnalyzing, setIsAnalyzing] = useState(false);
     return prev && prev.day !== after.day ? prev : null;
   }, [scans, after, compareId]);
 
+  const beforeUri = before ? getUri(before, angle) : "";
+  const afterUri = after ? getUri(after, angle) : "";
+  const canCompare = !!before && !!beforeUri && !!afterUri;
+
   const runCoach = async () => {
     if (!after) return;
 
@@ -379,118 +398,152 @@ const [isAnalyzing, setIsAnalyzing] = useState(false);
     }
 
     const mode: "single" | "compare" = before ? "compare" : "single";
-const cached = await getBodyScanCommentary(mode, after.day, before?.day ?? null);
-if (cached) {
-  await saveCoachWeeklyMission(cached.missionToday ?? cached.focus7?.[0] ?? null);
-  await saveCoachWeeklyChallenge(cached.missionToday ?? cached.focus7?.[0] ?? null);
-  setAiComment(cached);
-  return;
-}
-   
-   setAiLoading(true);
-try {
-  console.log("CoachVision start", {
-    mode,
-    afterDay: after.day,
-    beforeDay: before?.day ?? null,
-  });
 
-  const frontB64 = await toBase64(after.frontUri ?? "");
-  const threeB64 = await toBase64(after.threeUri ?? "");
-  const sideB64 = await toBase64(after.sideUri ?? "");
+    const cached = await getBodyScanCommentary(
+      mode,
+      after.day,
+      before?.day ?? null
+    );
 
-  if (!frontB64 || !threeB64 || !sideB64) {
-    Alert.alert("Scan incomplet", "Il faut les 3 photos (Face / 3-4 / Profil) pour l’analyse.");
-    setAiLoading(false);
-    return;
-  }
+    if (cached) {
+      await saveCoachWeeklyMission(
+        cached.missionToday ?? cached.focus7?.[0] ?? null
+      );
+      await saveCoachWeeklyChallenge(
+        cached.missionToday ?? cached.focus7?.[0] ?? null
+      );
+      setAiComment(cached);
+      return;
+    }
 
-const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    heightCm,
-    mode,
-    afterDay: after.day,
-    beforeDay: before?.day ?? null,
-    images: {
-      front: frontB64,
-      three: threeB64,
-      side: sideB64,
-      mime: "image/jpeg",
-    },
-  }),
-});
+    setAiLoading(true);
 
-const json = await r.json();
+    try {
+      console.log("CoachVision start", {
+        mode,
+        afterDay: after.day,
+        beforeDay: before?.day ?? null,
+      });
 
-if (!r.ok) {
-  throw new Error(json?.error || `HTTP ${r.status}`);
-}
+      const frontB64 = await toBase64(after.frontUri ?? "");
+      const threeB64 = await toBase64(after.threeUri ?? "");
+      const sideB64 = await toBase64(after.sideUri ?? "");
 
-if (!json?.ok || !json?.data) {
-  throw new Error(json?.error || "Réponse serveur invalide");
-}
+      if (!frontB64 || !threeB64 || !sideB64) {
+        Alert.alert(
+          "Scan incomplet",
+          "Il faut les 3 photos (Face / 3-4 / Profil) pour l’analyse."
+        );
+        setAiLoading(false);
+        return;
+      }
 
-const data = json.data;
+      const r = await fetch(`${SERVER_URL}/body-scan-commentary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          heightCm,
+          mode,
+          afterDay: after.day,
+          beforeDay: before?.day ?? null,
+          images: {
+            front: frontB64,
+            three: threeB64,
+            side: sideB64,
+            mime: "image/jpeg",
+          },
+        }),
+      });
 
-const bodyFocus = normalizeBodyFocus(data?.bodyFocus);
-const bodyComment =
-  typeof data?.bodyComment === "string" && data.bodyComment.trim()
-    ? data.bodyComment.trim()
-    : "Travail général conseillé pour accompagner ta progression.";
+      const json = await r.json();
 
-const normalized = {
-  ...data,
-  wins: data.wins ?? [],
-  work: data.work ?? [],
-  focus7: data.focus7 ?? [],
-  closing: data.closing ?? "",
-  mainLever: data.mainLever ?? "",
-  missionToday: data.missionToday ?? "",
-  intentScore: typeof data.intentScore === "number" ? data.intentScore : 75,
-  bodyFocus,
-  bodyComment,
-} as BodyScanCommentary;
+      if (!r.ok) {
+        throw new Error(json?.error || `HTTP ${r.status}`);
+      }
 
-await saveBodyScanCommentary(mode, after.day, before?.day ?? null, normalized);
-await saveCoachWeeklyMission(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
-await saveCoachWeeklyChallenge(normalized.missionToday ?? normalized.focus7?.[0] ?? null);
+      if (!json?.ok || !json?.data) {
+        throw new Error(json?.error || "Réponse serveur invalide");
+      }
 
-setAiComment(normalized);
+      const data = json.data;
 
+      const bodyFocus = normalizeBodyFocus(data?.bodyFocus);
+      const bodyComment =
+        typeof data?.bodyComment === "string" && data.bodyComment.trim()
+          ? data.bodyComment.trim()
+          : "Travail général conseillé pour accompagner ta progression.";
 
+      const normalized = {
+        ...data,
+        wins: data.wins ?? [],
+        work: data.work ?? [],
+        focus7: data.focus7 ?? [],
+        closing: data.closing ?? "",
+        mainLever: data.mainLever ?? "",
+        missionToday: data.missionToday ?? "",
+        intentScore:
+          typeof data.intentScore === "number" ? data.intentScore : 75,
+        bodyFocus,
+        bodyComment,
+      } as BodyScanCommentary;
 
-} catch (e: any) {
-  const msg = e?.message ? String(e.message) : String(e);
-  Alert.alert("Erreur", msg.slice(0, 900));
-} finally {
-  setAiLoading(false);
-}
+      await saveBodyScanCommentary(
+        mode,
+        after.day,
+        before?.day ?? null,
+        normalized
+      );
+      await saveCoachWeeklyMission(
+        normalized.missionToday ?? normalized.focus7?.[0] ?? null
+      );
+      await saveCoachWeeklyChallenge(
+        normalized.missionToday ?? normalized.focus7?.[0] ?? null
+      );
+
+      setAiComment(normalized);
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : String(e);
+      Alert.alert("Erreur", msg.slice(0, 900));
+    } finally {
+      setAiLoading(false);
+    }
   };
 
+  const runAnalysis = async () => {
+    setViewMode("3d");
+    setIsAnalyzing(true);
 
+    await new Promise((resolve) => setTimeout(resolve, 3500));
 
-  const beforeUri = before ? getUri(before, angle) : "";
-  const afterUri = after ? getUri(after, angle) : "";
-  const canCompare = !!before && !!beforeUri && !!afterUri;
-
-  const runAnalysis = () => {
-  setIsAnalyzing(true);
-
-  setTimeout(() => {
     setIsAnalyzing(false);
-  }, 2200);
-};
+    await runCoach();
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0b1220" }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 18, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingTop: 18, paddingBottom: 40 }}
+      >
         {/* HEADER */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>Scan Body</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>
+            Scan Body
+          </Text>
+
           <TouchableOpacity
             onPress={() => router.back()}
-            style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: "#111827" }}
+            style={{
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: 12,
+              backgroundColor: "#111827",
+            }}
           >
             <Text style={{ color: "#fff", fontWeight: "900" }}>← Retour</Text>
           </TouchableOpacity>
@@ -501,9 +554,20 @@ setAiComment(normalized);
         </Text>
 
         {!after ? (
-          <View style={{ marginTop: 14, padding: 16, borderRadius: 16, backgroundColor: "#111827" }}>
-            <Text style={{ color: "#fff", fontWeight: "900" }}>Aucun scan</Text>
-            <Text style={{ color: "#94a3b8", marginTop: 6 }}>Fais ton premier scan (Face / 3-4 / Profil).</Text>
+          <View
+            style={{
+              marginTop: 14,
+              padding: 16,
+              borderRadius: 16,
+              backgroundColor: "#111827",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "900" }}>
+              Aucun scan
+            </Text>
+            <Text style={{ color: "#94a3b8", marginTop: 6 }}>
+              Fais ton premier scan (Face / 3-4 / Profil).
+            </Text>
 
             <TouchableOpacity
               onPress={() => router.push("/body-scan-capture")}
@@ -517,30 +581,96 @@ setAiComment(normalized);
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Nouveau scan</Text>
+              <Text style={{ color: "#fff", fontWeight: "900" }}>
+                📷 Nouveau scan
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={{ marginTop: 14 }}>
-            {/* Viewer + swipe angles */}
-            <View {...swipe.panHandlers}>
-              {canCompare ? (
+            {/* Viewer */}
+            <View {...(viewMode === "3d" ? swipe.panHandlers : {})}>
+              {viewMode === "compare" && canCompare ? (
                 <BeforeAfterSwipe beforeUri={beforeUri} afterUri={afterUri} />
               ) : (
-               <Body3DViewer
-  frontUri={after.frontUri}
-  threeQuarterUri={after.threeUri}
-  sideUri={after.sideUri}
-  angle={angle}
-  isAnalyzing={isAnalyzing}
-/>
+                <Body3DViewer
+                  frontUri={after.frontUri}
+                  threeQuarterUri={after.threeUri}
+                  sideUri={after.sideUri}
+                  angle={angle}
+                  isAnalyzing={isAnalyzing}
+                />
               )}
+            </View>
+
+            {/* Mode buttons */}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={() => setViewMode("3d")}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 14,
+                  backgroundColor:
+                    viewMode === "3d"
+                      ? "rgba(34,197,94,0.14)"
+                      : "#111827",
+                  borderWidth: 1,
+                  borderColor:
+                    viewMode === "3d"
+                      ? "rgba(34,197,94,0.35)"
+                      : "rgba(255,255,255,0.10)",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: viewMode === "3d" ? "#22c55e" : "#fff",
+                    fontWeight: "900",
+                  }}
+                >
+                  Vue 3D
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setViewMode("compare")}
+                disabled={!canCompare}
+                style={{
+                  flex: 1,
+                  paddingVertical: 10,
+                  borderRadius: 14,
+                  backgroundColor:
+                    viewMode === "compare" && canCompare
+                      ? "rgba(34,197,94,0.14)"
+                      : "rgba(255,255,255,0.06)",
+                  borderWidth: 1,
+                  borderColor:
+                    viewMode === "compare" && canCompare
+                      ? "rgba(34,197,94,0.35)"
+                      : "rgba(255,255,255,0.10)",
+                  alignItems: "center",
+                  opacity: canCompare ? 1 : 0.5,
+                }}
+              >
+                <Text
+                  style={{
+                    color:
+                      viewMode === "compare" && canCompare
+                        ? "#22c55e"
+                        : "#fff",
+                    fontWeight: "900",
+                  }}
+                >
+                  Comparer
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* Premium Coach */}
             <View style={{ marginTop: 14 }}>
               <TouchableOpacity
-                onPress={runCoach}
+                onPress={runAnalysis}
                 disabled={aiLoading}
                 style={{
                   paddingVertical: 12,
@@ -567,10 +697,16 @@ setAiComment(normalized);
                     borderColor: "rgba(255,255,255,0.10)",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>{aiComment.title}</Text>
-                  <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6 }}>{aiComment.summary}</Text>
+                  <Text
+                    style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}
+                  >
+                    {aiComment.title}
+                  </Text>
 
-                  {/* Levier principal */}
+                  <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6 }}>
+                    {aiComment.summary}
+                  </Text>
+
                   {aiComment.mainLever ? (
                     <View
                       style={{
@@ -582,12 +718,17 @@ setAiComment(normalized);
                         borderColor: "rgba(255,255,255,0.08)",
                       }}
                     >
-                      <Text style={{ color: "#fff", fontWeight: "800" }}>🎯 Le levier n°1</Text>
-                      <Text style={{ color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{aiComment.mainLever}</Text>
+                      <Text style={{ color: "#fff", fontWeight: "800" }}>
+                        🎯 Le levier n°1
+                      </Text>
+                      <Text
+                        style={{ color: "rgba(255,255,255,0.8)", marginTop: 4 }}
+                      >
+                        {aiComment.mainLever}
+                      </Text>
                     </View>
                   ) : null}
 
-                  {/* Mission du jour */}
                   {aiComment.missionToday ? (
                     <View
                       style={{
@@ -599,40 +740,62 @@ setAiComment(normalized);
                         borderColor: "rgba(34,197,94,0.25)",
                       }}
                     >
-                      <Text style={{ color: "#22c55e", fontWeight: "900" }}>✅ Mission du jour</Text>
-                      <Text style={{ color: "rgba(255,255,255,0.85)", marginTop: 4 }}>{aiComment.missionToday}</Text>
+                      <Text style={{ color: "#22c55e", fontWeight: "900" }}>
+                        ✅ Mission du jour
+                      </Text>
+                      <Text
+                        style={{ color: "rgba(255,255,255,0.85)", marginTop: 4 }}
+                      >
+                        {aiComment.missionToday}
+                      </Text>
 
                       {typeof aiComment.intentScore === "number" ? (
-                        <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>
+                        <Text
+                          style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}
+                        >
                           Clarté du plan :{" "}
-                          <Text style={{ color: "#fff", fontWeight: "900" }}>{Math.round(aiComment.intentScore)}/100</Text>
+                          <Text style={{ color: "#fff", fontWeight: "900" }}>
+                            {Math.round(aiComment.intentScore)}/100
+                          </Text>
                         </Text>
                       ) : null}
                     </View>
                   ) : null}
 
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>✅ Points forts</Text>
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
+                    ✅ Points forts
+                  </Text>
                   {aiComment.wins?.map((t, i) => (
                     <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
                       • {t}
                     </Text>
                   ))}
 
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>🎯 À travailler</Text>
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
+                    🎯 À travailler
+                  </Text>
                   {aiComment.work?.map((t, i) => (
                     <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
                       • {t}
                     </Text>
                   ))}
 
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>🔥 Focus 7 jours</Text>
+                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
+                    🔥 Focus 7 jours
+                  </Text>
                   {(aiComment as any).focus7?.map((t: any, i: number) => (
                     <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
                       • {typeof t === "string" ? t : t?.label ?? ""}
                     </Text>
                   ))}
 
-                  <Text style={{ color: "rgba(255,255,255,0.9)", marginTop: 10, fontWeight: "800" }}>
+                  <Text
+                    style={{
+                      color: "rgba(255,255,255,0.9)",
+                      marginTop: 10,
+                      fontWeight: "800",
+                    }}
+                  >
                     {aiComment.closing}
                   </Text>
                 </View>
@@ -652,7 +815,9 @@ setAiComment(normalized);
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "900" }}>🔁 Comparer avec…</Text>
+              <Text style={{ color: "#fff", fontWeight: "900" }}>
+                🔁 Comparer avec…
+              </Text>
               <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
                 {before ? `Avant : ${before.day}` : "Choisir un scan précédent"}
               </Text>
@@ -670,7 +835,9 @@ setAiComment(normalized);
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "900" }}>📷 Nouveau scan</Text>
+              <Text style={{ color: "#fff", fontWeight: "900" }}>
+                📷 Nouveau scan
+              </Text>
             </TouchableOpacity>
 
             {!before && (
@@ -682,10 +849,20 @@ setAiComment(normalized);
         )}
 
         {/* MODAL compare */}
-        <Modal visible={compareOpen} transparent animationType="fade" onRequestClose={() => setCompareOpen(false)}>
+        <Modal
+          visible={compareOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setCompareOpen(false)}
+        >
           <Pressable
             onPress={() => setCompareOpen(false)}
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", padding: 16, justifyContent: "center" }}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              padding: 16,
+              justifyContent: "center",
+            }}
           >
             <Pressable
               onPress={() => {}}
@@ -698,7 +875,9 @@ setAiComment(normalized);
                 maxHeight: "80%",
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>Comparer avec…</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}>
+                Comparer avec…
+              </Text>
               <Text style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}>
                 Choisis un scan “avant” (l’actuel reste le plus récent).
               </Text>
@@ -708,6 +887,7 @@ setAiComment(normalized);
                   .filter((s) => !after || s.day !== after.day)
                   .map((s) => {
                     const selected = compareId === s.day;
+
                     return (
                       <TouchableOpacity
                         key={s.day}
@@ -719,14 +899,22 @@ setAiComment(normalized);
                           paddingVertical: 10,
                           paddingHorizontal: 12,
                           borderRadius: 14,
-                          backgroundColor: selected ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+                          backgroundColor: selected
+                            ? "rgba(255,255,255,0.10)"
+                            : "rgba(255,255,255,0.04)",
                           borderWidth: 1,
-                          borderColor: selected ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
+                          borderColor: selected
+                            ? "rgba(255,255,255,0.18)"
+                            : "rgba(255,255,255,0.08)",
                           marginBottom: 10,
                         }}
                       >
-                        <Text style={{ color: "#fff", fontWeight: "900" }}>{s.day}</Text>
-                        <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
+                        <Text style={{ color: "#fff", fontWeight: "900" }}>
+                          {s.day}
+                        </Text>
+                        <Text
+                          style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}
+                        >
                           {selected ? "Sélectionné" : "Tap pour comparer"}
                         </Text>
                       </TouchableOpacity>
@@ -750,7 +938,9 @@ setAiComment(normalized);
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: "#e5e7eb", fontWeight: "900" }}>Par défaut</Text>
+                  <Text style={{ color: "#e5e7eb", fontWeight: "900" }}>
+                    Par défaut
+                  </Text>
                   <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
                     Scan précédent
                   </Text>
@@ -768,7 +958,9 @@ setAiComment(normalized);
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ color: "#fff", fontWeight: "900" }}>Fermer</Text>
+                  <Text style={{ color: "#fff", fontWeight: "900" }}>
+                    Fermer
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Pressable>
