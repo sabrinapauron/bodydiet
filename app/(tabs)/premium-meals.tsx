@@ -7,8 +7,15 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { FOOD_DB, type FoodItem, type PriceMode } from "../../lib/foodDB";
+import {
+  FOOD_DB,
+  type FoodItem,
+  type PriceMode,
+  getPricePerPortion,
+  getWeeklyCostRange,
+  getWeeklyBudgetRange,
+  euro,
+} from "../../lib/foodDB";
 import {
   loadState,
   loadEffort,
@@ -48,12 +55,6 @@ type QuickNowItem = FoodItem & {
   price: number;
 };
 
-function getPrice(item: FoodItem, mode: PriceMode): number {
-  if (mode === "eco") return item.priceEco;
-  if (mode === "bio") return item.priceBio;
-  return item.priceStandard;
-}
-
 function roundPrice(n: number): number {
   return Math.round(n * 100) / 100;
 }
@@ -70,11 +71,11 @@ function sumMeal(
 } {
   const totals = items.reduce(
     (acc, item) => {
-      acc.protein += item.protein;
-      acc.carbs += item.carbs;
-      acc.fat += item.fat;
-      acc.calories += item.calories;
-      acc.price += getPrice(item, priceMode);
+      acc.protein += Number(item.protein ?? 0);
+      acc.carbs += Number(item.carbs ?? 0);
+      acc.fat += Number(item.fat ?? 0);
+      acc.calories += Number(item.calories ?? 0);
+      acc.price += Number(getPricePerPortion(item, priceMode) ?? 0);
       return acc;
     },
     { protein: 0, carbs: 0, fat: 0, calories: 0, price: 0 }
@@ -138,21 +139,72 @@ function buildDynamicMealCandidates(
   totals: ReturnType<typeof sumMeal>;
 }> {
   const proteins = FOOD_DB.filter((i) =>
-    ["chicken", "eggs", "tuna", "skyr", "protein_yogurt"].includes(i.id)
+    [
+      "chicken",
+      "eggs",
+      "tuna",
+      "white_fish",
+      "salmon",
+      "ham",
+      "pork_loin",
+      "ground_beef_5",
+      "skyr",
+      "protein_yogurt",
+      "fromage_blanc",
+      "cottage_cheese",
+    ].includes(i.id)
   );
+
   const carbs = FOOD_DB.filter((i) =>
-    ["rice", "whole_pasta", "potatoes", "sweet_potato", "oats", "banana"].includes(i.id)
+    [
+      "rice",
+      "whole_pasta",
+      "potatoes",
+      "sweet_potato",
+      "oats",
+      "lentils",
+      "bread_whole",
+      "wraps",
+      "banana",
+    ].includes(i.id)
   );
+
   const vegs = FOOD_DB.filter((i) =>
-    ["spinach", "zucchini", "carrots", "parsnip"].includes(i.id)
+    [
+      "spinach",
+      "zucchini",
+      "carrots",
+      "parsnip",
+      "broccoli",
+      "green_beans",
+      "tomatoes",
+      "mushrooms",
+      "peppers",
+    ].includes(i.id)
   );
-  const fats = FOOD_DB.filter((i) => ["olive_oil", "cream"].includes(i.id));
+
+  const fats = FOOD_DB.filter((i) =>
+    [
+      "olive_oil",
+      "rapeseed_oil",
+      "cream",
+      "butter",
+      "avocado",
+      "peanut_butter",
+    ].includes(i.id)
+  );
 
   const quicks = [
     pickBestByCategory(["protein_yogurt", "banana"]),
     pickBestByCategory(["protein_bar", "banana"]),
     pickBestByCategory(["skyr", "oats"]),
     pickBestByCategory(["protein_yogurt", "protein_bar"]),
+    pickBestByCategory(["fromage_blanc", "banana"]),
+    pickBestByCategory(["cottage_cheese", "apple"]),
+    pickBestByCategory(["ham", "bread_whole"]),
+    pickBestByCategory(["eggs", "bread_whole"]),
+    pickBestByCategory(["skyr", "fruit_juice"]),
+    pickBestByCategory(["fromage_blanc", "oats"]),
   ];
 
   const meals: Array<{
@@ -165,19 +217,47 @@ function buildDynamicMealCandidates(
   for (const p of proteins) {
     for (const c of carbs) {
       for (const v of vegs) {
-        const fat = fats.find((f) => f.id === "olive_oil") || null;
+        let fat: FoodItem | null = null;
+
+        if (["salmon", "ground_beef_5"].includes(p.id)) {
+          fat = null;
+        } else if (
+          ["eggs", "ham", "pork_loin", "white_fish"].includes(p.id)
+        ) {
+          fat = fats.find((f) => ["olive_oil", "butter"].includes(f.id)) || null;
+        } else if (
+          ["fromage_blanc", "cottage_cheese", "skyr", "protein_yogurt"].includes(
+            p.id
+          )
+        ) {
+          fat = null;
+        } else {
+          fat = fats.find((f) => f.id === "olive_oil") || null;
+        }
+
         const items = fat ? [p, c, v, fat] : [p, c, v];
+
+        let tag = "Équilibré";
+
+        if (
+          ["tuna", "white_fish", "skyr", "fromage_blanc", "cottage_cheese"].includes(
+            p.id
+          )
+        ) {
+          tag = "Lean";
+        } else if (["eggs", "ham"].includes(p.id)) {
+          tag = "Simple";
+        } else if (["chicken", "ground_beef_5"].includes(p.id)) {
+          tag = "Sport";
+        } else if (["salmon", "duck_breast", "lamb_leg_slice"].includes(p.id)) {
+          tag = "Riche";
+        } else if (["pork_loin"].includes(p.id)) {
+          tag = "Classique";
+        }
 
         meals.push({
           title: `${p.name} • ${c.name} • ${v.name}`,
-          tag:
-            p.id === "tuna"
-              ? "Lean"
-              : p.id === "eggs"
-              ? "Simple"
-              : p.id === "chicken"
-              ? "Sport"
-              : "Équilibré",
+          tag,
           items,
           totals: sumMeal(items, priceMode),
         });
@@ -206,11 +286,22 @@ function buildQuickNowSuggestions(
       "protein_yogurt",
       "protein_bar",
       "skyr",
+      "fromage_blanc",
+      "cottage_cheese",
       "banana",
+      "apple",
+      "orange",
       "eggs",
       "tuna",
+      "ham",
       "oats",
-      "olive_oil",
+      "bread_whole",
+      "wraps",
+      "fruit_juice",
+      "avocado",
+      "peanut_butter",
+      "nuts_mix",
+      "dark_chocolate",
     ].includes(item.id)
   );
 
@@ -222,26 +313,83 @@ function buildQuickNowSuggestions(
       : "fat";
 
   const sorted = [...quickItems].sort((a, b) => {
-    const scoreA =
-      biggest === "protein"
-        ? Math.abs(a.protein - Math.min(remaining.protein, 25))
-        : biggest === "carbs"
-        ? Math.abs(a.carbs - Math.min(remaining.carbs, 30))
-        : Math.abs(a.fat - Math.min(remaining.fat, 10));
+    let scoreA = 0;
+    let scoreB = 0;
 
-    const scoreB =
-      biggest === "protein"
-        ? Math.abs(b.protein - Math.min(remaining.protein, 25))
-        : biggest === "carbs"
-        ? Math.abs(b.carbs - Math.min(remaining.carbs, 30))
-        : Math.abs(b.fat - Math.min(remaining.fat, 10));
+    if (biggest === "protein") {
+      scoreA =
+        Math.abs(a.protein - Math.min(remaining.protein, 22)) +
+        Math.abs(a.carbs - Math.min(remaining.carbs, 15)) * 0.2 +
+        Math.abs(a.fat - Math.min(remaining.fat, 8)) * 0.2;
 
-    return scoreA - scoreB;
+      scoreB =
+        Math.abs(b.protein - Math.min(remaining.protein, 22)) +
+        Math.abs(b.carbs - Math.min(remaining.carbs, 15)) * 0.2 +
+        Math.abs(b.fat - Math.min(remaining.fat, 8)) * 0.2;
+    } else if (biggest === "carbs") {
+      scoreA =
+        Math.abs(a.carbs - Math.min(remaining.carbs, 28)) +
+        Math.abs(a.protein - Math.min(remaining.protein, 10)) * 0.2 +
+        Math.abs(a.fat - Math.min(remaining.fat, 6)) * 0.15;
+
+      scoreB =
+        Math.abs(b.carbs - Math.min(remaining.carbs, 28)) +
+        Math.abs(b.protein - Math.min(remaining.protein, 10)) * 0.2 +
+        Math.abs(b.fat - Math.min(remaining.fat, 6)) * 0.15;
+    } else {
+      scoreA =
+        Math.abs(a.fat - Math.min(remaining.fat, 12)) +
+        Math.abs(a.protein - Math.min(remaining.protein, 8)) * 0.2 +
+        Math.abs(a.carbs - Math.min(remaining.carbs, 10)) * 0.15;
+
+      scoreB =
+        Math.abs(b.fat - Math.min(remaining.fat, 12)) +
+        Math.abs(b.protein - Math.min(remaining.protein, 8)) * 0.2 +
+        Math.abs(b.carbs - Math.min(remaining.carbs, 10)) * 0.15;
+    }
+
+    const humanBonus = (item: FoodItem) => {
+      if (
+        [
+          "protein_yogurt",
+          "skyr",
+          "fromage_blanc",
+          "cottage_cheese",
+          "banana",
+          "apple",
+          "orange",
+          "protein_bar",
+          "nuts_mix",
+        ].includes(item.id)
+      ) {
+        return -1.2;
+      }
+
+      if (
+        ["ham", "eggs", "tuna", "bread_whole", "wraps", "avocado"].includes(
+          item.id
+        )
+      ) {
+        return -0.6;
+      }
+
+      if (
+        ["peanut_butter", "dark_chocolate", "fruit_juice", "oats"].includes(
+          item.id
+        )
+      ) {
+        return -0.3;
+      }
+
+      return 0;
+    };
+
+    return scoreA + humanBonus(a) - (scoreB + humanBonus(b));
   });
 
   return sorted.slice(0, 3).map((item) => ({
     ...item,
-    price: getPrice(item, priceMode),
+    price: getPricePerPortion(item, priceMode),
   }));
 }
 
@@ -275,186 +423,231 @@ export default function PremiumMealsScreen() {
 
   useEffect(() => {
     (async () => {
-      const s = await loadState();
-      const profile = await loadBodyProfile();
-      const day = new Date().toISOString().slice(0, 10);
-      const e = await loadEffort(day);
-      const scans = await loadBodyScans();
+      try {
+        const s = await loadState();
+        const profile = await loadBodyProfile();
+        const day = new Date().toISOString().slice(0, 10);
+        const e = await loadEffort(day);
+        const scans = await loadBodyScans();
 
-      setEffort(e);
+        setEffort(e ?? null);
 
-      if (profile?.heightCm) {
-        setHeightCm(Number(profile.heightCm) || 175);
-      }
+        if (profile?.heightCm) {
+          setHeightCm(Number(profile.heightCm) || 175);
+        }
 
-      if (scans?.length) {
-        const latest = scans[0];
-        const commentary =
-          (await getBodyScanCommentary("compare", latest.day, scans?.[1]?.day ?? null)) ||
-          (await getBodyScanCommentary("single", latest.day, null));
+        if (Array.isArray(scans) && scans.length > 0) {
+          const latest = scans[0];
 
-        setLastBodyCommentary(commentary || null);
-        setLastBodyFocus(commentary?.bodyFocus ?? null);
-      }
+          try {
+            const commentary =
+              (await getBodyScanCommentary(
+                "compare",
+                latest.day,
+                scans[1]?.day ?? null
+              )) ||
+              (await getBodyScanCommentary("single", latest.day, null));
 
-      if (!s) return;
+            setLastBodyCommentary(commentary ?? null);
+            setLastBodyFocus(commentary?.bodyFocus ?? null);
+          } catch (err) {
+            console.log("getBodyScanCommentary error", err);
+            setLastBodyCommentary(null);
+            setLastBodyFocus(null);
+          }
+        }
 
-      const w = Number(s.weightKg) || 75;
-      const g = (s.goal || "gain") as Goal;
+        if (!s) return;
 
-      setWeightKg(w);
-      setGoal(g);
+        const w = Number(s.weightKg) || 75;
+        const g = (s.goal || "gain") as Goal;
 
-      setProtein(Number(s.protein) || 0);
-      setCarbs(Number(s.carbs) || 0);
-      setFat(Number(s.fat) || 0);
-      setCalories(Number(s.calories) || 0);
+        setWeightKg(w);
+        setGoal(g);
 
-      if (g === "gain") {
-        setTargets({
-          protein: Math.round(w * 2),
-          carbs: Math.round(w * 4),
-          fat: Math.round(w * 1),
-          calories: Math.round(w * 35),
-        });
-      } else if (g === "cut") {
-        setTargets({
-          protein: Math.round(w * 2.2),
-          carbs: Math.round(w * 2.2),
-          fat: Math.round(w * 0.9),
-          calories: Math.round(w * 28),
-        });
-      } else {
-        setTargets({
-          protein: Math.round(w * 1.8),
-          carbs: Math.round(w * 3),
-          fat: Math.round(w * 1),
-          calories: Math.round(w * 32),
-        });
+        setProtein(Number(s.protein) || 0);
+        setCarbs(Number(s.carbs) || 0);
+        setFat(Number(s.fat) || 0);
+        setCalories(Number(s.calories) || 0);
+
+        if (g === "gain") {
+          setTargets({
+            protein: Math.round(w * 2),
+            carbs: Math.round(w * 4),
+            fat: Math.round(w * 1),
+            calories: Math.round(w * 35),
+          });
+        } else if (g === "cut") {
+          setTargets({
+            protein: Math.round(w * 2.2),
+            carbs: Math.round(w * 2.2),
+            fat: Math.round(w * 0.9),
+            calories: Math.round(w * 28),
+          });
+        } else {
+          setTargets({
+            protein: Math.round(w * 1.8),
+            carbs: Math.round(w * 3),
+            fat: Math.round(w * 1),
+            calories: Math.round(w * 32),
+          });
+        }
+      } catch (err) {
+        console.log("PremiumMealsScreen init error", err);
       }
     })();
   }, []);
 
-  const adjustedTargets = useMemo(() => {
+const adjustedTargets = useMemo(() => {
+  try {
     return applyEffortToTargets(targets, effort);
-  }, [targets, effort]);
+  } catch (err) {
+    console.log("applyEffortToTargets error", err);
+    return targets;
+  }
+}, [targets, effort]);
 
-  const remaining = useMemo(() => {
-    return {
-      protein: Math.max(0, adjustedTargets.protein - protein),
-      carbs: Math.max(0, adjustedTargets.carbs - carbs),
-      fat: Math.max(0, adjustedTargets.fat - fat),
-      calories: Math.max(0, targets.calories - calories),
-    };
-  }, [adjustedTargets, targets, protein, carbs, fat, calories]);
+const remaining: MacroTarget = useMemo(() => {
+  return {
+    protein: Math.max(0, adjustedTargets.protein - protein),
+    carbs: Math.max(0, adjustedTargets.carbs - carbs),
+    fat: Math.max(0, adjustedTargets.fat - fat),
+    calories: Math.max(0, targets.calories - calories),
+  };
+}, [adjustedTargets, targets.calories, protein, carbs, fat, calories]);
 
-  const quickNow = useMemo(() => {
-    return buildQuickNowSuggestions(remaining, priceMode);
+  const quickNow = useMemo<QuickNowItem[]>(() => {
+    try {
+      return buildQuickNowSuggestions(remaining, priceMode);
+    } catch (err) {
+      console.log("buildQuickNowSuggestions error", err);
+      return [];
+    }
   }, [remaining, priceMode]);
 
-  const fridge7Days = useMemo(() => {
+  const fridge7Days = useMemo<FoodItem[]>(() => {
     const ids = [
       "chicken",
       "eggs",
       "tuna",
+      "white_fish",
+      "salmon",
+      "ham",
+      "pork_loin",
+      "ground_beef_5",
       "skyr",
       "protein_yogurt",
+      "fromage_blanc",
+      "cottage_cheese",
       "protein_bar",
+
       "rice",
       "whole_pasta",
       "potatoes",
       "sweet_potato",
       "oats",
+      "lentils",
+      "bread_whole",
+      "wraps",
+      "fruit_juice",
+
       "spinach",
       "zucchini",
       "carrots",
       "parsnip",
+      "broccoli",
+      "green_beans",
+      "tomatoes",
+      "mushrooms",
+
       "banana",
       "apple",
+      "orange",
+
       "olive_oil",
+      "rapeseed_oil",
+      "butter",
       "cream",
+      "avocado",
+      "peanut_butter",
+      "nuts_mix",
+      "dark_chocolate",
       "brown_sugar",
     ];
 
-    return FOOD_DB.filter((item) => ids.includes(item.id)).map((item) => ({
-      ...item,
-      weeklyQty:
-        item.category === "protein"
-          ? "3 à 5 portions"
-          : item.category === "dairy" || item.category === "snack"
-          ? "4 à 7 unités"
-          : item.category === "carb"
-          ? "3 à 6 portions"
-          : item.category === "veg"
-          ? "4 à 8 portions"
-          : item.category === "fruit"
-          ? "4 à 7 unités"
-          : "1 à 2 unités",
-    }));
+    return FOOD_DB.filter((item) => ids.includes(item.id));
   }, []);
 
-  const totalFridgePrice = useMemo(() => {
-    return fridge7Days.reduce((acc, item) => {
-      return acc + getPrice(item, priceMode);
-    }, 0);
+  const weeklyBudget = useMemo(() => {
+    try {
+      return getWeeklyBudgetRange(fridge7Days, priceMode);
+    } catch (err) {
+      console.log("getWeeklyBudgetRange error", err);
+      return { min: 0, max: 0 };
+    }
   }, [fridge7Days, priceMode]);
 
   const suggestedMeals = useMemo<SuggestedMeal[]>(() => {
-    const candidates = buildDynamicMealCandidates(priceMode);
+    try {
+      const candidates = buildDynamicMealCandidates(priceMode);
 
-    const built = candidates.map((meal) => ({
-      ...meal,
-      score: mealScore(
-        meal.totals,
-        {
-          protein: remaining.protein,
-          carbs: remaining.carbs,
-          fat: remaining.fat,
-          calories: remaining.calories,
-        },
-        effort
-      ),
-    }));
+      const built = candidates.map((meal) => ({
+        ...meal,
+        score: mealScore(
+          meal.totals,
+          {
+            protein: remaining.protein,
+            carbs: remaining.carbs,
+            fat: remaining.fat,
+            calories: remaining.calories,
+          },
+          effort
+        ),
+      }));
 
-    const sorted = [...built].sort((a, b) => a.score - b.score);
+      const sorted = [...built].sort((a, b) => a.score - b.score);
 
-    const rotated = [...sorted];
-    if (rotated.length > 1) {
-      const shift = daySeed % rotated.length;
-      rotated.push(...rotated.splice(0, shift));
+      const rotated = [...sorted];
+      if (rotated.length > 1) {
+        const shift = daySeed % rotated.length;
+        rotated.push(...rotated.splice(0, shift));
+      }
+
+      const topPool = rotated.slice(0, 8);
+
+      const balanced = topPool[0] || sorted[0];
+
+      const proteinFirst =
+        [...topPool].sort((a, b) => {
+          const aDiff =
+            Math.abs(a.totals.protein - remaining.protein) +
+            Math.abs(a.totals.carbs - Math.min(remaining.carbs, 35));
+          const bDiff =
+            Math.abs(b.totals.protein - remaining.protein) +
+            Math.abs(b.totals.carbs - Math.min(remaining.carbs, 35));
+          return aDiff - bDiff;
+        })[0] || sorted[1];
+
+      const fastOption = topPool.find((m) => m.tag === "Rapide") || sorted[2];
+
+      const unique = [balanced, proteinFirst, fastOption].filter(
+        (meal, index, arr) =>
+          !!meal && arr.findIndex((x) => x.title === meal.title) === index
+      ) as Array<(typeof built)[number]>;
+
+      return unique.map((meal, index) => ({
+        ...meal,
+        displayTitle:
+          index === 0
+            ? "Repas conseillé pour finir ta journée"
+            : index === 1
+            ? "Option ciblée protéines"
+            : "Option rapide",
+      }));
+    } catch (err) {
+      console.log("suggestedMeals error", err);
+      return [];
     }
-
-    const topPool = rotated.slice(0, 8);
-
-    const balanced = topPool[0] || sorted[0];
-
-    const proteinFirst =
-      [...topPool].sort((a, b) => {
-        const aDiff =
-          Math.abs(a.totals.protein - remaining.protein) +
-          Math.abs(a.totals.carbs - Math.min(remaining.carbs, 35));
-        const bDiff =
-          Math.abs(b.totals.protein - remaining.protein) +
-          Math.abs(b.totals.carbs - Math.min(remaining.carbs, 35));
-        return aDiff - bDiff;
-      })[0] || sorted[1];
-
-    const fastOption = topPool.find((m) => m.tag === "Rapide") || sorted[2];
-
-    const unique = [balanced, proteinFirst, fastOption].filter(
-      (meal, index, arr) =>
-        !!meal && arr.findIndex((x) => x.title === meal.title) === index
-    );
-
-    return unique.map((meal, index) => ({
-      ...meal,
-      displayTitle:
-        index === 0
-          ? "Repas conseillé pour finir ta journée"
-          : index === 1
-          ? "Option ciblée protéines"
-          : "Option rapide",
-    }));
   }, [
     priceMode,
     remaining.protein,
@@ -513,7 +706,8 @@ export default function PremiumMealsScreen() {
           </Text>
 
           <Text style={{ color: "#94a3b8", marginTop: 8, lineHeight: 20 }}>
-            {titleByGoal} selon ton profil, tes macros restantes et ton mode de budget.
+            {titleByGoal} selon ton profil, tes macros restantes et ton mode de
+            budget.
           </Text>
 
           <Text style={{ color: "#cbd5e1", marginTop: 10 }}>
@@ -647,14 +841,13 @@ export default function PremiumMealsScreen() {
                   borderBottomColor: "rgba(255,255,255,0.06)",
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
-                  {item.name}
-                </Text>
+                <Text style={{ color: "#fff", fontWeight: "700" }}>{item.name}</Text>
                 <Text style={{ color: "#cbd5e1", marginTop: 4, fontSize: 12 }}>
-                  {item.portionLabel} • P {item.protein} • G {item.carbs} • L {item.fat}
+                  {item.portionLabel} • P {item.protein} • G {item.carbs} • L{" "}
+                  {item.fat}
                 </Text>
                 <Text style={{ color: "#86efac", marginTop: 4, fontSize: 12 }}>
-                  {item.price.toFixed(2)} €
+                  {euro(item.price)}
                 </Text>
               </View>
             ))}
@@ -736,7 +929,7 @@ export default function PremiumMealsScreen() {
                 P {meal.totals.protein} • G {meal.totals.carbs} • L {meal.totals.fat}
               </Text>
               <Text style={{ color: "#94a3b8", marginTop: 4 }}>
-                {meal.totals.calories} kcal • {meal.totals.price.toFixed(2)} € / portion
+                {meal.totals.calories} kcal • {euro(meal.totals.price)} / portion
               </Text>
             </View>
           </View>
@@ -820,37 +1013,168 @@ export default function PremiumMealsScreen() {
             Base frigo recommandée
           </Text>
 
-          <Text style={{ color: "#94a3b8", marginTop: 6 }}>
-            Budget estimé base 7 jours : {totalFridgePrice.toFixed(2)} €
-          </Text>
+          <View
+            style={{
+              marginTop: 12,
+              padding: 14,
+              borderRadius: 14,
+              backgroundColor: "#111827",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.10)",
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 15, fontWeight: "900" }}>
+              Budget estimé pour la semaine
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 8,
+                color: "#86efac",
+                fontSize: 22,
+                fontWeight: "900",
+              }}
+            >
+              {weeklyBudget.min === weeklyBudget.max
+                ? `≈ ${euro(weeklyBudget.min)}`
+                : `${euro(weeklyBudget.min)} à ${euro(weeklyBudget.max)}`}
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 6,
+                color: "#94a3b8",
+                fontSize: 12,
+                lineHeight: 18,
+              }}
+            >
+              Calculé selon les portions prévues sur 7 jours, avec achat conseillé
+              quand un format réel est disponible.
+            </Text>
+          </View>
+
+          <View
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: "rgba(34,197,94,0.08)",
+              borderWidth: 1,
+              borderColor: "rgba(34,197,94,0.22)",
+            }}
+          >
+            <Text style={{ color: "#86efac", fontSize: 13, fontWeight: "900" }}>
+              Panier optimisé pour limiter le gaspillage
+            </Text>
+            <Text
+              style={{
+                marginTop: 4,
+                color: "#cbd5e1",
+                fontSize: 12,
+                lineHeight: 18,
+              }}
+            >
+              Chaque aliment affiche la portion, le nombre prévu sur la semaine, le
+              prix par portion et le budget réel estimé.
+            </Text>
+          </View>
 
           <View style={{ marginTop: 12 }}>
-            {fridge7Days.map((item) => (
-              <View
-                key={item.id}
-                style={{
-                  paddingVertical: 10,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "rgba(255,255,255,0.06)",
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
-                  {item.name}
-                </Text>
+            {fridge7Days.map((item) => {
+              const [minPortions, maxPortions] = item.weeklyPortions ?? [1, 1];
+              const pricePerPortion = getPricePerPortion(item, priceMode);
+              const weeklyCost = getWeeklyCostRange(item, priceMode);
 
-                <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
-                  {item.portionLabel} • {item.weeklyQty}
-                </Text>
+              const portionsLabel =
+                minPortions === maxPortions
+                  ? `${minPortions} portion${minPortions > 1 ? "s" : ""} dans la semaine`
+                  : `${minPortions} à ${maxPortions} portions dans la semaine`;
 
-                <Text style={{ color: "#cbd5e1", marginTop: 4, fontSize: 12 }}>
-                  P {item.protein} • G {item.carbs} • L {item.fat} • {item.calories} kcal
-                </Text>
+              const budgetLabel =
+                weeklyCost.min === weeklyCost.max
+                  ? `Budget semaine : ${euro(weeklyCost.min)}`
+                  : `Budget semaine : ${euro(weeklyCost.min)} à ${euro(weeklyCost.max)}`;
 
-                <Text style={{ color: "#86efac", marginTop: 4, fontSize: 12 }}>
-                  Prix repère : {getPrice(item, priceMode).toFixed(2)} €
-                </Text>
-              </View>
-            ))}
+              return (
+                <View
+                  key={item.id}
+                  style={{
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                    {item.name}
+                  </Text>
+
+                  <Text style={{ color: "#cbd5e1", marginTop: 6, fontSize: 13 }}>
+                    {item.portionLabel} par portion
+                  </Text>
+
+                  <Text style={{ color: "#cbd5e1", marginTop: 4, fontSize: 13 }}>
+                    {portionsLabel}
+                  </Text>
+
+                  <Text style={{ color: "#93c5fd", marginTop: 4, fontSize: 13 }}>
+                    ≈ {euro(pricePerPortion)} par portion
+                  </Text>
+
+                  <Text style={{ color: "#cbd5e1", marginTop: 4, fontSize: 12 }}>
+                    P {item.protein} • G {item.carbs} • L {item.fat} • {item.calories}{" "}
+                    kcal
+                  </Text>
+
+                  <Text
+                    style={{
+                      color: "#86efac",
+                      marginTop: 6,
+                      fontSize: 13,
+                      fontWeight: "800",
+                    }}
+                  >
+                    {budgetLabel}
+                  </Text>
+
+                  {item.packLabel ? (
+                    <View
+                      style={{
+                        marginTop: 8,
+                        padding: 10,
+                        borderRadius: 12,
+                        backgroundColor: "rgba(34,197,94,0.08)",
+                        borderWidth: 1,
+                        borderColor: "rgba(34,197,94,0.22)",
+                      }}
+                    >
+                      <Text
+                        style={{ color: "#86efac", fontSize: 12, fontWeight: "900" }}
+                      >
+                        Achat conseillé
+                      </Text>
+                      <Text
+                        style={{ color: "#e5e7eb", marginTop: 4, fontSize: 12 }}
+                      >
+                        {item.packLabel}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {item.proteinBoost ? (
+                    <Text
+                      style={{
+                        color: "#fbbf24",
+                        marginTop: 8,
+                        fontSize: 12,
+                        fontWeight: "800",
+                      }}
+                    >
+                      Ajout protéiné utile pour la semaine
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
