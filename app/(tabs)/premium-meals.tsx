@@ -49,6 +49,7 @@ type SuggestedMeal = {
   };
   score: number;
   displayTitle: string;
+  flavorTip?: string | null;
 };
 
 type QuickNowItem = FoodItem & {
@@ -130,6 +131,156 @@ function pickBestByCategory(ids: string[]): FoodItem[] {
   return FOOD_DB.filter((item) => ids.includes(item.id));
 }
 
+function getMealDisplayName(items: FoodItem[]): string {
+  const ids = items.map((i) => i.id);
+
+  if (ids.includes("fromage_blanc") && ids.includes("banana")) {
+    return "Fromage blanc banane";
+  }
+
+  if (ids.includes("fromage_blanc") && ids.includes("oats")) {
+    return "Bol fromage blanc avoine";
+  }
+
+  if (ids.includes("greek_yogurt") && ids.includes("banana")) {
+    return "Yaourt grec banane";
+  }
+
+  if (ids.includes("greek_yogurt") && ids.includes("oats")) {
+    return "Bol yaourt grec avoine";
+  }
+
+  if (ids.includes("eggs") && ids.includes("bread_whole") && ids.includes("tomatoes")) {
+    return "Œufs pain complet tomates";
+  }
+
+  if (ids.includes("eggs") && ids.includes("bread_whole")) {
+    return "Tartines œufs pain complet";
+  }
+
+  if (ids.includes("ham") && ids.includes("bread_whole")) {
+    return "Jambon pain complet";
+  }
+
+  if (ids.includes("tuna") && ids.includes("rice") && ids.includes("tomatoes")) {
+    return "Bol thon riz tomates";
+  }
+
+  if (ids.includes("tuna") && ids.includes("bread_whole")) {
+    return "Tartines thon pain complet";
+  }
+
+  if (ids.includes("chicken") && ids.includes("rice") && ids.includes("broccoli")) {
+    return "Assiette poulet riz brocoli";
+  }
+
+  if (ids.includes("chicken") && ids.includes("whole_pasta")) {
+    return "Poulet pâtes et légumes";
+  }
+
+  if (ids.includes("salmon") && ids.includes("potatoes") && ids.includes("green_beans")) {
+    return "Saumon pommes de terre haricots verts";
+  }
+
+  if (ids.includes("white_fish") && ids.includes("rice")) {
+    return "Poisson blanc riz légumes";
+  }
+
+  if (ids.includes("ground_beef_5") && ids.includes("rice")) {
+    return "Steak haché riz légumes";
+  }
+
+  if (ids.includes("sirloin") && ids.includes("potatoes")) {
+    return "Faux-filet pommes de terre légumes";
+  }
+
+  if (ids.includes("duck_breast") && ids.includes("potatoes")) {
+    return "Canard pommes de terre légumes";
+  }
+
+  if (ids.includes("pork_loin") && ids.includes("rice")) {
+    return "Porc riz légumes";
+  }
+
+  if (ids.includes("pork_shoulder") && ids.includes("potatoes")) {
+    return "Porc pommes de terre légumes";
+  }
+
+  const protein =
+    items.find((i) => i.category === "protein" || i.id === "fromage_blanc" || i.id === "greek_yogurt")?.name ??
+    "";
+
+  const carb =
+    items.find((i) => i.category === "carb" || i.id === "banana")?.name ?? "";
+
+  const veg =
+    items.find((i) => i.category === "veg")?.name ?? "";
+
+  if (protein && carb && veg) {
+    return `${protein} ${carb} ${veg}`.replace(/\s+/g, " ").trim();
+  }
+
+  if (protein && carb) {
+    return `${protein} ${carb}`.replace(/\s+/g, " ").trim();
+  }
+
+  return items.map((i) => i.name).join(" • ");
+}
+
+function getMealFlavorTip(items: FoodItem[]): string | null {
+  const ids = items.map((i) => i.id);
+
+  if (ids.includes("tuna")) {
+    return "Astuce goût : citron, poivre et un filet d’huile d’olive.";
+  }
+
+  if (ids.includes("chicken")) {
+    return "Astuce goût : paprika, ail et herbes de Provence.";
+  }
+
+  if (ids.includes("salmon")) {
+    return "Astuce goût : citron, aneth ou ciboulette.";
+  }
+
+  if (ids.includes("white_fish")) {
+    return "Astuce goût : citron, beurre léger et persil.";
+  }
+
+  if (ids.includes("eggs")) {
+    return "Astuce goût : poivre, ciboulette ou un peu de moutarde.";
+  }
+
+  if (ids.includes("ham")) {
+    return "Astuce goût : moutarde douce ou tomates en rondelles.";
+  }
+
+  if (ids.includes("ground_beef_5")) {
+    return "Astuce goût : oignon, poivre et herbes.";
+  }
+
+  if (ids.includes("sirloin")) {
+    return "Astuce goût : poivre, ail et cuisson simple à la poêle.";
+  }
+
+  if (ids.includes("duck_breast")) {
+    return "Astuce goût : poivre et une touche de thym.";
+  }
+
+  if (ids.includes("pork_loin") || ids.includes("pork_shoulder")) {
+    return "Astuce goût : moutarde, ail et herbes.";
+  }
+
+  if (ids.includes("fromage_blanc")) {
+    return "Astuce goût : cannelle ou un filet de miel si besoin.";
+  }
+
+  if (ids.includes("greek_yogurt")) {
+    return "Astuce goût : cannelle, vanille ou morceaux de fruit.";
+  }
+
+  return null;
+}
+
 function buildDynamicMealCandidates(
   priceMode: PriceMode
 ): Array<{
@@ -138,143 +289,178 @@ function buildDynamicMealCandidates(
   items: FoodItem[];
   totals: ReturnType<typeof sumMeal>;
 }> {
-  const proteins = FOOD_DB.filter((i) =>
-    [
-      "chicken",
-      "eggs",
-      "tuna",
-      "white_fish",
-      "salmon",
-      "ham",
-      "pork_loin",
-      "ground_beef_5",
-      "skyr",
-      "protein_yogurt",
-      "fromage_blanc",
-      "cottage_cheese",
-    ].includes(i.id)
-  );
+  
+const proteins = FOOD_DB.filter((i) =>
+  [
+    "chicken",
+    "eggs",
+    "tuna",
+    "white_fish",
+    "salmon",
+    "ham",
+    "pork_loin",
+    "pork_shoulder",
+    "ground_beef_5",
+    "sirloin",
+    "duck_breast",
+    "fromage_blanc",
+    "greek_yogurt",
+  ].includes(i.id)
+);
 
-  const carbs = FOOD_DB.filter((i) =>
-    [
-      "rice",
-      "whole_pasta",
-      "potatoes",
-      "sweet_potato",
-      "oats",
-      "lentils",
-      "bread_whole",
-      "wraps",
-      "banana",
-    ].includes(i.id)
-  );
+const carbs = FOOD_DB.filter((i) =>
+  [
+    "rice",
+    "whole_pasta",
+    "potatoes",
+    "sweet_potato",
+    "oats",
+    "lentils",
+    "bread_whole",
+    "banana",
+  ].includes(i.id)
+);
 
-  const vegs = FOOD_DB.filter((i) =>
-    [
-      "spinach",
-      "zucchini",
-      "carrots",
-      "parsnip",
-      "broccoli",
-      "green_beans",
-      "tomatoes",
-      "mushrooms",
-      "peppers",
-    ].includes(i.id)
-  );
+const vegs = FOOD_DB.filter((i) =>
+  [
+    "spinach",
+    "zucchini",
+    "carrots",
+    "broccoli",
+    "green_beans",
+    "tomatoes",
+    "mushrooms",
+    "peppers",
+  ].includes(i.id)
+);
 
-  const fats = FOOD_DB.filter((i) =>
-    [
-      "olive_oil",
-      "rapeseed_oil",
-      "cream",
-      "butter",
-      "avocado",
-      "peanut_butter",
-    ].includes(i.id)
-  );
+const fats = FOOD_DB.filter((i) =>
+  [
+    "olive_oil",
+    "rapeseed_oil",
+    "cream",
+    "butter",
+  ].includes(i.id)
+);
 
-  const quicks = [
-    pickBestByCategory(["protein_yogurt", "banana"]),
-    pickBestByCategory(["protein_bar", "banana"]),
-    pickBestByCategory(["skyr", "oats"]),
-    pickBestByCategory(["protein_yogurt", "protein_bar"]),
-    pickBestByCategory(["fromage_blanc", "banana"]),
-    pickBestByCategory(["cottage_cheese", "apple"]),
-    pickBestByCategory(["ham", "bread_whole"]),
-    pickBestByCategory(["eggs", "bread_whole"]),
-    pickBestByCategory(["skyr", "fruit_juice"]),
-    pickBestByCategory(["fromage_blanc", "oats"]),
-  ];
+const quicks = [
+  pickBestByCategory(["fromage_blanc", "banana"]),
+  pickBestByCategory(["greek_yogurt", "banana"]),
+  pickBestByCategory(["fromage_blanc", "oats"]),
+  pickBestByCategory(["greek_yogurt", "oats"]),
+  pickBestByCategory(["ham", "bread_whole"]),
+  pickBestByCategory(["eggs", "bread_whole"]),
+  pickBestByCategory(["tuna", "bread_whole"]),
+  pickBestByCategory(["eggs", "banana"]),
+];
 
-  const meals: Array<{
-    title: string;
-    tag: string;
-    items: FoodItem[];
-    totals: ReturnType<typeof sumMeal>;
-  }> = [];
+const vegCompatibility: Record<string, string[]> = {
+  chicken: ["broccoli", "green_beans", "zucchini", "carrots", "peppers"],
+  eggs: ["spinach", "tomatoes", "mushrooms", "peppers"],
+  tuna: ["tomatoes", "green_beans", "spinach"],
+  white_fish: ["zucchini", "green_beans", "carrots", "spinach"],
+  salmon: ["zucchini", "green_beans", "spinach", "carrots"],
+  ham: ["tomatoes", "mushrooms", "spinach"],
+  pork_loin: ["broccoli", "green_beans", "carrots", "zucchini"],
+  pork_shoulder: ["carrots", "green_beans", "peppers"],
+  ground_beef_5: ["broccoli", "carrots", "green_beans", "peppers"],
+  sirloin: ["broccoli", "green_beans", "mushrooms", "peppers"],
+  duck_breast: ["green_beans", "carrots", "peppers"],
+};
 
-  for (const p of proteins) {
-    for (const c of carbs) {
-      for (const v of vegs) {
-        let fat: FoodItem | null = null;
+const carbCompatibility: Record<string, string[]> = {
+  fromage_blanc: ["banana", "oats"],
+  greek_yogurt: ["banana", "oats"],
+  tuna: ["rice", "potatoes", "bread_whole"],
+  eggs: ["bread_whole", "potatoes", "rice"],
+  ham: ["bread_whole", "rice", "whole_pasta"],
+  salmon: ["potatoes", "rice", "sweet_potato"],
+  white_fish: ["rice", "potatoes", "whole_pasta"],
+  chicken: ["rice", "whole_pasta", "potatoes", "sweet_potato"],
+  ground_beef_5: ["rice", "whole_pasta", "potatoes"],
+  pork_loin: ["rice", "potatoes", "whole_pasta"],
+  pork_shoulder: ["potatoes", "rice"],
+  sirloin: ["potatoes", "whole_pasta", "rice"],
+  duck_breast: ["potatoes", "rice"],
+};
 
-        if (["salmon", "ground_beef_5"].includes(p.id)) {
-          fat = null;
-        } else if (
-          ["eggs", "ham", "pork_loin", "white_fish"].includes(p.id)
-        ) {
-          fat = fats.find((f) => ["olive_oil", "butter"].includes(f.id)) || null;
-        } else if (
-          ["fromage_blanc", "cottage_cheese", "skyr", "protein_yogurt"].includes(
-            p.id
-          )
-        ) {
-          fat = null;
-        } else {
-          fat = fats.find((f) => f.id === "olive_oil") || null;
-        }
+const meals: Array<{
+  title: string;
+  tag: string;
+  items: FoodItem[];
+  totals: ReturnType<typeof sumMeal>;
+}> = [];
 
-        const items = fat ? [p, c, v, fat] : [p, c, v];
+for (const p of proteins) {
+  const allowedCarbIds = carbCompatibility[p.id] ?? carbs.map((c) => c.id);
+  const carbCandidates = carbs.filter((c) => allowedCarbIds.includes(c.id));
 
-        let tag = "Équilibré";
+  for (const c of carbCandidates) {
+    const isDairyMeal = ["fromage_blanc", "greek_yogurt"].includes(p.id);
 
-        if (
-          ["tuna", "white_fish", "skyr", "fromage_blanc", "cottage_cheese"].includes(
-            p.id
-          )
-        ) {
-          tag = "Lean";
-        } else if (["eggs", "ham"].includes(p.id)) {
-          tag = "Simple";
-        } else if (["chicken", "ground_beef_5"].includes(p.id)) {
-          tag = "Sport";
-        } else if (["salmon", "duck_breast", "lamb_leg_slice"].includes(p.id)) {
-          tag = "Riche";
-        } else if (["pork_loin"].includes(p.id)) {
-          tag = "Classique";
-        }
+    if (isDairyMeal) {
+      const items = [p, c];
 
-        meals.push({
-          title: `${p.name} • ${c.name} • ${v.name}`,
-          tag,
-          items,
-          totals: sumMeal(items, priceMode),
-        });
+      meals.push({
+       title: getMealDisplayName(items),
+        tag: "Simple",
+        items,
+        totals: sumMeal(items, priceMode),
+      });
+
+      continue;
+    }
+
+    const allowedVegIds = vegCompatibility[p.id] ?? vegs.map((v) => v.id);
+    const vegCandidates = vegs.filter((v) => allowedVegIds.includes(v.id));
+
+    for (const v of vegCandidates) {
+      let fat: FoodItem | null = null;
+
+      if (["salmon", "ground_beef_5", "sirloin", "duck_breast", "pork_shoulder"].includes(p.id)) {
+        fat = null;
+      } else if (["eggs", "ham", "pork_loin", "white_fish", "tuna"].includes(p.id)) {
+        fat = fats.find((f) => ["olive_oil", "butter"].includes(f.id)) || null;
+      } else {
+        fat = fats.find((f) => f.id === "olive_oil") || null;
       }
+
+      const items = fat ? [p, c, v, fat] : [p, c, v];
+
+      let tag = "Équilibré";
+
+      if (["tuna", "white_fish", "fromage_blanc", "greek_yogurt"].includes(p.id)) {
+        tag = "Lean";
+      } else if (["eggs", "ham"].includes(p.id)) {
+        tag = "Simple";
+      } else if (["chicken", "ground_beef_5"].includes(p.id)) {
+        tag = "Sport";
+      } else if (["salmon", "duck_breast", "sirloin", "pork_shoulder"].includes(p.id)) {
+        tag = "Riche";
+      } else if (["pork_loin"].includes(p.id)) {
+        tag = "Classique";
+      }
+
+      meals.push({
+      title: getMealDisplayName(items),
+        tag,
+        items,
+        totals: sumMeal(items, priceMode),
+      });
     }
   }
+}
 
-  for (const items of quicks) {
-    meals.push({
-      title: items.map((i) => i.name).join(" • "),
-      tag: "Rapide",
-      items,
-      totals: sumMeal(items, priceMode),
-    });
-  }
+for (const items of quicks) {
+  meals.push({
+    title: getMealDisplayName(items),
+    tag: "Rapide",
+    items,
+    totals: sumMeal(items, priceMode),
+  });
+}
 
-  return meals;
+return meals;
 }
 
 function buildQuickNowSuggestions(
@@ -283,11 +469,8 @@ function buildQuickNowSuggestions(
 ): QuickNowItem[] {
   const quickItems = FOOD_DB.filter((item) =>
     [
-      "protein_yogurt",
-      "protein_bar",
-      "skyr",
+      "greek_yogurt",
       "fromage_blanc",
-      "cottage_cheese",
       "banana",
       "apple",
       "orange",
@@ -296,10 +479,7 @@ function buildQuickNowSuggestions(
       "ham",
       "oats",
       "bread_whole",
-      "wraps",
       "fruit_juice",
-      "avocado",
-      "peanut_butter",
       "nuts_mix",
       "dark_chocolate",
     ].includes(item.id)
@@ -352,9 +532,9 @@ function buildQuickNowSuggestions(
       if (
         [
           "protein_yogurt",
-          "skyr",
+         "greek yogurt",
           "fromage_blanc",
-          "cottage_cheese",
+         
           "banana",
           "apple",
           "orange",
@@ -366,7 +546,7 @@ function buildQuickNowSuggestions(
       }
 
       if (
-        ["ham", "eggs", "tuna", "bread_whole", "wraps", "avocado"].includes(
+        ["ham", "eggs", "tuna", "bread_whole", ].includes(
           item.id
         )
       ) {
@@ -374,7 +554,7 @@ function buildQuickNowSuggestions(
       }
 
       if (
-        ["peanut_butter", "dark_chocolate", "fruit_juice", "oats"].includes(
+        [ "dark_chocolate", "fruit_juice", "oats"].includes(
           item.id
         )
       ) {
@@ -627,23 +807,24 @@ const remaining: MacroTarget = useMemo(() => {
             Math.abs(b.totals.carbs - Math.min(remaining.carbs, 35));
           return aDiff - bDiff;
         })[0] || sorted[1];
+const fastOption = topPool.find((m) => m.tag === "Rapide") || sorted[2];
 
-      const fastOption = topPool.find((m) => m.tag === "Rapide") || sorted[2];
+const unique = [balanced, proteinFirst, fastOption].filter(
+  (meal, index, arr) =>
+    !!meal && arr.findIndex((x) => x.title === meal.title) === index
+) as Array<(typeof built)[number]>;
 
-      const unique = [balanced, proteinFirst, fastOption].filter(
-        (meal, index, arr) =>
-          !!meal && arr.findIndex((x) => x.title === meal.title) === index
-      ) as Array<(typeof built)[number]>;
-
-      return unique.map((meal, index) => ({
-        ...meal,
-        displayTitle:
-          index === 0
-            ? "Repas conseillé pour finir ta journée"
-            : index === 1
-            ? "Option ciblée protéines"
-            : "Option rapide",
-      }));
+return unique.map((meal, index) => ({
+  ...meal,
+  displayTitle:
+    index === 0
+      ? "Repas conseillé pour finir ta journée"
+      : index === 1
+      ? "Option ciblée protéines"
+      : "Option rapide",
+  flavorTip: getMealFlavorTip(meal.items),
+}));
+      
     } catch (err) {
       console.log("suggestedMeals error", err);
       return [];
@@ -866,75 +1047,113 @@ const remaining: MacroTarget = useMemo(() => {
         >
           IDÉES REPAS
         </Text>
+{suggestedMeals.map((meal) => {
+  const proteinCoverage =
+    remaining.protein > 0
+      ? Math.min(
+          100,
+          Math.round((meal.totals.protein / remaining.protein) * 100)
+        )
+      : 0;
 
-        {suggestedMeals.map((meal) => (
-          <View
-            key={meal.title}
-            style={{
-              marginTop: 10,
-              padding: 16,
-              borderRadius: 18,
-              backgroundColor: "#020617",
-              borderWidth: 1,
-              borderColor: "#1f2937",
-            }}
-          >
-            <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 13 }}>
-              {meal.displayTitle}
-            </Text>
+  return (
+    <View
+      key={meal.title}
+      style={{
+        marginTop: 10,
+        padding: 16,
+        borderRadius: 18,
+        backgroundColor: "#020617",
+        borderWidth: 1,
+        borderColor: "#1f2937",
+      }}
+    >
+      <Text style={{ color: "#38BDF8", fontWeight: "900", fontSize: 13 }}>
+        {meal.displayTitle}
+      </Text>
 
-            <Text
-              style={{
-                color: "#fff",
-                fontWeight: "900",
-                fontSize: 16,
-                marginTop: 6,
-              }}
-            >
-              {meal.title}
-            </Text>
+      <Text
+        style={{
+          color: "#fff",
+          fontWeight: "900",
+          fontSize: 16,
+          marginTop: 6,
+        }}
+      >
+        {meal.title}
+      </Text>
 
-            <View
-              style={{
-                alignSelf: "flex-start",
-                marginTop: 8,
-                paddingVertical: 4,
-                paddingHorizontal: 10,
-                borderRadius: 999,
-                backgroundColor: "rgba(255,255,255,0.08)",
-              }}
-            >
-              <Text style={{ color: "#cbd5e1", fontSize: 11, fontWeight: "800" }}>
-                {meal.tag}
-              </Text>
-            </View>
+      <View
+        style={{
+          alignSelf: "flex-start",
+          marginTop: 8,
+          paddingVertical: 4,
+          paddingHorizontal: 10,
+          borderRadius: 999,
+          backgroundColor: "rgba(255,255,255,0.08)",
+        }}
+      >
+        <Text style={{ color: "#cbd5e1", fontSize: 11, fontWeight: "800" }}>
+          {meal.tag}
+        </Text>
+      </View>
 
-            <View style={{ marginTop: 10 }}>
-              {meal.items.map((item) => (
-                <Text key={item.id} style={{ color: "#cbd5e1", marginTop: 4 }}>
-                  • {item.name} ({item.portionLabel})
-                </Text>
-              ))}
-            </View>
-
-            <View
-              style={{
-                marginTop: 12,
-                paddingTop: 12,
-                borderTopWidth: 1,
-                borderTopColor: "#1f2937",
-              }}
-            >
-              <Text style={{ color: "#fff" }}>
-                P {meal.totals.protein} • G {meal.totals.carbs} • L {meal.totals.fat}
-              </Text>
-              <Text style={{ color: "#94a3b8", marginTop: 4 }}>
-                {meal.totals.calories} kcal • {euro(meal.totals.price)} / portion
-              </Text>
-            </View>
-          </View>
+      <View style={{ marginTop: 10 }}>
+        {meal.items.map((item) => (
+          <Text key={item.id} style={{ color: "#cbd5e1", marginTop: 4 }}>
+            • {item.name} ({item.portionLabel})
+          </Text>
         ))}
+      </View>
 
+      {meal.flavorTip ? (
+        <Text
+          style={{
+            color: "#94a3b8",
+            marginTop: 8,
+            fontSize: 12,
+            lineHeight: 18,
+            fontStyle: "italic",
+          }}
+        >
+          {meal.flavorTip}
+        </Text>
+      ) : null}
+
+      <View style={{ marginTop: 8 }}>
+        <Text style={{ color: "#22c55e", fontWeight: "700" }}>
+          Apport
+        </Text>
+
+        <Text style={{ color: "#cbd5e1", marginTop: 2 }}>
+          +{meal.totals.protein}g protéines • +{meal.totals.carbs}g glucides • +{meal.totals.fat}g lipides
+        </Text>
+
+        {remaining.protein > 0 && (
+          <Text style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}>
+            Couvre {proteinCoverage}% de tes protéines restantes
+          </Text>
+        )}
+      </View>
+
+      <View
+        style={{
+          marginTop: 12,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: "#1f2937",
+        }}
+      >
+        <Text style={{ color: "#fff" }}>
+          P {meal.totals.protein} • G {meal.totals.carbs} • L {meal.totals.fat}
+        </Text>
+        <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+          {meal.totals.calories} kcal • {euro(meal.totals.price)} / portion
+        </Text>
+      </View>
+    </View>
+  );
+})}
         <Text
           style={{
             color: "#94a3b8",

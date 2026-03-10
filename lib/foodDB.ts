@@ -1163,7 +1163,6 @@ export function getWeeklyBudgetRange(items: FoodItem[], mode: PriceMode) {
   
 
 export function euro(n?: number | null) {
-  const safe = Number(n ?? 0);
-  const finalValue = Number.isFinite(safe) ? safe : 0;
-  return `${finalValue.toFixed(2).replace(".", ",")}€`;
+  const value = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return `${value.toFixed(2).replace(".", ",")}€`;
 }
