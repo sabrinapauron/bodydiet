@@ -1941,7 +1941,41 @@ elevation: 4,
   }}
 >
   <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
-    📈 PROGRESSION (7 jours)
+    📈 PROGRESSION macro (7 jours)
+  </Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  onPress={() => router.push("/diagnostic-training" as any)}
+  style={{
+    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  }}
+>
+  <Text
+    style={{
+      textAlign: "center",
+      color: "#fff",
+      fontWeight: "900",
+      fontSize: 14,
+    }}
+  >
+    Diagnostic entraînement
+  </Text>
+
+  <Text
+    style={{
+      textAlign: "center",
+      color: "#94a3b8",
+      fontSize: 12,
+      marginTop: 4,
+    }}
+  >
+    Identifie ce qui bloque ta progression musculaire
   </Text>
 </TouchableOpacity>
 
