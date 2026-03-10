@@ -227,7 +227,7 @@ function daysBetween(fromDay: string, toDay: string): number {
 export default function HomeScreen() {
   const ENABLE_BODY_CHALLENGE = false;
   const router = useRouter();
- const isPremium = true;
+ 
 
   const [loaded, setLoaded] = useState(false);
 
@@ -269,6 +269,7 @@ const profileIncomplete =
 
   // Premium (mock)
   const [isPro, setIsPro] = useState(false);
+  const [bodyScanPremiumOpen, setBodyScanPremiumOpen] = useState(false);
 
   const [points, setPoints] = useState(0);
   const [savePhotos, setSavePhotos] = useState(true);
@@ -280,6 +281,8 @@ const [latestBodyCommentary, setLatestBodyCommentary] = useState<BodyScanComment
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
  const scanPulse = useRef(new Animated.Value(1)).current;
+
+ const isPremium = isPro;
 
 const latestBodyScan = bodyScans[0] || null;
 
@@ -524,9 +527,18 @@ const challengeFinished = challengeUnlocked && challengeDayNumber >= 7;
       : "Plan maintien PERSONNALISE";
 
   const premiumPreviewLines = [
-    "Tes macros CIBLE + ajustement PERSONNALISE",
-    "Ton plan repas adapté et equivalences",
-    "Ta Liste de courses + tes points convertibles multipliés par 2",
+    "Analyse ton évolution physique avec le Body Scan 3D",
+  "et reçois des propositions de repas optimisées pour tes macros",
+
+  "3 MODES au choix :",
+  "• Éco — efficace et économique",
+  "• Standard — équilibre performance / qualité",
+  "• Bio — priorité aux produits biologiques",
+
+  "📈 Visualise ta progression physique",
+  "🍽 Optimise tes repas automatiquement",
+  "🔥 Améliore tes résultats semaine après semaine",
+
   ];
 
   // Auto-chargement
@@ -2259,10 +2271,22 @@ elevation: 4,
 ) : (
   <>
     {premiumPreviewLines.map((l) => (
-      <Text key={l} style={{ color: "#fff", opacity: 0.35, marginTop: 6 }}>
-        {l}
-      </Text>
-    ))}
+  <Text
+    key={l}
+    style={{
+      color: l.startsWith("📈") || l.startsWith("🍽") || l.startsWith("🔥")
+        ? "#e2e8f0"
+        : "#94a3b8",
+      marginTop: 6,
+      lineHeight: 20,
+      fontWeight: l.startsWith("📈") || l.startsWith("🍽") || l.startsWith("🔥")
+        ? "600"
+        : "400",
+    }}
+  >
+    {l}
+  </Text>
+))}
 
     <Text style={{ color: "#38BDF8", fontWeight: "800", marginTop: 12 }}>
       Le coach complet analyse ta progression et ajuste tes macros automatiquement.
@@ -2278,12 +2302,12 @@ elevation: 4,
       }}
     >
       <Text style={{ textAlign: "center", color: "#0b1220", fontWeight: "900" }}>
-        🔒  Body Diet Premium
+        🔒  Déboque Body Diet Premium
       </Text>
     </TouchableOpacity>
 
     <Text style={{ color: "#fff", opacity: 0.55, marginTop: 8, fontSize: 12 }}>
-      Active Premium pour analyser ta progression et améliorer tes résultats.
+     Body Scan 3D + repas optimisés.
     </Text>
   </>
 )}

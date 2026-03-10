@@ -1,18 +1,22 @@
-export type DiagnosticCategory = "musculation" | "course" | "silhouette";
+export type DiagnosticCategory = "musculation" | "course" | "silhouette" | "ia spécialisée";
 
 export type DiagnosticQuestion =
   | {
-      id: string;
-      label: string;
-      type: "choice";
-      options: { value: string; label: string }[];
-    }
+    id: string;
+    label: string;
+    type: "choice";
+    options: { value: string; label: string }[];
+  }
   | {
-      id: string;
-      label: string;
-      type: "boolean";
-    };
-
+    id: string;
+    label: string;
+    type: "boolean";
+  }
+  | {
+    id: string;
+    label: string;
+    type: "text";
+  };
 export type DiagnosticCause = {
   id: string;
   label: string;
@@ -940,6 +944,46 @@ export const TRAINING_DIAGNOSTICS: DiagnosticCase[] = [
       "Comparer énergie, récupération et congestion",
     ],
   },
+  {
+    id: "bodymind_ai",
+    title: " ✨ IA BodyMind",
+    category: "ia spécialisée",
+    intro:
+      "Ton problème ne correspond pas aux diagnostics ? Décris ta situation et l’IA BodyMind t’aidera à y voir plus clair.",
+
+    questions: [
+      {
+        id: "problem",
+        label: "Décris ton problème ou ta question fitness",
+        type: "text",
+      },
+    ],
+
+    causes: [
+      { id: "bodymind_analysis", label: "Analyse personnalisée BodyMind" },
+    ],
+
+    computeScores: () =>
+      normalizeScores([
+        {
+          id: "bodymind_analysis",
+          label: "Analyse personnalisée BodyMind",
+          score: 100,
+        },
+      ]),
+
+    correction: [
+      "Analyse guidée par IA selon ta description.",
+      "Les conseils peuvent concerner l'entraînement, la récupération, la technique ou la nutrition.",
+    ],
+
+    test14Days: [
+      "Appliquer les recommandations proposées.",
+      "Observer l’évolution pendant 14 jours.",
+      "Réévaluer les sensations, performances ou zones ciblées.",
+    ],
+  },
+
 ];
 
 export function getDiagnosticById(id: string): DiagnosticCase | undefined {
@@ -947,5 +991,15 @@ export function getDiagnosticById(id: string): DiagnosticCase | undefined {
 }
 
 export function getDiagnosticsByCategory(category: DiagnosticCategory): DiagnosticCase[] {
-  return TRAINING_DIAGNOSTICS.filter((item) => item.category === category);
-}
+  return TRAINING_DIAGNOSTICS.filter((item) => item.category === category)
+};
+
+
+
+
+
+
+
+
+
+

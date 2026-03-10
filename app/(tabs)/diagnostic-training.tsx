@@ -15,6 +15,7 @@ import {
 
 import {
   startDiagnosticTest,
+  getDiagnosticTest,
 } from "../../storage/trainingDiagnosticStore";
 
 export default function DiagnosticTrainingScreen() {
@@ -23,6 +24,7 @@ export default function DiagnosticTrainingScreen() {
   const [selected, setSelected] = useState<DiagnosticCase | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [result, setResult] = useState<any[] | null>(null);
+  const [testState, setTestState] = useState<any | null>(null);
 
   function answer(qid: string, value: any) {
     setAnswers((prev) => ({
@@ -38,14 +40,19 @@ export default function DiagnosticTrainingScreen() {
     setResult(scores);
   }
 
-async function startTest() {
-  console.log("startDiagnosticTest =", startDiagnosticTest);
+  async function startTest() {
+    if (!selected) return;
 
-  if (!selected) return;
-
-  await startDiagnosticTest(selected.id);
-  alert("Test démarré pour 14 jours.");
+    const state = await startDiagnosticTest(selected.id);
+    setTestState(state);
+  }
+  function resetDiagnostic() {
+  setSelected(null);
+  setAnswers({});
+  setResult(null);
+  setTestState(null);
 }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0a1235" }}>
       <ScrollView
@@ -55,7 +62,6 @@ async function startTest() {
           paddingBottom: 40,
         }}
       >
-        {/* retour */}
         <TouchableOpacity
           onPress={() => router.back()}
           style={{
@@ -69,9 +75,7 @@ async function startTest() {
             borderColor: "#1f2937",
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "800" }}>
-            ← Retour
-          </Text>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>← Retour</Text>
         </TouchableOpacity>
 
         <Text
@@ -95,16 +99,18 @@ async function startTest() {
           solution pendant 14 jours.
         </Text>
 
-        {/* liste diagnostics */}
         {!selected && (
           <View style={{ marginTop: 20 }}>
             {TRAINING_DIAGNOSTICS.map((d) => (
               <TouchableOpacity
                 key={d.id}
-                onPress={() => {
+                onPress={async () => {
                   setSelected(d);
                   setAnswers({});
                   setResult(null);
+
+                  const state = await getDiagnosticTest(d.id);
+                  setTestState(state);
                 }}
                 style={{
                   marginTop: 10,
@@ -138,7 +144,6 @@ async function startTest() {
           </View>
         )}
 
-        {/* questionnaire */}
         {selected && !result && (
           <View style={{ marginTop: 20 }}>
             <Text
@@ -182,16 +187,52 @@ async function startTest() {
                     <>
                       <TouchableOpacity
                         onPress={() => answer(q.id, true)}
-                        style={{ marginTop: 6 }}
+                        style={{
+                          marginTop: 6,
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 12,
+                          backgroundColor:
+                            answers[q.id] === true ? "#22c55e" : "#111827",
+                          borderWidth: 1,
+                          borderColor:
+                            answers[q.id] === true ? "#22c55e" : "#1f2937",
+                        }}
                       >
-                        <Text style={{ color: "#cbd5e1" }}>Oui</Text>
+                        <Text
+                          style={{
+                            color:
+                              answers[q.id] === true ? "#0b1220" : "#cbd5e1",
+                            fontWeight: "700",
+                          }}
+                        >
+                          Oui
+                        </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         onPress={() => answer(q.id, false)}
-                        style={{ marginTop: 6 }}
+                        style={{
+                          marginTop: 6,
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 12,
+                          backgroundColor:
+                            answers[q.id] === false ? "#22c55e" : "#111827",
+                          borderWidth: 1,
+                          borderColor:
+                            answers[q.id] === false ? "#22c55e" : "#1f2937",
+                        }}
                       >
-                        <Text style={{ color: "#cbd5e1" }}>Non</Text>
+                        <Text
+                          style={{
+                            color:
+                              answers[q.id] === false ? "#0b1220" : "#cbd5e1",
+                            fontWeight: "700",
+                          }}
+                        >
+                          Non
+                        </Text>
                       </TouchableOpacity>
                     </>
                   )}
@@ -201,9 +242,27 @@ async function startTest() {
                       <TouchableOpacity
                         key={opt.value}
                         onPress={() => answer(q.id, opt.value)}
-                        style={{ marginTop: 6 }}
+                        style={{
+                          marginTop: 6,
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 12,
+                          backgroundColor:
+                            answers[q.id] === opt.value ? "#22c55e" : "#111827",
+                          borderWidth: 1,
+                          borderColor:
+                            answers[q.id] === opt.value ? "#22c55e" : "#1f2937",
+                        }}
                       >
-                        <Text style={{ color: "#cbd5e1" }}>
+                        <Text
+                          style={{
+                            color:
+                              answers[q.id] === opt.value
+                                ? "#0b1220"
+                                : "#cbd5e1",
+                            fontWeight: "700",
+                          }}
+                        >
                           {opt.label}
                         </Text>
                       </TouchableOpacity>
@@ -234,18 +293,35 @@ async function startTest() {
           </View>
         )}
 
-        {/* résultat */}
-        {selected && result && (
-          <View style={{ marginTop: 20 }}>
-            <Text
-              style={{
-                color: "#22c55e",
-                fontWeight: "900",
-                fontSize: 16,
-              }}
-            >
-              Cause principale probable
-            </Text>
+       {selected && result && (
+  <View style={{ marginTop: 20 }}>
+    <TouchableOpacity
+      onPress={resetDiagnostic}
+      style={{
+        alignSelf: "flex-start",
+        marginBottom: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        backgroundColor: "#111827",
+        borderWidth: 1,
+        borderColor: "#1f2937",
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "800" }}>
+        ← Choisir un autre diagnostic
+      </Text>
+    </TouchableOpacity>
+
+    <Text
+      style={{
+        color: "#22c55e",
+        fontWeight: "900",
+        fontSize: 18,
+      }}
+    >
+      Cause principale probable
+    </Text>
 
             <Text
               style={{
@@ -258,34 +334,32 @@ async function startTest() {
               {result[0].label}
             </Text>
 
-            {/* probabilité */}
             <Text style={{ color: "#94a3b8", marginTop: 4 }}>
-  Probabilité estimée
-</Text>
+              Probabilité estimée
+            </Text>
 
-<View
-  style={{
-    marginTop: 6,
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: "#1f2937",
-    overflow: "hidden",
-  }}
->
-  <View
-    style={{
-      width: `${result[0].score}%`,
-      height: 8,
-      backgroundColor: "#22c55e",
-    }}
-  />
-</View>
+            <View
+              style={{
+                marginTop: 6,
+                height: 8,
+                borderRadius: 999,
+                backgroundColor: "#1f2937",
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${result[0].score}%`,
+                  height: 8,
+                  backgroundColor: "#22c55e",
+                }}
+              />
+            </View>
 
-<Text style={{ color: "#94a3b8", marginTop: 4 }}>
-  {result[0].score}%
-</Text>
+            <Text style={{ color: "#94a3b8", marginTop: 4 }}>
+              {result[0].score}%
+            </Text>
 
-            {/* autres causes */}
             <View style={{ marginTop: 12 }}>
               {result.slice(1, 3).map((c) => (
                 <Text key={c.id} style={{ color: "#cbd5e1" }}>
@@ -294,7 +368,6 @@ async function startTest() {
               ))}
             </View>
 
-            {/* correction */}
             <View style={{ marginTop: 16 }}>
               <Text style={{ color: "#22c55e", fontWeight: "800" }}>
                 Correction
@@ -307,11 +380,31 @@ async function startTest() {
               ))}
             </View>
 
-            {/* test */}
             <View style={{ marginTop: 16 }}>
               <Text style={{ color: "#22c55e", fontWeight: "800" }}>
                 Test recommandé (14 jours)
               </Text>
+
+              {testState && (
+                <View
+                  style={{
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: "#111827",
+                    borderWidth: 1,
+                    borderColor: "#1f2937",
+                  }}
+                >
+                  <Text style={{ color: "#22c55e", fontWeight: "800" }}>
+                    Test en cours
+                  </Text>
+
+                  <Text style={{ color: "#cbd5e1", marginTop: 4 }}>
+                    Jour {testState.dayNumber} / 14
+                  </Text>
+                </View>
+              )}
 
               {selected.test14Days.map((c, i) => (
                 <Text key={i} style={{ color: "#cbd5e1", marginTop: 4 }}>
@@ -321,22 +414,22 @@ async function startTest() {
             </View>
 
             <TouchableOpacity
-              onPress={startTest}
+              onPress={testState?.isActive ? undefined : startTest}
               style={{
                 marginTop: 18,
                 paddingVertical: 14,
                 borderRadius: 14,
-                backgroundColor: "#22c55e",
+                backgroundColor: testState?.isActive ? "#1f2937" : "#22c55e",
               }}
             >
               <Text
                 style={{
                   textAlign: "center",
                   fontWeight: "900",
-                  color: "#020617",
+                  color: testState?.isActive ? "#94a3b8" : "#020617",
                 }}
               >
-                J’ai testé
+                {testState?.isActive ? "Test en cours" : "J’ai testé"}
               </Text>
             </TouchableOpacity>
           </View>
