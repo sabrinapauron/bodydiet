@@ -7,6 +7,8 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  Modal,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { saveState, loadState, upsertDaySummary,  } from "../../storage/bodyStore";
@@ -527,18 +529,14 @@ const challengeFinished = challengeUnlocked && challengeDayNumber >= 7;
       : "Plan maintien PERSONNALISE";
 
   const premiumPreviewLines = [
-    "Analyse ton évolution physique avec le Body Scan 3D",
-  "et reçois des propositions de repas optimisées pour tes macros",
+  "📈 Visualise et comprend ta progression physique",
+  "🍽 Améliore tes repas pour + de résultat",
+  "🔥 Optimise  ta vitesse de progression ",
 
-  "3 MODES au choix :",
+"3 MODES au choix :",
   "• Éco — efficace et économique",
   "• Standard — équilibre performance / qualité",
   "• Bio — priorité aux produits biologiques",
-
-  "📈 Visualise ta progression physique",
-  "🍽 Optimise tes repas automatiquement",
-  "🔥 Améliore tes résultats semaine après semaine",
-
   ];
 
   // Auto-chargement
@@ -1155,11 +1153,167 @@ const sectionTitleStyle = {
   marginBottom: 8,
 };
 return (
+
+  
   <SafeAreaView style={{ flex: 1, backgroundColor: "#0a1235" }}>
     <ScrollView
       ref={scrollRef}
       contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
     >
+    <Modal
+  visible={bodyScanPremiumOpen}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setBodyScanPremiumOpen(false)}
+>
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(2,6,23,0.82)",
+      justifyContent: "center",
+      padding: 20,
+    }}
+  >
+    <View
+      style={{
+        borderRadius: 24,
+        backgroundColor: "#020617",
+        borderWidth: 1,
+        borderColor: "#1c2fe2",
+        padding: 20,
+      }}
+    >
+      <Text
+        style={{
+          color: "#fff",
+          fontSize: 20,
+          fontWeight: "900",
+          textAlign: "center",
+        }}
+      >
+        Aperçu Body Diet Premium
+      </Text>
+
+      <Text
+        style={{
+          color: "#94a3b8",
+          textAlign: "center",
+          marginTop: 8,
+          lineHeight: 20,
+        }}
+      >
+        Débloque l’analyse visuelle Body Scan 3D et le suivi physique intelligent.
+      </Text>
+
+      <View style={{ marginTop: 18, gap: 10 }}>
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(74, 73, 148, 0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            📊 Avec Body Scan 3D 
+          </Text>
+          <Text style={{ color: "#dde3eb", marginTop: 4, lineHeight: 19 }}>
+            Visualise et analyse ta composition corporelle et améliore ta stratégie macro.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            📈 Optimise  ton parcours pour des résultats visibles
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+            Compare tes scans et visualise l'évolution de ton corps semaine après semaine.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+             🍽 Découvre des repas optimisé adaptés à ton profil 
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+             Des repas variés pensés pour atteindre facilement tes macros.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(28,47,226,0.12)",
+            borderWidth: 1,
+            borderColor: "rgba(28,47,226,0.35)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+             💰 Le buget ca compte aussi 
+          </Text>
+          <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
+             body diet t'aide à MAITRISER TON BUDGET alimentaire grâce à l'option éco, standard ou bio
+            et à optimiser ton frigo sur 7 jours 
+          </Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+        style={{
+          marginTop: 18,
+          paddingVertical: 14,
+          borderRadius: 14,
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            color: "#0b1220",
+            fontWeight: "900",
+          }}
+        >
+          🔓 Débloquer Body Diet Premium
+        </Text>
+      </TouchableOpacity>
+
+      <Pressable
+        onPress={() => setBodyScanPremiumOpen(false)}
+        style={{ marginTop: 12, paddingVertical: 8 }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            color: "#94a3b8",
+            fontWeight: "700",
+          }}
+        >
+          Fermer
+        </Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
       {/* HEADER JOUR */}
       <View
   style={{
@@ -1688,11 +1842,23 @@ elevation: 4,
     </TouchableOpacity>
   </View>
 </View>
+<Text
+  style={{
+    color: "#ffffff",
+    opacity: 0.35,
+    fontSize: 11,
+      marginTop: 4,
+    marginBottom: -14,
+    textAlign: "center",
+  }}
+>
+  Ajoute ton effort pour ajuster tes macros.
+</Text>
 
 {/* SCAN */}
 <View
   style={{
-    marginTop: 18,
+    marginTop: 1,
 
     // halo lumineux
     shadowColor: "#38bdf8",
@@ -1744,77 +1910,14 @@ elevation: 4,
       </View>
     </TouchableOpacity>
   </Animated.View>
-
-  <View
-    style={{
-      marginTop: 10,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    }}
-  >
-    <Text style={{ color: "#fff", opacity: 0.7, fontSize: 12 }}>
-      Album repas : {savePhotos ? "ON" : "OFF"}
-    </Text>
-
-    <TouchableOpacity
-      onPress={async () => {
-        const next = !savePhotos;
-        setSavePhotos(next);
-        await persist({ savePhotos: next });
-      }}
-      style={{
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 999,
-        backgroundColor: "#020617",
-        borderWidth: 1,
-        borderColor: savePhotos ? "#1c2fe2" : "#334155",
-      }}
-    >
-      <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
-        {savePhotos ? " ON" : " OFF"}
-      </Text>
-    </TouchableOpacity>
   </View>
-</View>
 
-<Text style={[sectionTitleStyle, { marginTop: 22 }]}>OUTILS</Text>
-
-{/* REPAS BODY DIET (Premium) */}
-{isPremium && (
-  <TouchableOpacity
-    onPress={() => router.push("/premium-meals" as any)}
-    style={{
-      marginTop: 12,
-      paddingVertical: 14,
-      borderRadius: 14,
-      backgroundColor: "#ffffff",
-      borderWidth: 1,
-      borderColor: "#1c2fe2",
-    }}
-  >
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <MaterialCommunityIcons name="food-apple" size={20} color="#0b1220" />
-
-      <Text style={{ color: "#0b1220", fontWeight: "900", marginLeft: 8 }}>
-        REPAS BODY DIET
-      </Text>
-    </View>
-  </TouchableOpacity>
-)}
-
+  <Text style={[sectionTitleStyle, { marginTop: 22 }]}>OUTILS</Text>
 
 <TouchableOpacity
   onPress={() => router.push("/album-meals")}
   style={{
-    marginTop: 12,
+    marginTop: 1,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: "#020617",
@@ -1836,30 +1939,138 @@ elevation: 4,
   </View>
 </TouchableOpacity>
 
-<TouchableOpacity
-  onPress={() => router.push("/body-scan")}
+<View
   style={{
     marginTop: 12,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: "#020617",
-    borderWidth: 1,
-    borderColor: "rgba(128, 120, 120, 0.34)",
+    flexDirection: "row",
+    gap: 10,
   }}
 >
-  <View
+  <TouchableOpacity
+    onPress={() => {
+      if (isPremium) {
+        router.push("/premium-meals" as any);
+      } else {
+        Alert.alert("Premium", "Cette fonction est réservée à Body Diet Premium.");
+      }
+    }}
     style={{
-      flexDirection: "row",
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: isPremium ? "#ffffff" : "#0f172a",
+      borderWidth: 1,
+      borderColor: isPremium ? "#1c2fe2" : "#334155",
       justifyContent: "center",
-      alignItems: "center",
     }}
   >
-    <MaterialCommunityIcons name="account-search" size={20} color="#fff" />
-    <Text style={{ color: "#fff", fontWeight: "900", marginLeft: 8 }}>
-      SCAN BODY
-    </Text>
-  </View>
-</TouchableOpacity>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 8,
+      }}
+    >
+      <MaterialCommunityIcons
+        name={isPremium ? "food-apple" : "lock-outline"}
+        size={20}
+        color={isPremium ? "#0b1220" : "#60a5fa"}
+      />
+
+      <Text
+        style={{
+          color: isPremium ? "#0b1220" : "#e2e8f0",
+          fontWeight: "900",
+          marginLeft: 8,
+          textAlign: "center",
+          fontSize: 13,
+        }}
+        numberOfLines={1}
+      >
+        {isPremium ? "REPAS BODY DIET" : "🔒 REPAS BODY"}
+      </Text>
+    </View>
+
+    {!isPremium && (
+      <Text
+        style={{
+          textAlign: "center",
+          color: "#94a3b8",
+          fontSize: 11,
+          marginTop: 6,
+          paddingHorizontal: 6,
+        }}
+        numberOfLines={2}
+      >
+        Repas optimisés
+      </Text>
+    )}
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => {
+      if (isPremium) {
+        router.push("/body-scan");
+      } else {
+        setBodyScanPremiumOpen(true);
+      }
+    }}
+    style={{
+      flex: 1,
+      paddingVertical: 14,
+      borderRadius: 14,
+      backgroundColor: isPremium ? "#020617" : "#0f172a",
+      borderWidth: 1,
+      borderColor: isPremium ? "rgba(128, 120, 120, 0.34)" : "#1c2fe2",
+      opacity: isPremium ? 1 : 0.96,
+      justifyContent: "center",
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 8,
+      }}
+    >
+      <MaterialCommunityIcons
+        name={isPremium ? "account-search" : "lock-outline"}
+        size={20}
+        color={isPremium ? "#fff" : "#60a5fa"}
+      />
+
+      <Text
+        style={{
+          color: isPremium ? "#fff" : "#e2e8f0",
+          fontWeight: "900",
+          marginLeft: 8,
+          textAlign: "center",
+          fontSize: 13,
+        }}
+        numberOfLines={1}
+      >
+        {isPremium ? "SCAN BODY" : "🔒 BODY SCAN 3D"}
+      </Text>
+    </View>
+
+    {!isPremium && (
+      <Text
+        style={{
+          textAlign: "center",
+          color: "#94a3b8",
+          fontSize: 11,
+          marginTop: 6,
+          paddingHorizontal: 6,
+        }}
+        numberOfLines={2}
+      >
+        Aperçu Premium
+      </Text>
+    )}
+  </TouchableOpacity>
+</View>
 
     {/* AJOUT RAPIDE */}
 <Text style={[sectionTitleStyle, { marginTop: 22 }]}>AJOUT RAPIDE</Text>
@@ -1869,7 +2080,7 @@ elevation: 4,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginTop: 10,
+    marginTop: 1,
   }}
 >
 
@@ -1944,7 +2155,7 @@ elevation: 4,
 <TouchableOpacity
   onPress={() => router.push("/progress")}
   style={{
-    marginTop: 14,
+    marginTop: 1,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: "#111827",
@@ -1952,9 +2163,52 @@ elevation: 4,
     borderColor: "#36404e",
   }}
 >
-  <Text style={{ textAlign: "center", color: "#fff", fontWeight: "900" }}>
-    📈 PROGRESSION macro (7 jours)
-  </Text>
+  <View
+    style={{
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-end",
+        marginRight: 8,
+        gap: 3,
+        height: 16,
+      }}
+    >
+      <View
+        style={{
+          width: 4,
+          height: 7,
+          borderRadius: 3,
+          backgroundColor: "#22c55e",
+        }}
+      />
+      <View
+        style={{
+          width: 4,
+          height: 11,
+          borderRadius: 3,
+          backgroundColor: "#f59e0b",
+        }}
+      />
+      <View
+        style={{
+          width: 4,
+          height: 15,
+          borderRadius: 3,
+          backgroundColor: "#1c2fe2",
+        }}
+      />
+    </View>
+
+    <Text style={{ color: "#fff", fontWeight: "900" }}>
+      PROGRESSION macro (7 jours)
+    </Text>
+  </View>
 </TouchableOpacity>
 
 <TouchableOpacity
@@ -2257,7 +2511,7 @@ elevation: 4,
 
     {/* Body Scan Premium */}
     <View style={{ marginTop: 14 }}>
-      <Text style={{ color: "#38BDF8", fontWeight: "900" }}>Body Scan évolution</Text>
+      <Text style={{ color: "#38BDF8", fontWeight: "900" }}>Body Scan 3D évolution</Text>
 
       <Text style={{ color: "#cbd5e1", marginTop: 6 }}>
         Compare ton évolution physique grâce au scan corporel hebdomadaire.
@@ -2289,7 +2543,7 @@ elevation: 4,
 ))}
 
     <Text style={{ color: "#38BDF8", fontWeight: "800", marginTop: 12 }}>
-      Le coach complet analyse ta progression et ajuste tes macros automatiquement.
+    Progression accélérée. Objectif optimisé. Résultats visibles.
     </Text>
 
     <TouchableOpacity
