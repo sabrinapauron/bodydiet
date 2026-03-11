@@ -280,6 +280,8 @@ const [coachChallenge, setCoachChallenge] = useState<CoachWeeklyChallenge | null
 const [showCoachBravo, setShowCoachBravo] = useState(false);
 const [bodyScans, setBodyScans] = useState<BodyScan[]>([]);
 const [latestBodyCommentary, setLatestBodyCommentary] = useState<BodyScanCommentary | null>(null);
+const [mealsPremiumOpen, setMealsPremiumOpen] = useState(false);
+
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
  const scanPulse = useRef(new Animated.Value(1)).current;
@@ -491,54 +493,41 @@ const challengeFinished = challengeUnlocked && challengeDayNumber >= 7;
   const nextReward =
     rewardSteps.find((step) => points < step) ??
     rewardSteps[rewardSteps.length - 1];
+// Coach gratuit : gap principal
+const biggestGap: "P" | "G" | "L" =
+  remainingP >= remainingG && remainingP >= remainingL
+    ? "P"
+    : remainingG >= remainingL
+    ? "G"
+    : "L";
 
-  // Coach gratuit : gap principal
-  const biggestGap: "P" | "G" | "L" =
-    remainingP >= remainingG && remainingP >= remainingL
-      ? "P"
-      : remainingG >= remainingL
-      ? "G"
-      : "L";
+const coachFreeLine =
+  biggestGap === "P"
+    ? `Tu manques surtout de PROTEINES (${remainingP}g).`
+    : biggestGap === "G"
+    ? `Tu manques surtout de GLUCIDES (${remainingG}g).`
+    : `Tu manques surtout de LIPIDES (${remainingL}g).`;
 
-  const coachFreeLine =
-    biggestGap === "P"
-      ? `Tu manques surtout de PROTEINES (${remainingP}g).`
-      : biggestGap === "G"
-      ? `Tu manques surtout de GLUCIDES (${remainingG}g).`
-      : `Tu manques surtout de LIPIDES (${remainingL}g).`;
+const coachFreeAction =
+  biggestGap === "P"
+    ? "Action simple: ajoute 1 portion proteinee au prochain repas."
+    : biggestGap === "G"
+    ? "Action simple: ajoute 1 portion de glucides au prochain repas."
+    : "Action simple: ajoute 1 source de bons lipides au prochain repas.";
 
-  const coachFreeAction =
-    biggestGap === "P"
-      ? "Action simple: ajoute 1 portion proteinee au prochain repas."
-      : biggestGap === "G"
-      ? "Action simple: ajoute 1 portion de glucides au prochain repas."
-      : "Action simple: ajoute 1 source de bons lipides au prochain repas.";
+const premiumTitle =
+  goal === "cut"
+    ? "Plan seche PERSONNALISE"
+    : goal === "gain"
+    ? "Plan masse PERSONNALISE"
+    : "Plan maintien PERSONNALISE";
 
-  const coachFreeFoods =
-    biggestGap === "P"
-      ? "Idees: poulet, thon, oeufs, skyr, shake."
-      : biggestGap === "G"
-      ? "Idees: riz, avoine, pates, pommes de terre, banane."
-      : "Idees: amandes, avocat, huile d olive, beurre de cacahuete.";
-
-  const premiumTitle =
-    goal === "cut"
-      ? "Plan seche PERSONNALISE"
-      : goal === "gain"
-      ? "Plan masse PERSONNALISE"
-      : "Plan maintien PERSONNALISE";
-
-  const premiumPreviewLines = [
+const premiumPreviewLines = [
   "📈 Visualise et comprend ta progression physique",
   "🍽 Améliore tes repas pour + de résultat",
-  "🔥 Optimise  ta vitesse de progression ",
-
-"3 MODES au choix :",
-  "• Éco — efficace et économique",
-  "• Standard — équilibre performance / qualité",
-  "• Bio — priorité aux produits biologiques",
-  ];
-
+  "🔥 Optimise ta vitesse de progression",
+];
+  
   // Auto-chargement
 useFocusEffect(
   React.useCallback(() => {
@@ -1191,7 +1180,7 @@ return (
           textAlign: "center",
         }}
       >
-        Aperçu Body Diet Premium
+        Body Diet Premium
       </Text>
 
       <Text
@@ -1202,60 +1191,10 @@ return (
           lineHeight: 20,
         }}
       >
-        Débloque l’analyse visuelle Body Scan 3D et le suivi physique intelligent.
+        Accède au Body Scan 3D et découvre un univers unique
       </Text>
 
       <View style={{ marginTop: 18, gap: 10 }}>
-        <View
-          style={{
-            padding: 12,
-            borderRadius: 14,
-            backgroundColor: "rgba(255,255,255,0.04)",
-            borderWidth: 1,
-            borderColor: "rgba(74, 73, 148, 0.08)",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800" }}>
-            📊 Avec Body Scan 3D 
-          </Text>
-          <Text style={{ color: "#dde3eb", marginTop: 4, lineHeight: 19 }}>
-            Visualise et analyse ta composition corporelle et améliore ta stratégie macro.
-          </Text>
-        </View>
-
-        <View
-          style={{
-            padding: 12,
-            borderRadius: 14,
-            backgroundColor: "rgba(255,255,255,0.04)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800" }}>
-            📈 Optimise  ton parcours pour des résultats visibles
-          </Text>
-          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-            Compare tes scans et visualise l'évolution de ton corps semaine après semaine.
-          </Text>
-        </View>
-
-        <View
-          style={{
-            padding: 12,
-            borderRadius: 14,
-            backgroundColor: "rgba(255,255,255,0.04)",
-            borderWidth: 1,
-            borderColor: "rgba(255,255,255,0.08)",
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "800" }}>
-             🍽 Découvre des repas optimisé adaptés à ton profil 
-          </Text>
-          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-             Des repas variés pensés pour atteindre facilement tes macros.
-          </Text>
-        </View>
 
         <View
           style={{
@@ -1267,49 +1206,297 @@ return (
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "800" }}>
-             💰 Le buget ca compte aussi 
+            🧠 Analyse morphologique avancée
           </Text>
-          <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
-             body diet t'aide à MAITRISER TON BUDGET alimentaire grâce à l'option éco, standard ou bio
-            et à optimiser ton frigo sur 7 jours 
+          <Text style={{ color: "#dde3eb", marginTop: 4, lineHeight: 19 }}>
+            BodyScan 3D étudie ta silhouette sous plusieurs angles pour identifier ta structure physique, ta posture et ton profil sportif probable.
           </Text>
         </View>
-      </View>
 
-      <TouchableOpacity
-        onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            🔬 Lecture de ton corps
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+            Découvre les leviers physiques les plus pertinents pour améliorer ta silhouette : posture, équilibre musculaire et tonicité globale.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            📈 Suivi visuel de ta progression
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+            Compare tes scans dans le temps et observe l’évolution réelle de ta posture, de ta tonicité et de l’équilibre de ta silhouette.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(34,197,94,0.10)",
+            borderWidth: 1,
+            borderColor: "rgba(34,197,94,0.28)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            ⚡ Prix 19 € / an  
+          </Text>
+         <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
+             - ⭐39 € accès à vie (coût unique sans abonnement) Recommandé
+</Text>
+
+<Text
+  style={{
+    color: "#22c55e",
+    marginTop: 8,
+    fontWeight: "800",
+  }}
+>
+  🔒 Débloque Body Diet Premium pour accéder à cette analyse avancée.
+  Paiement sécurisé • Annulable à tout moment
+</Text>
+        </View>
+
+<View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
+  <TouchableOpacity
+    onPress={() => setBodyScanPremiumOpen(false)}
+    style={{
+      flex: 1,
+      paddingVertical: 13,
+      borderRadius: 14,
+      backgroundColor: "#111827",
+      borderWidth: 1,
+      borderColor: "#334155",
+    }}
+  >
+    <Text
+      style={{
+        textAlign: "center",
+        color: "#e5e7eb",
+        fontWeight: "900",
+      }}
+    >
+      Plus tard
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+    style={{
+      flex: 1,
+      paddingVertical: 13,
+      borderRadius: 14,
+      backgroundColor: "#ffffff",
+    }}
+  >
+    <Text
+      style={{
+        textAlign: "center",
+        color: "#0b1220",
+        fontWeight: "900",
+      }}
+    >
+      Débloquer
+    </Text>
+  </TouchableOpacity>
+</View>
+
+      </View>
+    </View>
+  </View>
+</Modal>
+
+<Modal
+  visible={mealsPremiumOpen}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setMealsPremiumOpen(false)}
+>
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(2,6,23,0.82)",
+      justifyContent: "center",
+      padding: 20,
+    }}
+  >
+    <View
+      style={{
+        borderRadius: 24,
+        backgroundColor: "#020617",
+        borderWidth: 1,
+        borderColor: "#1c2fe2",
+        padding: 20,
+      }}
+    >
+      <Text
         style={{
-          marginTop: 18,
-          paddingVertical: 14,
-          borderRadius: 14,
-          backgroundColor: "#ffffff",
+          color: "#fff",
+          fontSize: 20,
+          fontWeight: "900",
+          textAlign: "center",
         }}
       >
-        <Text
-          style={{
-            textAlign: "center",
-            color: "#0b1220",
-            fontWeight: "900",
-          }}
-        >
-          🔓 Débloquer Body Diet Premium
-        </Text>
-      </TouchableOpacity>
+        Body Repas- Premium
+      </Text>
 
-      <Pressable
-        onPress={() => setBodyScanPremiumOpen(false)}
-        style={{ marginTop: 12, paddingVertical: 8 }}
+      <Text
+        style={{
+          color: "#94a3b8",
+          textAlign: "center",
+          marginTop: 8,
+          lineHeight: 20,
+        }}
       >
-        <Text
+        Une sélection intelligente de repas pensée pour ton objectif physique, tes macros et ton budget.
+      </Text>
+
+      <View style={{ marginTop: 18, gap: 10 }}>
+
+        <View
           style={{
-            textAlign: "center",
-            color: "#94a3b8",
-            fontWeight: "700",
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(28,47,226,0.12)",
+            borderWidth: 1,
+            borderColor: "rgba(28,47,226,0.35)",
           }}
         >
-          Fermer
-        </Text>
-      </Pressable>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            🍽 Arrête de casser tes macros
+          </Text>
+          <Text style={{ color: "#dde3eb", marginTop: 4, lineHeight: 19 }}>
+            Choisis plus facilement des repas cohérents avec ta sèche, ton maintien ou ta prise de masse.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            📊 Mange utile au quotidien
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+            Protéines, glucides et lipides mieux répartis pour t’aider à respecter ton plan nutrition sans prise de tête.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.04)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            ⚡ Décide plus vite quoi manger
+          </Text>
+          <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
+            Trouve rapidement des idées de repas adaptées à ton objectif et à ton rythme de vie.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 14,
+            backgroundColor: "rgba(34,197,94,0.10)",
+            borderWidth: 1,
+            borderColor: "rgba(34,197,94,0.28)",
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "800" }}>
+            💰 Garde le contrôle sur ton budget
+          </Text>
+          <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
+            Choisis entre mode éco, standard ou bio pour optimiser ton alimentation sans exploser ton budget.
+          </Text>
+
+          <Text
+            style={{
+              color: "#22c55e",
+              marginTop: 8,
+              fontWeight: "800",
+            }}
+          >  Prix 19 € / an  ou ⭐ 39 € à vie (coût unique sans abonnement) Recommandé
+            🔒 Débloque Body Diet Premium.
+             
+          </Text>
+        </View>
+
+  </View>
+
+      {/* BOUTONS */}
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
+        <TouchableOpacity
+          onPress={() => setMealsPremiumOpen(false)}
+          style={{
+            flex: 1,
+            paddingVertical: 13,
+            borderRadius: 14,
+            backgroundColor: "#111827",
+            borderWidth: 1,
+            borderColor: "#334155",
+          }}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              color: "#e5e7eb",
+              fontWeight: "900",
+            }}
+          >
+            Plus tard
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+          style={{
+            flex: 1,
+            paddingVertical: 13,
+            borderRadius: 14,
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <Text
+            style={{
+              textAlign: "center",
+              color: "#0b1220",
+              fontWeight: "900",
+            }}
+          >
+            Débloquer
+          </Text>
+        </TouchableOpacity>
+
+      </View>
     </View>
   </View>
 </Modal>
@@ -1947,13 +2134,13 @@ elevation: 4,
   }}
 >
   <TouchableOpacity
-    onPress={() => {
-      if (isPremium) {
-        router.push("/premium-meals" as any);
-      } else {
-        Alert.alert("Premium", "Cette fonction est réservée à Body Diet Premium.");
-      }
-    }}
+   onPress={() => {
+  if (isPremium) {
+    router.push("/premium-meals" as any);
+  } else {
+    setMealsPremiumOpen(true);
+  }
+}}
     style={{
       flex: 1,
       paddingVertical: 14,
@@ -1988,7 +2175,7 @@ elevation: 4,
         }}
         numberOfLines={1}
       >
-        {isPremium ? "REPAS BODY DIET" : "🔒 REPAS BODY"}
+        {isPremium ? "REPAS BODY DIET" : "🔒 BODY REPAS"}
       </Text>
     </View>
 
@@ -2003,7 +2190,7 @@ elevation: 4,
         }}
         numberOfLines={2}
       >
-        Repas optimisés
+        Tes Repas optimisés
       </Text>
     )}
   </TouchableOpacity>
@@ -2066,7 +2253,7 @@ elevation: 4,
         }}
         numberOfLines={2}
       >
-        Aperçu Premium
+        Ta Composition Corporelle
       </Text>
     )}
   </TouchableOpacity>
@@ -2425,10 +2612,6 @@ elevation: 4,
 
           <Text style={{ color: "#fff", opacity: 0.75, marginTop: 8 }}>
             {coachFreeAction}
-          </Text>
-
-          <Text style={{ color: "#fff", marginTop: 10 }}>
-            {coachFreeFoods}
           </Text>
 
           <View
