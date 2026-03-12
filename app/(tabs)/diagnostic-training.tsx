@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -7,21 +7,51 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+
+import {
+  canUseBodyMind,
+  incrementBodyMindCount,
+  getBodyMindCount,
+  FREE_BODYMIND_LIMIT,
+} from "../../storage/usageLimits";
 
 const SERVER_URL = "http://192.168.1.45:4000";
 
 export default function DiagnosticTrainingScreen() {
   const router = useRouter();
 
+  // Remplace plus tard par ton vrai statut premium
+  const isPremium = false;
+
   const [problem, setProblem] = useState("");
   const [loadingAi, setLoadingAi] = useState(false);
   const [bodyMindReply, setBodyMindReply] = useState<any | null>(null);
+  const [bodyMindCount, setBodyMindCount] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const count = await getBodyMindCount();
+      setBodyMindCount(count);
+    })();
+  }, []);
 
   async function runBodyMind() {
     const cleanProblem = problem.trim();
+
     if (!cleanProblem) return;
+
+    const allowed = await canUseBodyMind(isPremium);
+
+    if (!allowed) {
+      Alert.alert(
+        "Limite atteinte",
+        "Tu as utilisé tes analyses gratuites. Passe en Premium pour continuer à utiliser BodyMind."
+      );
+      return;
+    }
 
     try {
       setLoadingAi(true);
@@ -60,6 +90,16 @@ export default function DiagnosticTrainingScreen() {
       }
 
       setBodyMindReply(json.data);
+      if (!isPremium) {
+  const nextCount = await incrementBodyMindCount();
+  setBodyMindCount(nextCount);
+}
+
+      // On incrémente seulement si la réponse a bien marché
+      if (!isPremium) {
+        const nextCount = await incrementBodyMindCount();
+        setBodyMindCount(nextCount);
+      }
     } catch (e) {
       setBodyMindReply({
         title: "Erreur de connexion",
@@ -90,6 +130,8 @@ export default function DiagnosticTrainingScreen() {
     setBodyMindReply(null);
     setLoadingAi(false);
   }
+
+  const remainingFree = Math.max(0, FREE_BODYMIND_LIMIT - bodyMindCount);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#0a1235" }}>
@@ -134,9 +176,21 @@ export default function DiagnosticTrainingScreen() {
           }}
         >
           Décris librement ton blocage, ta stagnation, une douleur suspecte, un
-          problème de récupération ou une question sur ton entraînement. 
-          BodyMind l'IA spécialisée pro fitness te répond 
+          problème de récupération ou une question sur ton entraînement.
+          BodyMind, l’IA spécialisée fitness, te répond.
         </Text>
+
+        {!isPremium && (
+          <Text
+            style={{
+              color: "#38BDF8",
+              marginTop: 10,
+              fontWeight: "800",
+            }}
+          >
+         Il te reste {Math.max(0, FREE_BODYMIND_LIMIT - bodyMindCount)} analyses BodyMind gratuites
+  </Text>
+)}
 
         {!bodyMindReply && (
           <View style={{ marginTop: 20 }}>

@@ -13,29 +13,30 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-const rcInitRef = useRef(false);
+  const rcInitRef = useRef(false);
 
-useEffect(() => {
-  if (rcInitRef.current) return;     // ✅ évite double init en dev
-  rcInitRef.current = true;
+  useEffect(() => {
+    if (rcInitRef.current) return;
+    rcInitRef.current = true;
 
-  (async () => {
-    try {
-      await initRevenueCat();
-      console.log("✅ RevenueCat initialisé");
-    } catch (e) {
-      console.log("❌ RevenueCat init error:", e);
-    }
-  })();
-}, []);
+    (async () => {
+      try {
+        await initRevenueCat();
+        console.log("✅ RevenueCat initialisé");
+      } catch (e) {
+        console.log("❌ RevenueCat init error:", e);
+      }
+    })();
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
+          options={{ presentation: "modal", title: "Modal", headerShown: true }}
         />
       </Stack>
       <StatusBar style="auto" />

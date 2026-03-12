@@ -34,6 +34,14 @@ type CoachChallengeProgress,
   type BodyScanCommentary,
 } from "../../storage/bodyStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  canUseMealScan,
+  incrementMealScanCount,
+  getMealScanCount,
+  FREE_MEAL_SCAN_LIMIT,
+} from "../../storage/usageLimits";
+
+
 const API_URL = "http://192.168.1.45:4000/analyze-meal"; // local PC (même Wi-Fi)
 
 
@@ -281,7 +289,7 @@ const [showCoachBravo, setShowCoachBravo] = useState(false);
 const [bodyScans, setBodyScans] = useState<BodyScan[]>([]);
 const [latestBodyCommentary, setLatestBodyCommentary] = useState<BodyScanCommentary | null>(null);
 const [mealsPremiumOpen, setMealsPremiumOpen] = useState(false);
-
+const [mealScanCount, setMealScanCount] = useState(0);
   const scrollRef = useRef<ScrollView | null>(null);
   const jokerPulse = useRef(new Animated.Value(1)).current;
  const scanPulse = useRef(new Animated.Value(1)).current;
@@ -776,6 +784,14 @@ useEffect(() => {
   };
 }, [perfectDay, graceUsed, jokerPulse]);
 
+
+useEffect(() => {
+  (async () => {
+    const count = await getMealScanCount();
+    setMealScanCount(count);
+  })();
+}, []);
+
 useEffect(() => {
   if (scanLoopRef.current) {
     scanLoopRef.current.stop();
@@ -979,6 +995,13 @@ await saveState({ ...state, log: nextLog });
 const scanMeal = async () => {
   let base64: string | undefined;
 
+  const allowed = await canUseMealScan(isPremium);
+
+if (!allowed) {
+  setMealsPremiumOpen(true);
+  return;
+}
+
   const savePhotoOnly = async () => {
     if (!base64) return;
     await addEntry({
@@ -1007,6 +1030,7 @@ const scanMeal = async () => {
     });
 
     if (shot.canceled) return;
+   
 
     const asset = (shot as any).assets?.[0];
 base64 = asset?.base64;
@@ -1051,6 +1075,7 @@ if (!base64) {
     : "Repas";
 
 await addEntry({
+   
   foods: Array.isArray(data.foods) ? data.foods : [],
   p: Math.max(0, roundInt(data.protein_g)),
   carb: Math.max(0, roundInt(data.carbs_g)),
@@ -1059,6 +1084,11 @@ await addEntry({
   photo: savePhotos ? base64 : undefined,
   title: autoTitle, // ✅
 }); 
+if (!isPremium) {
+  const nextCount = await incrementMealScanCount();
+  setMealScanCount(nextCount);
+}
+
   } catch {
     await savePhotoOnly();
     Alert.alert(
@@ -1069,7 +1099,6 @@ await addEntry({
     setBusy(false);
   }
 };
-
 
 
   const quickSupp = async (label: string, p: number, carb: number, f: number, c: number) => {
@@ -2093,11 +2122,31 @@ elevation: 4,
           }}
         >
           {busy ? "ANALYSE…" : "SCAN REPAS"}
+          
+ 
         </Text>
-      </View>
+      </View> 
     </TouchableOpacity>
+
+     {!isPremium && (
+  <Text
+    style={{
+      color: "#94a3b8",
+      marginTop: 8,
+      textAlign: "center",
+      fontSize: 12,
+      fontWeight: "700",
+    }}
+  >
+    {Math.max(0, FREE_MEAL_SCAN_LIMIT - mealScanCount) === 1
+      ? "⚠ Dernier scan repas gratuit"
+      : `Scans repas gratuits restants : ${Math.max(0, FREE_MEAL_SCAN_LIMIT - mealScanCount)}`}
+  </Text>
+)}
   </Animated.View>
   </View>
+
+
 
   <Text style={[sectionTitleStyle, { marginTop: 22 }]}>OUTILS</Text>
 
