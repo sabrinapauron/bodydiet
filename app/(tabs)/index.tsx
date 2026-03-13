@@ -1178,7 +1178,7 @@ return (
       ref={scrollRef}
       contentContainerStyle={{ padding: 16, paddingTop: 38, paddingBottom: 40 }}
     >
-    <Modal
+   <Modal
   visible={bodyScanPremiumOpen}
   transparent
   animationType="fade"
@@ -1224,7 +1224,6 @@ return (
       </Text>
 
       <View style={{ marginTop: 18, gap: 10 }}>
-
         <View
           style={{
             padding: 12,
@@ -1238,7 +1237,8 @@ return (
             🧠 Analyse morphologique avancée
           </Text>
           <Text style={{ color: "#dde3eb", marginTop: 4, lineHeight: 19 }}>
-            BodyScan 3D étudie ta silhouette sous plusieurs angles pour identifier ta structure physique, ta posture et ton profil sportif probable.
+            BodyScan 3D étudie ta silhouette sous plusieurs angles pour identifier
+            ta structure physique, ta posture et ton profil sportif probable.
           </Text>
         </View>
 
@@ -1255,7 +1255,8 @@ return (
             🔬 Lecture de ton corps
           </Text>
           <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-            Découvre les leviers physiques les plus pertinents pour améliorer ta silhouette : posture, équilibre musculaire et tonicité globale.
+            Découvre les leviers physiques les plus pertinents pour améliorer ta
+            silhouette : posture, équilibre musculaire et tonicité globale.
           </Text>
         </View>
 
@@ -1272,7 +1273,8 @@ return (
             📈 Suivi visuel de ta progression
           </Text>
           <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-            Compare tes scans dans le temps et observe l’évolution réelle de ta posture, de ta tonicité et de l’équilibre de ta silhouette.
+            Compare tes scans dans le temps et observe l’évolution réelle de ta
+            posture, de ta tonicité et de l’équilibre de ta silhouette.
           </Text>
         </View>
 
@@ -1286,68 +1288,74 @@ return (
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "800" }}>
-            ⚡ Prix 19 € / an  
+            ⚡ Prix 19 € / an
           </Text>
-         <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
-             - ⭐39 € accès à vie (coût unique sans abonnement) Recommandé
-</Text>
 
-<Text
-  style={{
-    color: "#22c55e",
-    marginTop: 8,
-    fontWeight: "800",
-  }}
->
-  🔒 Débloque Body Diet Premium pour accéder à cette analyse avancée.
-  Paiement sécurisé • Annulable à tout moment
-</Text>
+          <Text style={{ color: "#cbd5e1", marginTop: 4, lineHeight: 19 }}>
+            ⭐ 39 € accès à vie (coût unique sans abonnement) • Recommandé
+          </Text>
+
+          <Text
+            style={{
+              color: "#22c55e",
+              marginTop: 8,
+              fontWeight: "800",
+              lineHeight: 19,
+            }}
+          >
+           
+          </Text>
         </View>
 
-<View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
-  <TouchableOpacity
-    onPress={() => setBodyScanPremiumOpen(false)}
-    style={{
-      flex: 1,
-      paddingVertical: 13,
-      borderRadius: 14,
-      backgroundColor: "#111827",
-      borderWidth: 1,
-      borderColor: "#334155",
-    }}
-  >
-    <Text
-      style={{
-        textAlign: "center",
-        color: "#e5e7eb",
-        fontWeight: "900",
-      }}
-    >
-      Plus tard
-    </Text>
-  </TouchableOpacity>
+        <View style={{ marginTop: 10, gap: 14 }}>
+          <TouchableOpacity
+            onPress={() => {
+              // branche ici ton action premium réelle plus tard
+              // ex: ouvrir paywall RevenueCat
+            }}
+            activeOpacity={0.9}
+            style={{
+              backgroundColor: "#f0f5f2",
+              paddingVertical: 16,
+              borderRadius: 16,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 18, marginRight: 8 }}>🔓</Text>
 
-  <TouchableOpacity
-    onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
-    style={{
-      flex: 1,
-      paddingVertical: 13,
-      borderRadius: 14,
-      backgroundColor: "#ffffff",
-    }}
-  >
-    <Text
-      style={{
-        textAlign: "center",
-        color: "#0b1220",
-        fontWeight: "900",
-      }}
-    >
-      Débloquer
-    </Text>
-  </TouchableOpacity>
-</View>
+            <Text
+              style={{
+                color: "#0b1220",
+                fontWeight: "900",
+                fontSize: 15,
+                letterSpacing: 0.5,
+              }}
+            >
+              Active BodyDiet Premium
+            </Text>
+          </TouchableOpacity>
 
+          <TouchableOpacity
+            onPress={() => setBodyScanPremiumOpen(false)}
+            activeOpacity={0.8}
+            style={{
+              alignItems: "center",
+              paddingVertical: 10,
+            }}
+          >
+            <Text
+              style={{
+                color: "#94a3b8",
+                fontSize: 14,
+                fontWeight: "700",
+              }}
+            >
+              ← Retour
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   </View>
@@ -1373,7 +1381,7 @@ return (
         backgroundColor: "#020617",
         borderWidth: 1,
         borderColor: "#1c2fe2",
-        padding: 20,
+        padding: 10,
       }}
     >
       <Text
@@ -1430,7 +1438,7 @@ return (
             📊 Mange utile au quotidien
           </Text>
           <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-            Protéines, glucides et lipides mieux répartis pour t’aider à respecter ton plan nutrition sans prise de tête.
+            Proteines, glucides, lipide mieux répartis pour respecter ton plan nutrition sans prise de tête.
           </Text>
         </View>
 
@@ -1447,17 +1455,17 @@ return (
             ⚡ Décide plus vite quoi manger
           </Text>
           <Text style={{ color: "#94a3b8", marginTop: 4, lineHeight: 19 }}>
-            Trouve rapidement des idées de repas adaptées à ton objectif et à ton rythme de vie.
+            Trouve rapidement des idées de repas adaptées à ton objectif et à ton rythme.
           </Text>
         </View>
 
         <View
           style={{
-            padding: 12,
+            padding: 10,
             borderRadius: 14,
             backgroundColor: "rgba(34,197,94,0.10)",
             borderWidth: 1,
-            borderColor: "rgba(34,197,94,0.28)",
+            borderColor: "rgba(255,255,255,0.08)",
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "800" }}>
@@ -1467,65 +1475,91 @@ return (
             Choisis entre mode éco, standard ou bio pour optimiser ton alimentation sans exploser ton budget.
           </Text>
 
-          <Text
-            style={{
-              color: "#22c55e",
-              marginTop: 8,
-              fontWeight: "800",
-            }}
-          >  Prix 19 € / an  ou ⭐ 39 € à vie (coût unique sans abonnement) Recommandé
-            🔒 Débloque Body Diet Premium.
-             
-          </Text>
-        </View>
+</View>
+      <View
+  style={{
+    padding: 5,
+    borderRadius: 14,
+    backgroundColor: "rgba(34,197,94,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.28)",
+  }}
+>
+  <Text style={{ color: "#fff", fontWeight: "800" }}>
+    ⚡ Body Diet Premium
+  </Text>
+
+  <Text style={{ color: "#cbd5e1", marginTop: 4 }}>
+    19 € / an
+  </Text>
+
+  <Text style={{ color: "#cbd5e1", marginTop: 4 }}>
+    ⭐ 39 € accès à vie (paiement unique)
+  </Text>
+
+  <Text
+    style={{
+      color: "#22c55e",
+      marginTop: 1,
+      fontWeight: "800",
+      lineHeight: 10,
+    }}
+  >
+  </Text>
+</View>   
 
   </View>
+<View style={{ marginTop: 15, gap: 14 }}>
 
-      {/* BOUTONS */}
-      <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
-        <TouchableOpacity
-          onPress={() => setMealsPremiumOpen(false)}
-          style={{
-            flex: 1,
-            paddingVertical: 13,
-            borderRadius: 14,
-            backgroundColor: "#111827",
-            borderWidth: 1,
-            borderColor: "#334155",
-          }}
-        >
-          <Text
-            style={{
-              textAlign: "center",
-              color: "#e5e7eb",
-              fontWeight: "900",
-            }}
-          >
-            Plus tard
-          </Text>
-        </TouchableOpacity>
+  {/* BOUTON PREMIUM */}
+  <TouchableOpacity
+    onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
+    activeOpacity={0.9}
+    style={{
+      backgroundColor: "#f3f7f5",
+      paddingVertical: 10,
+      borderRadius: 16,
+      alignItems: "center",
+      flexDirection: "row",
+      justifyContent: "center",
+     
+    }}
+  >
+    <Text style={{ fontSize: 15, marginRight: 8 }}>🔓</Text>
 
-        <TouchableOpacity
-          onPress={() => Alert.alert("Premium", "Bientôt : achat via RevenueCat")}
-          style={{
-            flex: 1,
-            paddingVertical: 13,
-            borderRadius: 14,
-            backgroundColor: "#ffffff",
-          }}
-        >
-          <Text
-            style={{
-              textAlign: "center",
-              color: "#0b1220",
-              fontWeight: "900",
-            }}
-          >
-            Débloquer
-          </Text>
-        </TouchableOpacity>
+    <Text
+      style={{
+        color: "#0b1220",
+        fontWeight: "900",
+        fontSize: 15,
+        letterSpacing: 0.5,
+      }}
+    >
+      Débloquer BodyDiet Premium
+    </Text>
+  </TouchableOpacity>
 
-      </View>
+  {/* BOUTON RETOUR */}
+  <TouchableOpacity
+    onPress={() => setMealsPremiumOpen(false)}
+    activeOpacity={0.8}
+    style={{
+      alignItems: "center",
+      paddingVertical: 5,
+    }}
+  >
+    <Text
+      style={{
+        color: "#94a3b8",
+        fontSize: 14,
+        fontWeight: "700",
+      }}
+    >
+      ← Retour
+    </Text>
+  </TouchableOpacity>
+
+</View>
     </View>
   </View>
 </Modal>
