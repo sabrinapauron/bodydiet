@@ -7,17 +7,36 @@ export default function EntryScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const boot = async () => {
-      const seen = await hasSeenOnboarding();
+    let mounted = true;
 
-      if (seen) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/onboarding");
+    const boot = async () => {
+      try {
+        const seen = await hasSeenOnboarding();
+        console.log("📦 onboarding seen ?", seen);
+
+        if (!mounted) return;
+
+        setTimeout(() => {
+          if (!mounted) return;
+          router.replace(seen ? "/(tabs)" : "/onboarding");
+        }, 0);
+      } catch (e) {
+        console.log("❌ boot onboarding error:", e);
+
+        if (!mounted) return;
+
+        setTimeout(() => {
+          if (!mounted) return;
+          router.replace("/(tabs)");
+        }, 0);
       }
     };
 
     boot();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   return (

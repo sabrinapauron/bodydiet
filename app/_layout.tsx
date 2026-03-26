@@ -19,19 +19,22 @@ export default function RootLayout() {
     if (rcInitRef.current) return;
     rcInitRef.current = true;
 
-    (async () => {
-      try {
-        await initRevenueCat();
-        console.log("✅ RevenueCat initialisé");
-      } catch (e) {
-        console.log("❌ RevenueCat init error:", e);
-      }
-    })();
+      if (__DEV__) {
+    console.log("⏭️ RevenueCat ignoré en dev");
+    return;
+  }
+
+    setTimeout(() => {
+      initRevenueCat()
+        .then(() => console.log("✅ RevenueCat initialisé"))
+        .catch((e) => console.log("❌ RevenueCat init error:", e));
+    }, 0);
   }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="modal"

@@ -248,6 +248,7 @@ function daysBetween(fromDay: string, toDay: string): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 export default function HomeScreen() {
+    console.log("👉 app/(tabs)/index.tsx chargé");
   const ENABLE_BODY_CHALLENGE = false;
   const router = useRouter();
  
