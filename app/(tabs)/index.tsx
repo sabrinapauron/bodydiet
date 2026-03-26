@@ -54,7 +54,7 @@ import {
 
 
 
-const API_URL = "https://monaserver.onrender.com/analyze-meal"; 
+const API_URL = "https://monaserver-dev.onrender.com/analyze-meal"; 
 const REVIEW_ACCESS_STORAGE_KEY = "bodydiet_review_access_unlocked";
 const REVIEW_ACCESS_CODE = "BODYDIET-REVIEW-2026";
 

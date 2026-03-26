@@ -317,21 +317,27 @@ export async function getLastDays(n = 7): Promise<DaySummary[]> {
   return history.slice(0, n);
 }
 export type BodyScanCommentary = {
-  title: string;
-  summary: string;
-
+  title?: string;
+  summary?: string;
+  wins?: string[];
+  work?: string[];
+  focus7?: string[];
+  closing?: string;
   mainLever?: string;
   missionToday?: string;
   intentScore?: number;
+  bodyFocus?: "balanced" | "midsection" | "lower_body" | "upper_body" | "slim_legs" | "toning";
+  bodyComment?: string;
+  progressLevel?: "stable" | "improving" | "strong_progress";
 
-  wins: string[];
-  work: string[];
-  focus7: string[];
-
-  closing: string;
-  bodyFocus?: BodyFocus;
-bodyComment?: string;
-progressLevel?: "stable" | "improving" | "strong_progress";
+  profileHint?: string;
+  morphologyHint?: string;
+  postureHint?: string;
+  transformationPotential?: string;
+  transformationReason?: string;
+  visualEvolution?: string;
+  transformationType?: string;
+  evolutionIndex?: string;
 };
 
 type CommentaryMap = Record<string, BodyScanCommentary>; 

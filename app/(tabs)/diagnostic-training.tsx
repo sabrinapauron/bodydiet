@@ -1,24 +1,24 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
 
+import { getIsPro } from "../../lib/revenuecat";
 import {
   canUseBodyMind,
-  incrementBodyMindCount,
-  getBodyMindCount,
   FREE_BODYMIND_LIMIT,
+  getBodyMindCount,
+  incrementBodyMindCount,
 } from "../../storage/usageLimits";
-import { getIsPro } from "../../lib/revenuecat";
-const SERVER_URL = "http://monaserver.onrender.com";
+const SERVER_URL = "http://monaserver-dev.onrender.com";
 
 export default function DiagnosticTrainingScreen() {
   const router = useRouter();
