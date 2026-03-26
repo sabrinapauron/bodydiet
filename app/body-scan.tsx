@@ -317,6 +317,414 @@ const toBase64 = async (uri: string) => {
   });
 };
 
+function ScanSectionTitle({ title }: { title: string }) {
+  return (
+    <Text
+      style={{
+        color: "#94A3B8",
+        fontSize: 11,
+        fontWeight: "900",
+        letterSpacing: 1.3,
+        marginTop: 18,
+        marginBottom: 10,
+      }}
+    >
+      {title}
+    </Text>
+  );
+}
+
+function ScanInfoCard({
+  text,
+  tone = "neutral",
+}: {
+  text: string;
+  tone?: "positive" | "neutral";
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: tone === "positive" ? "#0f172a" : "#111827",
+        borderRadius: 18,
+        padding: 15,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor:
+          tone === "positive"
+            ? "rgba(34,197,94,0.14)"
+            : "rgba(255,255,255,0.05)",
+      }}
+    >
+      <Text style={{ color: "#fff", lineHeight: 21, fontWeight: "700" }}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function ScanMiniCard({
+  title,
+  text,
+}: {
+  title: string;
+  text: string;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: "#0f172a",
+        borderRadius: 16,
+        padding: 14,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.05)",
+      }}
+    >
+      <Text style={{ color: "#E2E8F0", fontSize: 12, fontWeight: "800" }}>
+        {title}
+      </Text>
+      <Text style={{ color: "#fff", marginTop: 6, lineHeight: 21 }}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function BodyScanPremiumPanel({
+  aiComment,
+}: {
+  aiComment: BodyScanCommentary;
+}) {
+  const progressLabel =
+    aiComment.progressLevel === "strong_progress"
+      ? "FORTE PROGRESSION"
+      : aiComment.progressLevel === "improving"
+      ? "EN PROGRESSION"
+      : "STABLE";
+
+  const wins = aiComment.wins ?? [];
+  const work = aiComment.work ?? [];
+  const focus7 = (aiComment as any).focus7 ?? [];
+
+  return (
+    <View
+      style={{
+        marginTop: 14,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: "rgba(255,255,255,0.04)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 6,
+      }}
+    >
+      <Text style={{ color: "#fff", fontWeight: "900", fontSize: 22 }}>
+        {aiComment.title || "Lecture Body Scan"}
+      </Text>
+
+      <Text style={{ color: "#94A3B8", marginTop: 6, fontSize: 13 }}>
+        Analyse visuelle premium de ta silhouette
+      </Text>
+
+      <View
+        style={{
+          alignSelf: "flex-start",
+          marginTop: 12,
+          backgroundColor: "rgba(37,99,235,0.16)",
+          borderColor: "rgba(96,165,250,0.25)",
+          borderWidth: 1,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 999,
+        }}
+      >
+        <Text style={{ color: "#DBEAFE", fontWeight: "800", fontSize: 12 }}>
+          {progressLabel}
+        </Text>
+      </View>
+
+      <View
+        style={{
+          backgroundColor: "#0f172a",
+          borderRadius: 22,
+          padding: 18,
+          marginTop: 16,
+          borderWidth: 1,
+          borderColor: "rgba(96,165,250,0.18)",
+        }}
+      >
+        <Text
+          style={{
+            color: "#93C5FD",
+            fontSize: 11,
+            fontWeight: "900",
+            letterSpacing: 1.2,
+          }}
+        >
+          LECTURE GLOBALE
+        </Text>
+
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 18,
+            fontWeight: "800",
+            lineHeight: 26,
+            marginTop: 10,
+          }}
+        >
+          {aiComment.summary}
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 8,
+            marginTop: 14,
+          }}
+        >
+          {!!aiComment.bodyFocus && (
+            <View
+              style={{
+                backgroundColor: "#111827",
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+              }}
+            >
+              <Text
+                style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "700" }}
+              >
+                {aiComment.bodyFocus}
+              </Text>
+            </View>
+          )}
+
+          {!!aiComment.transformationType && (
+            <View
+              style={{
+                backgroundColor: "#111827",
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+              }}
+            >
+              <Text
+                style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "700" }}
+              >
+                {aiComment.transformationType}
+              </Text>
+            </View>
+          )}
+
+          {!!aiComment.evolutionIndex && (
+            <View
+              style={{
+                backgroundColor: "#111827",
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+              }}
+            >
+              <Text
+                style={{ color: "#CBD5E1", fontSize: 12, fontWeight: "700" }}
+              >
+                {aiComment.evolutionIndex}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <ScanSectionTitle title="POINTS FORTS VISIBLES" />
+      {wins.map((t, i) => (
+        <ScanInfoCard key={`win-${i}`} text={t} tone="positive" />
+      ))}
+
+      <ScanSectionTitle title="AXES À TRAVAILLER" />
+      {work.map((t, i) => (
+        <ScanInfoCard key={`work-${i}`} text={t} tone="neutral" />
+      ))}
+
+      {!!aiComment.mainLever && (
+        <>
+          <ScanSectionTitle title="LEVIER CLÉ" />
+          <View
+            style={{
+              backgroundColor: "rgba(37,99,235,0.14)",
+              borderRadius: 20,
+              padding: 18,
+              borderWidth: 1,
+              borderColor: "rgba(96,165,250,0.25)",
+            }}
+          >
+            <Text
+              style={{
+                color: "#EFF6FF",
+                fontSize: 18,
+                lineHeight: 26,
+                fontWeight: "900",
+              }}
+            >
+              {aiComment.mainLever}
+            </Text>
+          </View>
+        </>
+      )}
+
+      {!!aiComment.missionToday && (
+        <>
+          <ScanSectionTitle title="MISSION DU JOUR" />
+          <View
+            style={{
+              backgroundColor: "#111827",
+              borderRadius: 20,
+              padding: 18,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.05)",
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 17,
+                lineHeight: 24,
+                fontWeight: "800",
+              }}
+            >
+              {aiComment.missionToday}
+            </Text>
+
+            {typeof aiComment.intentScore === "number" ? (
+              <Text style={{ color: "#94a3b8", marginTop: 8, fontSize: 12 }}>
+                Clarté du plan :{" "}
+                <Text style={{ color: "#fff", fontWeight: "900" }}>
+                  {Math.round(aiComment.intentScore)}/100
+                </Text>
+              </Text>
+            ) : null}
+          </View>
+        </>
+      )}
+
+      <ScanSectionTitle title="LECTURE EXPERTE" />
+      {!!aiComment.bodyComment && (
+        <ScanMiniCard title="Lecture du corps" text={aiComment.bodyComment} />
+      )}
+      {!!aiComment.postureHint && (
+        <ScanMiniCard title="Posture" text={aiComment.postureHint} />
+      )}
+      {!!aiComment.morphologyHint && (
+        <ScanMiniCard
+          title="Morphologie visible"
+          text={aiComment.morphologyHint}
+        />
+      )}
+      {!!aiComment.profileHint && (
+        <ScanMiniCard title="Profil" text={aiComment.profileHint} />
+      )}
+
+      <ScanSectionTitle title="PROJECTION RÉALISTE" />
+      {!!aiComment.transformationPotential && (
+        <ScanMiniCard
+          title="Potentiel"
+          text={aiComment.transformationPotential}
+        />
+      )}
+      {!!aiComment.transformationReason && (
+        <ScanMiniCard title="Pourquoi" text={aiComment.transformationReason} />
+      )}
+      {!!aiComment.visualEvolution && (
+        <ScanMiniCard
+          title="Évolution possible"
+          text={aiComment.visualEvolution}
+        />
+      )}
+
+      {focus7.length > 0 && (
+        <>
+          <ScanSectionTitle title="PLAN 7 JOURS" />
+          <View
+            style={{
+              backgroundColor: "#0f172a",
+              borderRadius: 18,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.05)",
+            }}
+          >
+            {focus7.map((t: any, i: number) => {
+              const label = typeof t === "string" ? t : t?.label ?? "";
+              return (
+                <View
+                  key={`focus-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    marginBottom: i === focus7.length - 1 ? 0 : 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(37,99,235,0.18)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                      marginTop: 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#DBEAFE",
+                        fontSize: 12,
+                        fontWeight: "900",
+                      }}
+                    >
+                      {i + 1}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: "#fff",
+                      lineHeight: 21,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
+
+      {!!aiComment.closing && (
+        <Text
+          style={{
+            color: "#CBD5E1",
+            marginTop: 18,
+            lineHeight: 22,
+            fontStyle: "italic",
+          }}
+        >
+          {aiComment.closing}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function BodyScanScreen() {
   const router = useRouter();
 
@@ -330,7 +738,7 @@ export default function BodyScanScreen() {
   const isPremium = true;
   const [heightCm, setHeightCm] = useState<number | null>(null);
 
-  const SERVER_URL = "https://monaserver.onrender.com";
+  const SERVER_URL = "https://monaserver-dev.onrender.com";
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiComment, setAiComment] = useState<BodyScanCommentary | null>(null);
@@ -710,125 +1118,7 @@ export default function BodyScanScreen() {
   </Text>
 </TouchableOpacity>
 
-              {aiComment && (
-                <View
-                  style={{
-                    marginTop: 12,
-                    padding: 14,
-                    borderRadius: 14,
-                   backgroundColor: "rgba(255,255,255,0.04)",
-borderWidth: 1,
-borderColor: "rgba(255,255,255,0.08)",
-shadowColor: "#000",
-shadowOpacity: 0.18,
-shadowRadius: 16,
-shadowOffset: { width: 0, height: 8 },
-elevation: 6,
-                  }}
-                >
-                  <Text
-                    style={{ color: "#fff", fontWeight: "900", fontSize: 16 }}
-                  >
-                    {aiComment.title}
-                  </Text>
-
-                  <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 6 }}>
-                    {aiComment.summary}
-                  </Text>
-
-                  {aiComment.mainLever ? (
-                    <View
-                      style={{
-                        marginTop: 10,
-                        padding: 10,
-                        borderRadius: 12,
-                        backgroundColor: "rgba(37,99,235,0.10)",
-                        borderWidth: 1,
-                        borderColor: "rgba(96,165,250,0.24)",
-                      }}
-                    >
-                      <Text style={{ color: "#fff", fontWeight: "800" }}>
-                        🎯 Le levier n°1
-                      </Text>
-                      <Text
-                        style={{ color: "rgba(255,255,255,0.8)", marginTop: 4 }}
-                      >
-                        {aiComment.mainLever}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {aiComment.missionToday ? (
-                    <View
-                      style={{
-                        marginTop: 10,
-                        padding: 10,
-                        borderRadius: 12,
-                       backgroundColor: "rgba(37,99,235,0.10)",
-borderWidth: 1,
-borderColor: "rgba(96,165,250,0.24)",
-                      }}
-                    >
-                     <Text style={{ color: "#60A5FA", fontWeight: "900" }}>
-  Mission du jour
-</Text>
-                      <Text
-                        style={{ color: "rgba(255,255,255,0.85)", marginTop: 4 }}
-                      >
-                        {aiComment.missionToday}
-                      </Text>
-
-                      {typeof aiComment.intentScore === "number" ? (
-                        <Text
-                          style={{ color: "#94a3b8", marginTop: 6, fontSize: 12 }}
-                        >
-                          Clarté du plan :{" "}
-                          <Text style={{ color: "#fff", fontWeight: "900" }}>
-                            {Math.round(aiComment.intentScore)}/100
-                          </Text>
-                        </Text>
-                      ) : null}
-                    </View>
-                  ) : null}
-
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
-                    ✅ Points forts
-                  </Text>
-                  {aiComment.wins?.map((t, i) => (
-                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
-                      • {t}
-                    </Text>
-                  ))}
-
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
-                    🎯 À travailler
-                  </Text>
-                  {aiComment.work?.map((t, i) => (
-                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
-                      • {t}
-                    </Text>
-                  ))}
-
-                  <Text style={{ color: "#fff", marginTop: 10, fontWeight: "800" }}>
-                    🔥 Focus 7 jours
-                  </Text>
-                  {(aiComment as any).focus7?.map((t: any, i: number) => (
-                    <Text key={i} style={{ color: "rgba(255,255,255,0.8)" }}>
-                      • {typeof t === "string" ? t : t?.label ?? ""}
-                    </Text>
-                  ))}
-
-                  <Text
-                    style={{
-                      color: "rgba(255,255,255,0.9)",
-                      marginTop: 10,
-                      fontWeight: "800",
-                    }}
-                  >
-                    {aiComment.closing}
-                  </Text>
-                </View>
-              )}
+         {aiComment && <BodyScanPremiumPanel aiComment={aiComment} />}     
             </View>
 
             {/* Compare selector */}
