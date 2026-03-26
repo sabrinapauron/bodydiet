@@ -1,26 +1,25 @@
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useRouter } from "expo-router";
+import { hasSeenOnboarding } from "../storage/onboarding";
 
-import { hasSeenOnboarding, resetOnboardingSeen } from "../storage/onboarding";
 export default function EntryScreen() {
   const router = useRouter();
 
- useEffect(() => {
-  const boot = async () => {
-    await resetOnboardingSeen(); // temporaire pour forcer le retour de l’onboarding
+  useEffect(() => {
+    const boot = async () => {
+      const seen = await hasSeenOnboarding();
 
-    const seen = await hasSeenOnboarding();
+      if (seen) {
+        router.replace("/(tabs)");
+      } else {
+        router.replace("/onboarding");
+      }
+    };
 
-    if (seen) {
-      router.replace("/(tabs)");
-    } else {
-      router.replace("/onboarding");
-    }
-  };
+    boot();
+  }, [router]);
 
-  boot();
-}, [router]);
   return (
     <View
       style={{
