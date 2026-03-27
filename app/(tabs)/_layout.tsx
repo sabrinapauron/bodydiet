@@ -83,6 +83,27 @@ return (
         tabBarIcon: () => null,
       }}
     />
+
+    <Tabs.Screen
+      name="diagnostic-training"
+      options={{
+        href: null,
+      }}
+    />
+
+    <Tabs.Screen
+      name="index_backup"
+      options={{
+        href: null,
+      }}
+    />
+
+    <Tabs.Screen
+      name="premium-meals"
+      options={{
+        href: null,
+      }}
+    />
   </Tabs>
 );
 }
