@@ -46,43 +46,43 @@ function CustomTabBarButton(props: any) {
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
 
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#EAF1FF",
-        tabBarInactiveTintColor: "#94A3B8",
-        tabBarStyle: {
-          backgroundColor: "#020617",
-          borderTopColor: "rgba(255,255,255,0.08)",
-          borderTopWidth: 1,
-          height: 58 + insets.bottom,
-          paddingTop: 8,
-          paddingBottom: Math.max(10, insets.bottom),
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "800",
-          marginLeft: 6,
-        },
-        tabBarButton: (props) => <CustomTabBarButton {...props} />,
+return (
+  <Tabs
+    screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: "#EAF1FF",
+      tabBarInactiveTintColor: "#94A3B8",
+      tabBarStyle: {
+        backgroundColor: "#020617",
+        borderTopColor: "rgba(255,255,255,0.08)",
+        borderTopWidth: 1,
+        height: 58 + insets.bottom,
+        paddingTop: 8,
+        paddingBottom: Math.max(10, insets.bottom),
+      },
+      tabBarLabelStyle: {
+        fontSize: 12,
+        fontWeight: "800",
+        marginLeft: 6,
+      },
+      tabBarButton: (props) => <CustomTabBarButton {...props} />,
+    }}
+  >
+    <Tabs.Screen
+      name="index"
+      options={{
+        title: "Accueil",
+        tabBarIcon: () => null,
       }}
-    >
-      <Tabs.Screen
-  name="index"
-  options={{
-    title: "Accueil",
-    tabBarIcon: () => null,
-  }}
-/>
+    />
 
-<Tabs.Screen
-  name="explore"
-  options={{
-    title: "Outils",
-    tabBarIcon: () => null,
-  }}
-/>
-    </Tabs>
-  );
+    <Tabs.Screen
+      name="explore"
+      options={{
+        title: "Aide",
+        tabBarIcon: () => null,
+      }}
+    />
+  </Tabs>
+);
 }
