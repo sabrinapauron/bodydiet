@@ -1,14 +1,14 @@
+import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
-  FlatList,
   Dimensions,
+  FlatList,
   Image,
+  SafeAreaView,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { setOnboardingSeen } from "../storage/onboarding";
 
 const { width } = Dimensions.get("window");
@@ -47,10 +47,16 @@ export default function OnboardingScreen() {
 
   const handleNext = async () => {
     if (currentIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
-    } else {
-      await finishOnboarding();
-    }
+  const nextIndex = currentIndex + 1;
+  setCurrentIndex(nextIndex);
+
+  flatListRef.current?.scrollToOffset({
+    offset: nextIndex * width,
+    animated: true,
+  });
+} else {
+  await finishOnboarding();
+}
   };
 
   return (
@@ -58,6 +64,11 @@ export default function OnboardingScreen() {
       <FlatList
         ref={flatListRef}
         data={slides}
+        getItemLayout={(_, index) => ({
+  length: width,
+  offset: width * index,
+  index,
+})}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
