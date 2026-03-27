@@ -1,46 +1,32 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  Modal,
-  Pressable,
-  Image,
-  Switch,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { saveState, loadState, upsertDaySummary,  } from "../../storage/bodyStore";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { Animated } from "react-native";
-import EffortModal from "../../components/EffortModal";
-import { loadEffort, setEffort, type EffortEntry } from "../../storage/bodyStore";
-import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
-import { useFocusEffect } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { saveBodyProfile, loadCoachWeeklyMission,loadCoachWeeklyChallenge,
-setCoachWeeklyChallengeDone,
-type CoachWeeklyChallenge,  } from "../../storage/bodyStore";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  loadBodyScans,
-  getBodyScanCommentary,
-  loadCoachChallengeProgress,
-saveCoachChallengeProgress,
-markCoachChallengeDayValidated, 
-type CoachChallengeProgress,
-  type BodyScan,
-  type BodyScanCommentary,
+  Alert,
+  Animated,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import EffortModal from "../../components/EffortModal";
+import { applyEffortToTargets, formatEffortLabel } from "../../lib/effort";
+import {
+  getBodyScanCommentary, loadBodyScans, loadCoachChallengeProgress, loadCoachWeeklyChallenge, loadCoachWeeklyMission, loadEffort, loadState, markCoachChallengeDayValidated, saveBodyProfile, saveCoachChallengeProgress, saveState, setCoachWeeklyChallengeDone, setEffort, upsertDaySummary, type BodyScan,
+  type BodyScanCommentary, type CoachChallengeProgress, type CoachWeeklyChallenge, type EffortEntry,
 } from "../../storage/bodyStore";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   canUseMealScan,
-  incrementMealScanCount,
-  getMealScanCount,
   FREE_MEAL_SCAN_LIMIT,
+  getMealScanCount,
+  incrementMealScanCount,
 } from "../../storage/usageLimits";
 
 
@@ -48,9 +34,11 @@ import { getIsPro } from "../../lib/revenuecat";
 
 import {
   getPremiumPackages,
+  logoutRevenueCat,
   purchasePackage,
   restorePurchases,
 } from "../../lib/revenuecat";
+import { clearAuthUser } from "../../storage/auth";
 
 
 
@@ -663,6 +651,40 @@ async function handleRemoveReviewCode() {
   setReviewAccessUnlocked(false);
   setReviewCodeInput("");
   Alert.alert("Accès retiré", "Le déblocage premium de test a été supprimé.");
+}
+async function handleLogout() {
+  Alert.alert(
+    "Se déconnecter",
+    "Tu vas être déconnecté de ton compte Body Diet sur cet appareil.",
+    [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Se déconnecter",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setMenuOpen(false);
+
+            await clearAuthUser();
+            await logoutRevenueCat();
+            await AsyncStorage.removeItem(REVIEW_ACCESS_STORAGE_KEY);
+
+            setIsPro(false);
+            setReviewAccessUnlocked(false);
+            setReviewCodeInput("");
+
+            router.replace("/login");
+          } catch (e) {
+            console.log("❌ handleLogout error", e);
+            Alert.alert(
+              "Erreur",
+              "Impossible de se déconnecter pour le moment."
+            );
+          }
+        },
+      },
+    ]
+  );
 }
 
   // Auto-chargement
@@ -3454,6 +3476,19 @@ setManualOpen(false);
 >
   <Text style={{ color: "#38BDF8", fontWeight: "800", fontSize: 15 }}>
     Restaurer mes achats
+  </Text>
+</TouchableOpacity>
+
+<TouchableOpacity
+  onPress={handleLogout}
+  style={{
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  }}
+>
+  <Text style={{ color: "#3855f8", fontWeight: "800", fontSize: 15 }}>
+    Se déconnecter
   </Text>
 </TouchableOpacity>
 

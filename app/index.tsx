@@ -1,6 +1,8 @@
+import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { useRouter } from "expo-router";
+
+import { hasSeenOnboarding } from "../storage/onboarding";
 
 export default function EntryScreen() {
   const router = useRouter();
@@ -8,9 +10,29 @@ export default function EntryScreen() {
   useEffect(() => {
     let mounted = true;
 
+    const boot = async () => {
+      try {
+        const seen = await hasSeenOnboarding();
+
+        if (!mounted) return;
+
+        console.log("📦 onboarding seen ?", seen);
+
+        if (seen) {
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/onboarding");
+        }
+      } catch (e) {
+        console.log("❌ boot error:", e);
+
+        if (!mounted) return;
+        router.replace("/onboarding");
+      }
+    };
+
     setTimeout(() => {
-      if (!mounted) return;
-      router.replace("/onboarding");
+      boot();
     }, 0);
 
     return () => {

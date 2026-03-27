@@ -5,7 +5,8 @@ import "react-native-reanimated";
 import { useEffect, useRef } from "react";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { initRevenueCat } from "../lib/revenuecat";
+import { initRevenueCat, loginRevenueCat } from "../lib/revenuecat";
+import { getAuthUser } from "../storage/auth";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -19,33 +20,44 @@ export default function RootLayout() {
     if (rcInitRef.current) return;
     rcInitRef.current = true;
 
-      if (__DEV__) {
-    console.log("⏭️ RevenueCat ignoré en dev");
-    return;
-  }
+    const bootRevenueCat = async () => {
+      try {
+        await initRevenueCat();
+
+        const authUser = await getAuthUser();
+        if (authUser?.id) {
+          await loginRevenueCat(authUser.id);
+          console.log("✅ RevenueCat connecté au user =", authUser.id);
+        } else {
+          console.log("ℹ️ Aucun utilisateur connecté pour RevenueCat");
+        }
+      } catch (e) {
+        console.log("❌ RevenueCat init/login error:", e);
+      }
+    };
 
     setTimeout(() => {
-      initRevenueCat()
-        .then(() => console.log("✅ RevenueCat initialisé"))
-        .catch((e) => console.log("❌ RevenueCat init error:", e));
+      bootRevenueCat();
     }, 0);
   }, []);
 
-  return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="modal"
-          options={{
-            presentation: "modal",
-            title: "Modal",
-            headerShown: true,
-          }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+ return (
+  <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="modal"
+        options={{
+          presentation: "modal",
+          title: "Modal",
+          headerShown: true,
+        }}
+      />
+    </Stack>
+    <StatusBar style="auto" />
+  </ThemeProvider>
+);
 }

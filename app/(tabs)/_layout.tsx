@@ -88,6 +88,7 @@ return (
       name="diagnostic-training"
       options={{
         href: null,
+        tabBarButton: () => null,
       }}
     />
 
@@ -95,6 +96,7 @@ return (
       name="index_backup"
       options={{
         href: null,
+        tabBarButton: () => null,
       }}
     />
 
@@ -102,6 +104,7 @@ return (
       name="premium-meals"
       options={{
         href: null,
+        tabBarButton: () => null,
       }}
     />
   </Tabs>
