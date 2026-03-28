@@ -712,9 +712,16 @@ useFocusEffect(
     let alive = true;
 
     (async () => {
-      const pro = await getIsPro();
-      if (alive) {
-        setIsPro(pro);
+      try {
+        const pro = await getIsPro();
+        if (alive) {
+          setIsPro(pro);
+        }
+      } catch (e) {
+        console.log("❌ getIsPro focus failed", e);
+        if (alive) {
+          setIsPro(false);
+        }
       }
     })();
 
@@ -723,21 +730,35 @@ useFocusEffect(
     };
   }, [])
 );
+
 useEffect(() => {
   (async () => {
     try {
-      const pro = await getIsPro();
-      setIsPro(pro);
-
       const unlocked = await AsyncStorage.getItem(REVIEW_ACCESS_STORAGE_KEY);
       setReviewAccessUnlocked(unlocked === "true");
 
-      const { annual, lifetime } = await getPremiumPackages();
-      setAnnualPackage(annual);
-      setLifetimePackage(lifetime);
+      let pro = false;
+      try {
+        pro = await getIsPro();
+      } catch (e) {
+        console.log("❌ getIsPro failed", e);
+      }
+      setIsPro(pro);
 
-      console.log("ANNUAL PACKAGE =", annual?.product?.identifier);
-      console.log("LIFETIME PACKAGE =", lifetime?.product?.identifier);
+      try {
+        const { annual, lifetime } = await getPremiumPackages();
+        setAnnualPackage(annual);
+        setLifetimePackage(lifetime);
+
+        console.log("ANNUAL PACKAGE =", annual?.product?.identifier);
+        console.log("LIFETIME PACKAGE =", lifetime?.product?.identifier);
+      } catch (e) {
+        console.log("❌ getPremiumPackages failed", e);
+        setAnnualPackage(null);
+        setLifetimePackage(null);
+      }
+    } catch (e) {
+      console.log("❌ premium boot failed", e);
     } finally {
       setPremiumLoading(false);
     }
@@ -3465,6 +3486,22 @@ setManualOpen(false);
           À propos
         </Text>
       </TouchableOpacity>
+
+<TouchableOpacity
+  onPress={() => {
+    setMenuOpen(false);
+    router.push("/login" as any);
+  }}
+  style={{
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  }}
+>
+  <Text style={{ color: "#e2e8f0", fontWeight: "800", fontSize: 15 }}>
+    Connexion / retrouver mon compte
+  </Text>
+</TouchableOpacity>
 
       <TouchableOpacity
   onPress={handleRestore}
