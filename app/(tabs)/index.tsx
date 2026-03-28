@@ -662,25 +662,31 @@ async function handleLogout() {
         text: "Se déconnecter",
         style: "destructive",
         onPress: async () => {
+          setMenuOpen(false);
+
           try {
-            setMenuOpen(false);
-
             await clearAuthUser();
-            await logoutRevenueCat();
-            await AsyncStorage.removeItem(REVIEW_ACCESS_STORAGE_KEY);
-
-            setIsPro(false);
-            setReviewAccessUnlocked(false);
-            setReviewCodeInput("");
-
-            router.replace("/login");
           } catch (e) {
-            console.log("❌ handleLogout error", e);
-            Alert.alert(
-              "Erreur",
-              "Impossible de se déconnecter pour le moment."
-            );
+            console.log("❌ clearAuthUser error", e);
           }
+
+          try {
+            await AsyncStorage.removeItem(REVIEW_ACCESS_STORAGE_KEY);
+          } catch (e) {
+            console.log("❌ remove review access error", e);
+          }
+
+          try {
+            await logoutRevenueCat();
+          } catch (e) {
+            console.log("❌ logoutRevenueCat error", e);
+          }
+
+          setIsPro(false);
+          setReviewAccessUnlocked(false);
+          setReviewCodeInput("");
+
+          router.replace("/login");
         },
       },
     ]
