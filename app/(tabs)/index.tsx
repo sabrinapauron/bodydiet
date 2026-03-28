@@ -41,7 +41,7 @@ import {
 import { clearAuthUser } from "../../storage/auth";
 
 
-
+const SERVER_WAKE_URL = "https://monaserver-dev.onrender.com/";
 const API_URL = "https://monaserver-dev.onrender.com/analyze-meal"; 
 const REVIEW_ACCESS_STORAGE_KEY = "bodydiet_review_access_unlocked";
 const REVIEW_ACCESS_CODE = "BODYDIET-REVIEW-2026";
@@ -692,6 +692,27 @@ async function handleLogout() {
     ]
   );
 }
+
+useEffect(() => {
+  let cancelled = false;
+
+  const wakeServer = async () => {
+    try {
+      await fetch(SERVER_WAKE_URL, { method: "GET" });
+      if (!cancelled) {
+        console.log("✅ Render réveillé");
+      }
+    } catch (e) {
+      console.log("⚠️ Wake server failed", e);
+    }
+  };
+
+  wakeServer();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   // Auto-chargement
 useFocusEffect(
