@@ -8,6 +8,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { initRevenueCat, loginRevenueCat } from "../lib/revenuecat";
 import { getAuthUser } from "../storage/auth";
 
+const SERVER_WAKE_URL = "https://monaserver-dev.onrender.com/health";
+
 export const unstable_settings = {
   anchor: "(tabs)",
 };
@@ -19,6 +21,15 @@ export default function RootLayout() {
   useEffect(() => {
     if (rcInitRef.current) return;
     rcInitRef.current = true;
+
+    const wakeServer = async () => {
+      try {
+        await fetch(SERVER_WAKE_URL, { method: "GET" });
+        console.log("✅ Render wake ping envoyé");
+      } catch (e) {
+        console.log("⚠️ Render wake ping failed", e);
+      }
+    };
 
     const bootRevenueCat = async () => {
       try {
@@ -37,27 +48,28 @@ export default function RootLayout() {
     };
 
     setTimeout(() => {
+      wakeServer();
       bootRevenueCat();
     }, 0);
   }, []);
 
- return (
-  <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="modal"
-        options={{
-          presentation: "modal",
-          title: "Modal",
-          headerShown: true,
-        }}
-      />
-    </Stack>
-    <StatusBar style="auto" />
-  </ThemeProvider>
-);
+  return (
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: "modal",
+            title: "Modal",
+            headerShown: true,
+          }}
+        />
+      </Stack>
+      <StatusBar style="auto" />
+    </ThemeProvider>
+  );
 }

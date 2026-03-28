@@ -676,17 +676,15 @@ async function handleLogout() {
             console.log("❌ remove review access error", e);
           }
 
-          try {
-            await logoutRevenueCat();
-          } catch (e) {
-            console.log("❌ logoutRevenueCat error", e);
-          }
-
           setIsPro(false);
           setReviewAccessUnlocked(false);
           setReviewCodeInput("");
 
           router.replace("/login");
+
+          logoutRevenueCat().catch((e) => {
+            console.log("⚠️ logoutRevenueCat background error", e);
+          });
         },
       },
     ]
@@ -1284,7 +1282,7 @@ if (!base64) {
 
     // ✅ FETCH avec timeout (12s)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
 
     let resp: Response;
     try {
