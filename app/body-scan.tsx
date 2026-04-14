@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -13,6 +13,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Body3DViewer from "../components/Body3DView";
 import {
   loadBodyScans,
@@ -308,6 +309,10 @@ function normalizeBodyFocus(v: any): BodyFocus {
 
 type AngleKey = "front" | "three" | "side";
 const ANGLES: AngleKey[] = ["front", "three", "side"];
+const getScanCacheKey = (scan: BodyScan | null | undefined) => {
+  if (!scan) return null;
+  return scan.createdAt ? String(scan.createdAt) : scan.day;
+};
 
 const toBase64 = async (uri: string) => {
   if (!uri) return "";
@@ -764,15 +769,26 @@ export default function BodyScanScreen() {
     });
   }, [angle]);
 
-  useEffect(() => {
-    (async () => {
-      const list = await loadBodyScans();
-      setScans(list);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-      const profile = await loadBodyProfile();
-      setHeightCm(profile?.heightCm ?? null);
-    })();
-  }, []);
+      (async () => {
+        const list = await loadBodyScans();
+        const profile = await loadBodyProfile();
+
+        if (!active) return;
+
+        setScans(list);
+        setHeightCm(profile?.heightCm ?? null);
+        setAiComment(null);
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const after = scans[0] || null;
 
@@ -812,13 +828,14 @@ export default function BodyScanScreen() {
       return;
     }
 
-    const mode: "single" | "compare" = before ? "compare" : "single";
+        const mode: "single" | "compare" = before ? "compare" : "single";
 
-    const cached = await getBodyScanCommentary(
-      mode,
-      after.day,
-      before?.day ?? null
-    );
+    const afterCacheKey = getScanCacheKey(after);
+    const beforeCacheKey = getScanCacheKey(before);
+
+    const cached = afterCacheKey
+      ? await getBodyScanCommentary(mode, afterCacheKey, beforeCacheKey)
+      : null;
 
     if (cached) {
       await saveCoachWeeklyMission(
@@ -834,10 +851,12 @@ export default function BodyScanScreen() {
     setAiLoading(true);
 
     try {
-      console.log("CoachVision start", {
+           console.log("CoachVision start", {
         mode,
         afterDay: after.day,
         beforeDay: before?.day ?? null,
+        afterCreatedAt: after.createdAt ?? null,
+        beforeCreatedAt: before?.createdAt ?? null,
       });
 
       const frontB64 = await toBase64(after.frontUri ?? "");
@@ -902,10 +921,14 @@ export default function BodyScanScreen() {
         bodyComment,
       } as BodyScanCommentary;
 
+           if (!afterCacheKey) {
+        throw new Error("Clé de scan absente pour sauvegarder l’analyse.");
+      }
+
       await saveBodyScanCommentary(
         mode,
-        after.day,
-        before?.day ?? null,
+        afterCacheKey,
+        beforeCacheKey,
         normalized
       );
       await saveCoachWeeklyMission(
@@ -924,8 +947,9 @@ export default function BodyScanScreen() {
     }
   };
 
-  const runAnalysis = async () => {
+   const runAnalysis = async () => {
     setViewMode("3d");
+    setAiComment(null);
     setIsAnalyzing(true);
 
     await new Promise((resolve) => setTimeout(resolve, 3500));

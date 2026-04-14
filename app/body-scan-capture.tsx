@@ -1,15 +1,15 @@
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import {
+  Alert,
+  Image,
   SafeAreaView,
-  View,
+  ScrollView,
   Text,
   TouchableOpacity,
-  Image,
-  Alert,
-  ScrollView,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { upsertBodyScan } from "../storage/bodyStore";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -58,6 +58,7 @@ export default function BodyScanCapture() {
     if (!frontUri || !threeUri || !sideUri) return;
 
     await upsertBodyScan({
+      id: String(Date.now()),
       day: todayKey(),
       frontUri,
       threeUri,

@@ -255,6 +255,7 @@ export type DaySummary = {
 
 export type BodyScan = {
   day: string; // YYYY-MM-DD
+    id?: string;
   frontUri: string;
   threeUri: string;
   sideUri: string;
@@ -353,23 +354,30 @@ export async function loadBodyScanCommentaryMap(): Promise<CommentaryMap> {
 
 export async function saveBodyScanCommentary(
   mode: "single" | "compare",
-  afterDay: string,
-  beforeDay: string | null,
+  afterKey: string,
+  beforeKey: string | null,
   data: BodyScanCommentary
-) {
+)
+ {
   const map = await loadBodyScanCommentaryMap();
-  const k = mode === "single" ? keySingle(afterDay) : keyCompare(afterDay, beforeDay || "");
+  const k =
+  mode === "single"
+    ? keySingle(afterKey)
+    : keyCompare(afterKey, beforeKey || "");
   map[k] = data;
   await AsyncStorage.setItem(BODY_SCAN_COMMENTS_KEY, JSON.stringify(map));
 }
 
 export async function getBodyScanCommentary(
   mode: "single" | "compare",
-  afterDay: string,
-  beforeDay: string | null
+  afterKey: string,
+  beforeKey: string | null
 ): Promise<BodyScanCommentary | null> {
   const map = await loadBodyScanCommentaryMap();
-  const k = mode === "single" ? keySingle(afterDay) : keyCompare(afterDay, beforeDay || "");
+  const k =
+    mode === "single"
+      ? keySingle(afterKey)
+      : keyCompare(afterKey, beforeKey || "");
   return map[k] || null;
 }
 export async function saveCoachWeeklyMission(text: string | null) {
