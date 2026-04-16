@@ -57,13 +57,15 @@ export default function BodyScanCapture() {
   const save = async () => {
     if (!frontUri || !threeUri || !sideUri) return;
 
+    const now = Date.now();
+
     await upsertBodyScan({
-      id: String(Date.now()),
+      id: String(now),
       day: todayKey(),
       frontUri,
       threeUri,
       sideUri,
-      createdAt: Date.now(),
+      createdAt: now,
     });
 
     router.replace("/body-scan");

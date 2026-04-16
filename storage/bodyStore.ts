@@ -281,7 +281,12 @@ export async function loadBodyScans(): Promise<BodyScan[]> {
 
 export async function upsertBodyScan(scan: BodyScan): Promise<BodyScan[]> {
   const scans = await loadBodyScans();
-  const next: BodyScan[] = [scan, ...scans.filter((s) => s.day !== scan.day)];
+
+  const next: BodyScan[] = [
+    scan,
+    ...scans.filter((s) => (s.id ? s.id !== scan.id : true)),
+  ].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
   await AsyncStorage.setItem(KEY_BODY_SCANS, JSON.stringify(next));
   return next;
 }

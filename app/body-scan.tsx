@@ -803,12 +803,18 @@ export default function BodyScanScreen() {
     if (!after) return null;
 
     if (compareId) {
-      const found = scans.find((s) => s.day === compareId);
-      return found && found.day !== after.day ? found : null;
+      const found = scans.find(
+  (s) => (s.id ?? String(s.createdAt ?? s.day)) === compareId
+);
+            return found && (found.id ?? String(found.createdAt ?? found.day)) !== (after.id ?? String(after.createdAt ?? after.day)) ? found : null;
     }
 
-    const prev = scans[1] || null;
-    return prev && prev.day !== after.day ? prev : null;
+        const prev = scans[1] || null;
+    return prev &&
+      (prev.id ?? String(prev.createdAt ?? prev.day)) !==
+        (after.id ?? String(after.createdAt ?? after.day))
+      ? prev
+      : null;
   }, [scans, after, compareId]);
 
   const beforeUri = before ? getUri(before, angle) : "";
@@ -1162,7 +1168,9 @@ export default function BodyScanScreen() {
     Comparer avec…
   </Text>
   <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>
-    {before ? `Avant : ${before.day}` : "Choisir un scan précédent"}
+        {before
+      ? `Avant : ${before.day}${before.createdAt ? ` • ${new Date(before.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}`
+      : "Choisir un scan précédent"}
   </Text>
 </TouchableOpacity>
 
@@ -1226,16 +1234,22 @@ export default function BodyScanScreen() {
               </Text>
 
               <View style={{ marginTop: 12 }}>
-                {scans
-                  .filter((s) => !after || s.day !== after.day)
+                                {scans
+                  .filter(
+                    (s) =>
+                      !after ||
+                      (s.id ?? String(s.createdAt ?? s.day)) !==
+                        (after.id ?? String(after.createdAt ?? after.day))
+                  )
                   .map((s) => {
-                    const selected = compareId === s.day;
+                                        const selected =
+                      compareId === (s.id ?? String(s.createdAt ?? s.day));
 
                     return (
                       <TouchableOpacity
-                        key={s.day}
+                        key={s.id ?? String(s.createdAt ?? s.day)}
                         onPress={() => {
-                          setCompareId(s.day);
+                          setCompareId(s.id ?? String(s.createdAt ?? s.day));
                           setCompareOpen(false);
                         }}
                         style={{
@@ -1253,7 +1267,13 @@ export default function BodyScanScreen() {
                         }}
                       >
                         <Text style={{ color: "#fff", fontWeight: "900" }}>
-                          {s.day}
+                                                    {s.day}
+                          {s.createdAt
+                            ? ` • ${new Date(s.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                            : ""}
                         </Text>
                         <Text
                           style={{ color: "#94a3b8", marginTop: 2, fontSize: 12 }}
