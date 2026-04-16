@@ -219,8 +219,9 @@ export default function BodyScanCapture() {
               lineHeight: 18,
             }}
           >
-            Place le téléphone à hauteur stable, garde la même distance, et tiens-toi droit.
-            Le retardateur prend la photo automatiquement.
+            Place le téléphone à hauteur stable pour une photo de la tête aux pieds, garde la même distance, et tiens-toi droit.
+            Le retardateur prend la photo automatiquement. Pour cela clic sur le bouton "retardateur", choisi la durée puis clic sur "Prendre la photo"
+            Fais de même pour les 2 photos suivantes
           </Text>
         </View>
 
